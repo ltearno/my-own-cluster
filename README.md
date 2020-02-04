@@ -1,4 +1,4 @@
-= My Own Cluster
+# My Own Cluster
 
 This is an experiment to provide a full blown yet scalable, durable, simple and flexible computing platform based on new standards and able to run and integrate legacy POSIX applications.
 
@@ -18,41 +18,37 @@ For a computer to be useful, it needs a model for :
 - Storage,
 - Network and IO.
 
-== Building and running
+## Building and running
 
 Clone this repository :
 
-[source,bash]
-----
+```
 git clone git@github.com:ltearno/my-own-cluster.git
 
 cd my-own-cluster
-----
+```
 
 The first time, download the dependencies :
 
-[source,bash]
-----
+```
 make build-prepare
-----
+```
 
 Then to run it, call this :
 
-[source,bash]
-----
+```
 # Some values will be asked for https autosigned certificates generation,
 # you can type [ENTER] until the end to use default values
 make
-----
+```
 
 The program should build and start. It will listen on port 8443 with https protocol.
 
-=== Testing
+### Testing
 
 In another terminal, go to the repository directory and type :
 
-[source,bash]
-----
+```
 cd samples
 
 # this will upload some webassembly compiled sources to the service instance
@@ -60,15 +56,15 @@ make test-register
 
 # this will call the uploaded code and show some results
 make test-call
-----
+```
 
-== APIS
+## APIS
 
 - GAPI : guest API
 - PAPI : platform API
 - WAPI : web API
 
-=== Guest API
+### Guest API
 
 From the _guest_ to the _my-own-cluster_ host.
 
@@ -80,7 +76,7 @@ File system :
 - `api://output` : application output payload
 - `http://` and `https://` : used by the guest application to issue a request to some JSON REST Service services.
 
-== IFC (Inter Function Call)
+## IFC (Inter Function Call)
 
 Different modes possibles, based on low level directives.
 
@@ -96,13 +92,13 @@ One more advanced execution plan is the _map-reduce_ execution plan model.
 
 Both modes should operate through the virtual file api.
 
-== Hooks and customization
+## Hooks and customization
 
 The platforms should be very open and ease the creation of a community ecosystem of plugins and tools.
 
 Hooks and customization allow to customize web requests processing, filter, implement ACLs and security and so on...
 
-== TODO
+## TODO
 
 Compile GNU core-utils and run them to see compatibility issues (https://github.com/coreutils/coreutils)
 
