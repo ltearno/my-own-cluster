@@ -104,6 +104,8 @@ Hooks and customization allow to customize web requests processing, filter, impl
 
 ## TODO
 
+- provide way to publish files with persistence
+- allow the function to call another function
 - isolate wasm3 execution in KVM (base ourselves on https://github.com/google/novm)
 - compile GNU core-utils and run them to see compatibility issues (https://github.com/coreutils/coreutils)
 - make those run on those languages :
@@ -112,10 +114,8 @@ Hooks and customization allow to customize web requests processing, filter, impl
 - C/C++ (wasicc)
 - others ? lua, javascipt, assembly script...
 - define guest/host api over wasi/libc
-- allow the function to call another function
 - provide persistent key-value storage
 - allow function to read/write in key-value storage
-- provide way to publish files with persistence
 - allow for easy backup and disaster recovery, by default start on previous state
 - implement cron like scheduling api
 - think about distributing, replicating and scaling
