@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -40,13 +41,23 @@ func CliCallFunction(verbs []Verb) {
 		break
 
 	case "direct":
+		arguments := []int{}
+		for a := 1; a < len(verbs); a++ {
+			an, err := strconv.Atoi(verbs[a].Name)
+			if err != nil {
+				fmt.Println("Bad argument !", verbs[a].Name)
+				return
+			}
+			arguments = append(arguments, an)
+		}
+
 		bodyReq = &DirectCallFunctionRequest{
 			CallFunctionRequest: CallFunctionRequest{
 				Name:  functionName,
 				Mode:  mode,
 				Input: &input,
 			},
-			Arguments:     []int{2, 66},
+			Arguments:     arguments,
 			StartFunction: verbs[0].GetOptionOr("start_function", "_start"),
 		}
 		break

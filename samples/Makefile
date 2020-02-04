@@ -49,7 +49,7 @@ call:
 	@echo
 
 	@echo Calling 'api-demo-c' DIRECT mode, result is the addition of the two parameters we pass in the http query
-	@curl -k -s https://localhost:8443/api/functions/call -H 'Content-Type: application/json' -d '{"mode":"direct","name":"api-demo-c","start_function":"_start","arguments":[2,5]}' | jq
+	@../my-own-cluster call api-demo-c 264 55 | jq
 	@echo
 
 	@echo Calling 'wasi-write' POSIX mode, a simple webassembly text compiled program
