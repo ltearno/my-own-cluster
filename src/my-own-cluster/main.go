@@ -30,8 +30,14 @@ func main() {
 		fmt.Printf("\nmy-own-cluster usage :\n\n  my-own-cluster [OPTIONS] verbs...\n\nOPTIONS :\n\n")
 		flag.PrintDefaults()
 		fmt.Printf("\nVERBS :\n\n")
-		fmt.Printf("  serve                   start the web server\n")
-		fmt.Printf("  push NAME WASM_FILE     push a was code to the server\n")
+		fmt.Printf("  serve\n")
+		fmt.Printf("      start the web server\n")
+		fmt.Printf("  push FUNCTION_NAME WASM_FILE\n")
+		fmt.Printf("      sends a wasm code to the server\n")
+		fmt.Printf("  call FUNCTION_NAME posix")
+		fmt.Printf("      calls a function in POSIX mode (through WASI implementation)\n")
+		fmt.Printf("  call FUNCTION_NAME direct\n")
+		fmt.Printf("      calls a function in direct mode\n")
 	}
 
 	if printUsage {
