@@ -23,9 +23,10 @@ RUN make build-embed-assets
 
 RUN make build
 
-ADD tls.key.pem ./
-ADD tls.cert.pem ./
-
 RUN chown -R 1000:1000 /my-own-cluster
 
-ENTRYPOINT [ "/my-own-cluster/my-own-cluster", "serve" ]
+RUN mkdir /data
+ADD tls.key.pem /data/
+ADD tls.cert.pem /data/
+
+ENTRYPOINT [ "/my-own-cluster/my-own-cluster", "serve", "/data" ]

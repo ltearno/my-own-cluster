@@ -34,4 +34,4 @@ docker-build: tls.cert.pem
 	@docker build . -t my-own-cluster:latest
 
 docker-run:
-	@docker run --rm -it -p 8443:8443 my-own-cluster:latest
+	@docker run --rm -it -p 8443:8443 -v $(shell pwd)/my-own-cluster-database-provisional:/data/my-own-cluster-database-provisional my-own-cluster:latest
