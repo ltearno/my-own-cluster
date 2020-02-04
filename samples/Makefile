@@ -52,7 +52,7 @@ call:
 	@echo
 
 	@echo Calling 'wasi-write' POSIX mode, a simple webassembly text compiled program
-	@curl -k -s https://localhost:8443/api/functions/call -H 'Content-Type: application/json' -d '{"mode":"posix","name":"wasi-write","arguments":[],"input":"This text should be in uppercase\nIf yes, you can say yeahh !\n","wasi_file_name":"uppercase"}' | jq -r '.output' | base64 -d
+	@../my-own-cluster call wasi-write posix | jq -r '.output' | base64 -d
 	@echo
 
 	@echo Calling 'hello-go' POSIX mode, a golang program compiled with TinyGo

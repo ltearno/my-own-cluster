@@ -114,15 +114,16 @@ type CallFunctionRequest struct {
 	// 'direct' or 'posix'
 	Mode  string  `json:"mode"`
 	Input *string `json:"input,omitempty"`
-	Trace bool    `json:"trace,omitempty"`
 }
 
 type WASICallFunctionRequest struct {
+	CallFunctionRequest
 	WasiFilename string   `json:"wasi_file_name"`
 	Arguments    []string `json:"arguments"`
 }
 
 type DirectCallFunctionRequest struct {
+	CallFunctionRequest
 	StartFunction string `json:"start_function"`
 	Arguments     []int  `json:"arguments"`
 }
@@ -174,7 +175,7 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 		return
 	}
 
-	wctx.Trace = baseReq.Trace
+	wctx.Trace = false
 
 	wctx.AddAPIPlugin(NewMyOwnClusterAPIPlugin())
 	wctx.AddAPIPlugin(NewTinyGoAPIPlugin())

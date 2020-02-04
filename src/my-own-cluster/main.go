@@ -1,14 +1,8 @@
 package main
 
 import (
-	"bytes"
-	"crypto/tls"
-	"encoding/base64"
-	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"path/filepath"
 )
 
@@ -73,52 +67,11 @@ func main() {
 		functionName := verbs[1]
 		wasmFileName := verbs[2]
 
-		wasmBytes, err := ioutil.ReadFile(wasmFileName)
-		if err != nil {
-			fmt.Printf("cannot read file '%s'\n", wasmFileName)
-			return
-		}
+		CliPushFunction(functionName, wasmFileName)
+		break
 
-		encodedWasmBytes := base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wasmBytes)
-
-		reqBody := &RegisterFunctionRequest{
-			Name:      functionName,
-			WasmBytes: encodedWasmBytes,
-		}
-
-		bodyBytes, err := json.Marshal(reqBody)
-		if err != nil {
-			fmt.Printf("cannot marshal json\n")
-			return
-		}
-
-		bodyReader := bytes.NewReader(bodyBytes)
-
-		client := &http.Client{Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-		}}
-		resp, err := client.Post(BASE_SERVER_URL+"/api/functions/register", "application/json", bodyReader)
-		if err != nil {
-			panic(err)
-		}
-		defer resp.Body.Close()
-
-		bytes, _ := ioutil.ReadAll(resp.Body)
-
-		response := &RegisterFunctionResponse{}
-		if json.Unmarshal(bytes, response) != nil {
-			fmt.Printf("cannot unmarshall server response : %s\n", string(bytes))
-			return
-		}
-
-		if response.Status {
-			fmt.Printf("registered function '%s' size:%d techID:%s\n", response.Name, response.WasmBytesSize, response.TechId)
-		} else {
-			fmt.Printf("ERROR while registration of '%s' size:%d techID:%s\n", response.Name, response.WasmBytesSize, response.TechId)
-		}
-
+	case "call":
+		CliCallFunction(verbs[1:])
 		break
 
 	default:
