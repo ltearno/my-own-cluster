@@ -3,12 +3,39 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 )
 
 const BASE_SERVER_URL = "https://localhost:8443"
 
+type Verb struct {
+	Name    string
+	Options map[string]string
+}
+
+func ParseArgs(args []string) ([]Verb, error) {
+	verbs := []Verb{}
+
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+
+		if strings.HasPrefix(arg, "-") {
+			verbs[len(verbs)-1].Options[arg[1:]] = args[i+1]
+			i++
+		} else {
+			verbs = append(verbs, Verb{arg, make(map[string]string)})
+		}
+	}
+
+	return verbs, nil
+}
+
 func main() {
+	v, _ := ParseArgs(os.Args)
+	fmt.Println(v)
+
 	var printUsage = false
 	var help = flag.Bool("help", false, "show this help")
 	var port = flag.Int("port", 8443, "webserver listening port")
@@ -30,6 +57,8 @@ func main() {
 		fmt.Printf("\nmy-own-cluster usage :\n\n  my-own-cluster [OPTIONS] verbs...\n\nOPTIONS :\n\n")
 		flag.PrintDefaults()
 		fmt.Printf("\nVERBS :\n\n")
+		fmt.Printf("  help\n")
+		fmt.Printf("      prints this message\n")
 		fmt.Printf("  serve\n")
 		fmt.Printf("      start the web server\n")
 		fmt.Printf("  push FUNCTION_NAME WASM_FILE\n")
