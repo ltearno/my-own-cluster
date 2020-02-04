@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 const BASE_SERVER_URL = "https://localhost:8443"
@@ -89,7 +91,14 @@ func main() {
 			return
 		}
 
-		orchestrator := NewOrchestrator()
+		db, err := leveldb.OpenFile(filepath.Join(workingDir, "my-own-cluster-database-provisional"), nil)
+		if err != nil {
+			fmt.Printf("cannot find open database (%v)\n", err)
+			return
+		}
+		defer db.Close()
+
+		orchestrator := NewOrchestrator(db)
 
 		port := 8443
 		if portOption, ok := verbs[0].Options["port"]; ok {
@@ -117,6 +126,10 @@ func main() {
 
 	case "call":
 		CliCallFunction(verbs)
+		break
+
+	case "upload":
+		CliUploadFile(verbs)
 		break
 
 	default:

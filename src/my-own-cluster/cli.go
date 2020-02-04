@@ -12,6 +12,54 @@ import (
 	"strings"
 )
 
+func CliPushFunction(functionName string, wasmFileName string) {
+	wasmBytes, err := ioutil.ReadFile(wasmFileName)
+	if err != nil {
+		fmt.Printf("cannot read file '%s'\n", wasmFileName)
+		return
+	}
+
+	encodedWasmBytes := base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wasmBytes)
+
+	reqBody := &RegisterFunctionRequest{
+		Name:      functionName,
+		WasmBytes: encodedWasmBytes,
+	}
+
+	bodyBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		fmt.Printf("cannot marshal json\n")
+		return
+	}
+
+	bodyReader := bytes.NewReader(bodyBytes)
+
+	client := &http.Client{Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}}
+	resp, err := client.Post(BASE_SERVER_URL+"/api/function/register", "application/json", bodyReader)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	bytes, _ := ioutil.ReadAll(resp.Body)
+
+	response := &RegisterFunctionResponse{}
+	if json.Unmarshal(bytes, response) != nil {
+		fmt.Printf("cannot unmarshall server response : %s\n", string(bytes))
+		return
+	}
+
+	if response.Status {
+		fmt.Printf("registered function '%s' size:%d techID:%s\n", response.Name, response.WasmBytesSize, response.TechID)
+	} else {
+		fmt.Printf("ERROR while registration of '%s' size:%d techID:%s\n", response.Name, response.WasmBytesSize, response.TechID)
+	}
+}
+
 func CliCallFunction(verbs []Verb) {
 	// skip the verb that triggered us, it is given to us in case it contains options
 	verbs = verbs[1:]
@@ -80,7 +128,7 @@ func CliCallFunction(verbs []Verb) {
 			InsecureSkipVerify: true,
 		},
 	}}
-	resp, err := client.Post(BASE_SERVER_URL+"/api/functions/call", "application/json", bodyReader)
+	resp, err := client.Post(BASE_SERVER_URL+"/api/function/call", "application/json", bodyReader)
 	if err != nil {
 		panic(err)
 	}
@@ -91,18 +139,34 @@ func CliCallFunction(verbs []Verb) {
 	fmt.Print(string(bytes))
 }
 
-func CliPushFunction(functionName string, wasmFileName string) {
-	wasmBytes, err := ioutil.ReadFile(wasmFileName)
+func detectContentTypeFromFileName(name string) string {
+	return "application/octet-stream"
+}
+
+func CliUploadFile(verbs []Verb) {
+	verbs = verbs[1:]
+
+	path := verbs[0].Name
+	fileName := verbs[1].Name
+	contentType := ""
+	if len(verbs) >= 3 {
+		contentType = verbs[2].Name
+	} else {
+		contentType = detectContentTypeFromFileName(fileName)
+	}
+
+	fileBytes, err := ioutil.ReadFile(fileName)
 	if err != nil {
-		fmt.Printf("cannot read file '%s'\n", wasmFileName)
+		fmt.Printf("cannot read file '%s'\n", fileName)
 		return
 	}
 
-	encodedWasmBytes := base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wasmBytes)
+	encodedBytes := base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(fileBytes)
 
-	reqBody := &RegisterFunctionRequest{
-		Name:      functionName,
-		WasmBytes: encodedWasmBytes,
+	reqBody := &RegisterFileRequest{
+		Path:        path,
+		ContentType: contentType,
+		Bytes:       encodedBytes,
 	}
 
 	bodyBytes, err := json.Marshal(reqBody)
@@ -118,7 +182,8 @@ func CliPushFunction(functionName string, wasmFileName string) {
 			InsecureSkipVerify: true,
 		},
 	}}
-	resp, err := client.Post(BASE_SERVER_URL+"/api/functions/register", "application/json", bodyReader)
+
+	resp, err := client.Post(BASE_SERVER_URL+"/api/file/register", "application/json", bodyReader)
 	if err != nil {
 		panic(err)
 	}
@@ -126,15 +191,15 @@ func CliPushFunction(functionName string, wasmFileName string) {
 
 	bytes, _ := ioutil.ReadAll(resp.Body)
 
-	response := &RegisterFunctionResponse{}
+	response := &RegisterFileResponse{}
 	if json.Unmarshal(bytes, response) != nil {
 		fmt.Printf("cannot unmarshall server response : %s\n", string(bytes))
 		return
 	}
 
 	if response.Status {
-		fmt.Printf("registered function '%s' size:%d techID:%s\n", response.Name, response.WasmBytesSize, response.TechId)
+		fmt.Printf("registered file '%s' '%s' size:%d content_type:%s techID:%s\n", fileName, response.Path, response.BytesSize, response.ContentType, response.TechID)
 	} else {
-		fmt.Printf("ERROR while registration of '%s' size:%d techID:%s\n", response.Name, response.WasmBytesSize, response.TechId)
+		fmt.Printf("ERROR while registration '%s' of '%s' size:%d content_type:%s techID:%s\n", fileName, response.Path, response.BytesSize, response.ContentType, response.TechID)
 	}
 }

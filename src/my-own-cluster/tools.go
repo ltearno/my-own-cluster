@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"regexp"
 	"unsafe"
@@ -40,4 +41,11 @@ func min(a int, b int) int {
 	}
 
 	return b
+}
+
+func Sha256Sum(bytes []byte) string {
+	crc := sha256.New()
+	crc.Write(bytes)
+	sha256Bytes := crc.Sum(nil)
+	return fmt.Sprintf("%x", sha256Bytes)
 }

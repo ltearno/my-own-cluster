@@ -1,9 +1,10 @@
 package main
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"sync"
+
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 type RegisterFunction struct {
@@ -20,15 +21,59 @@ type Orchestrator struct {
 
 	registeredFunctionsByName   map[string]string
 	registeredFunctionsByTechId map[string]RegisterFunction
+
+	db *leveldb.DB
 }
 
-func NewOrchestrator() *Orchestrator {
+func NewOrchestrator(db *leveldb.DB) *Orchestrator {
 	return &Orchestrator{
 		nextPortID:                  1,
 		outputPorts:                 make(map[int]*OutputPort),
 		registeredFunctionsByName:   make(map[string]string),
 		registeredFunctionsByTechId: make(map[string]RegisterFunction),
+		db:                          db,
 	}
+}
+
+func (o *Orchestrator) RegisterFile(path string, contentType string, bytes []byte) string {
+	techID := Sha256Sum(bytes)
+
+	o.db.Put([]byte(fmt.Sprintf("/files/byid/%s/content-type", techID)), []byte(contentType), nil)
+	o.db.Put([]byte(fmt.Sprintf("/files/byid/%s/bytes", techID)), bytes, nil)
+	o.db.Put([]byte(fmt.Sprintf("/files/bypath/%s", path)), []byte(techID), nil)
+
+	return techID
+}
+
+func (o *Orchestrator) GetFileTechIDFromPath(path string) (string, bool) {
+	techIDBytes, err := o.db.Get([]byte(fmt.Sprintf("/files/bypath/%s", path)), nil)
+	if err != nil {
+		return "", false
+	}
+
+	techID := string(techIDBytes)
+
+	return techID, true
+}
+
+func (o *Orchestrator) GetFileContentType(techID string) (string, bool) {
+	contentTypeBytes, err := o.db.Get([]byte(fmt.Sprintf("/files/byid/%s/content-type", techID)), nil)
+	if err != nil {
+		return "", false
+	}
+
+	contentType := string(contentTypeBytes)
+
+	return contentType, true
+}
+
+func (o *Orchestrator) GetFileBytes(techID string) ([]byte, bool) {
+	fileBytes, err := o.db.Get([]byte(fmt.Sprintf("/files/byid/%s/bytes", techID)), nil)
+	if err != nil {
+		return nil, false
+	}
+
+	return fileBytes, true
 }
 
 func (o *Orchestrator) HasFunction(name string) bool {
@@ -37,10 +82,7 @@ func (o *Orchestrator) HasFunction(name string) bool {
 }
 
 func (o *Orchestrator) RegisterFunction(name string, wasmBytes []byte) string {
-	crc := sha256.New()
-	crc.Write(wasmBytes)
-	techIDBytes := crc.Sum(nil)
-	techID := fmt.Sprintf("%x", techIDBytes)
+	techID := Sha256Sum(wasmBytes)
 
 	function := RegisterFunction{
 		TechId:    techID,

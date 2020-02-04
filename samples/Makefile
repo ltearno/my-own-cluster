@@ -61,5 +61,5 @@ call:
 	@echo
 
 	@#echo Calling 'cowsay' POSIX mode, does not work yet !
-	@#curl -k -s https://localhost:8443/api/functions/call -H 'Content-Type: application/json' -d '{"mode":"posix","name":"cowsay","arguments":["I wish I was a cow !"],"wasi_file_name":"cowsay"}' | jq
+	@#curl -k -s https://localhost:8443/api/function/call -H 'Content-Type: application/json' -d '{"mode":"posix","name":"cowsay","arguments":["I wish I was a cow !"],"wasi_file_name":"cowsay"}' | jq
 	@#echo

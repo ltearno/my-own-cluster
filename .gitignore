@@ -7,3 +7,5 @@ pkg/
 src/github.com/
 
 src/github.com/ltearno/my-own-cluster/assetsgen/
+
+my-own-cluster-database-provisional/

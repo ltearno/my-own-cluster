@@ -28,7 +28,7 @@ type RegisterFunctionRequest struct {
 
 type RegisterFunctionResponse struct {
 	Status        bool   `json:"status"`
-	TechId        string `json:"tech_id"`
+	TechID        string `json:"tech_id"`
 	Name          string `json:"name"`
 	WasmBytesSize int    `json:"wasm_bytes_size"`
 }
@@ -83,6 +83,80 @@ func extractBodyAsJSON(r *http.Request, v interface{}) error {
 	return json.Unmarshal(body, v)
 }
 
+/*-----------------------------------------------------------------------------
+
+Register File
+
+-----------------------------------------------------------------------------*/
+
+type RegisterFileRequest struct {
+	Path        string `json:"path"`
+	ContentType string `json:"content_type"`
+	Bytes       string `json:"bytes"`
+}
+
+type RegisterFileResponse struct {
+	Status      bool   `json:"status"`
+	TechID      string `json:"tech_id"`
+	Path        string `json:"path"`
+	ContentType string `json:"content_type"`
+	BytesSize   int    `json:"bytes_size"`
+}
+
+func handlerGetFile(w http.ResponseWriter, r *http.Request, p httprouter.Params, server *WebServer) {
+	path := p.ByName("path")
+
+	techID, present := server.orchestrator.GetFileTechIDFromPath(path)
+	if !present {
+		errorResponse(w, 404, "sorry, unbound resource")
+		return
+	}
+
+	contentType, present := server.orchestrator.GetFileContentType(techID)
+	if !present {
+		errorResponse(w, 404, "sorry, file content type not found")
+		return
+	}
+
+	fileBytes, present := server.orchestrator.GetFileBytes(techID)
+	if !present {
+		errorResponse(w, 404, "sorry, file bytes not found")
+		return
+	}
+
+	// TODO add the ETag header corresponding to the sha
+	w.Header().Set("Content-Type", contentType)
+	w.WriteHeader(200)
+	w.Write(fileBytes)
+}
+
+func handlerRegisterFile(w http.ResponseWriter, r *http.Request, p httprouter.Params, server *WebServer) {
+	bodyReq := RegisterFileRequest{}
+	err := extractBodyAsJSON(r, &bodyReq)
+	if err != nil {
+		fmt.Println(err)
+		errorResponse(w, 500, "cannot read/parse your body")
+		return
+	}
+
+	bytes, err := base64.StdEncoding.WithPadding(base64.StdPadding).DecodeString(bodyReq.Bytes)
+	if err != nil {
+		panic(err)
+	}
+
+	techID := server.orchestrator.RegisterFile(bodyReq.Path, bodyReq.ContentType, bytes)
+
+	response := RegisterFileResponse{
+		Status:      true,
+		TechID:      techID,
+		Path:        bodyReq.Path,
+		ContentType: bodyReq.ContentType,
+		BytesSize:   len(bytes),
+	}
+
+	jsonResponse(w, 200, response)
+}
+
 func handlerRegisterFunction(w http.ResponseWriter, r *http.Request, p httprouter.Params, server *WebServer) {
 	bodyReq := RegisterFunctionRequest{}
 	err := extractBodyAsJSON(r, &bodyReq)
@@ -101,7 +175,7 @@ func handlerRegisterFunction(w http.ResponseWriter, r *http.Request, p httproute
 
 	response := RegisterFunctionResponse{
 		Status:        true,
-		TechId:        techID,
+		TechID:        techID,
 		Name:          bodyReq.Name,
 		WasmBytesSize: len(wasmBytes),
 	}
@@ -224,8 +298,10 @@ func (server *WebServer) makeHandler(handler func(http.ResponseWriter, *http.Req
 }
 
 func (server *WebServer) init(router *httprouter.Router) {
-	router.POST("/api/functions/register", server.makeHandler(handlerRegisterFunction))
-	router.POST("/api/functions/call", server.makeHandler(handlerCallFunction))
+	router.POST("/api/file/register", server.makeHandler(handlerRegisterFile))
+	router.POST("/api/function/register", server.makeHandler(handlerRegisterFunction))
+	router.POST("/api/function/call", server.makeHandler(handlerCallFunction))
+	router.GET("/*path", server.makeHandler(handlerGetFile))
 }
 
 type WebServer struct {
