@@ -28,3 +28,10 @@ run-serve: build-embed-assets tls.cert.pem
 tls.cert.pem:
 	@echo Generating TLS key files, you can leave default values everywhere by typing [ENTER] until the end
 	@openssl req -x509 -newkey rsa:4096 -keyout tls.key.pem -nodes -out tls.cert.pem -days 365
+
+docker-build: tls.cert.pem
+	@echo building docker image
+	@docker build . -t my-own-cluster:latest
+
+docker-run:
+	@docker run --rm -it -p 8443:8443 my-own-cluster:latest
