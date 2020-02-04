@@ -23,6 +23,7 @@ wasi-write.wasm: wasi-write.wat
 	wat2wasm wasi-write.wat -o wasi-write.wasm
 
 hello-go.wasm: hello-go.go
+	#GOOS=js GOARCH=wasm go build -o hello-go.wasm hello-go.go
 	tinygo build -o hello-go.wasm -target wasm -wasm-abi generic hello-go.go
 	wasm2wat hello-go.wasm > hello-go.wat
 
@@ -53,11 +54,11 @@ call:
 	@echo
 
 	@echo Calling 'wasi-write' POSIX mode, a simple webassembly text compiled program
-	@../my-own-cluster call wasi-write -mode posix | jq -r '.output' | base64 -d
+	@../my-own-cluster call wasi-write -mode posix -wasi_file_name some_name_eh_eh | jq -r '.output' | base64 -d
 	@echo
 
 	@echo Calling 'hello-go' POSIX mode, a golang program compiled with TinyGo
-	@../my-own-cluster call hello-go -mode posix -wasi_file_name some_name_eh_eh
+	../my-own-cluster call hello-go -mode posix
 	@echo
 
 	@#echo Calling 'cowsay' POSIX mode, does not work yet !

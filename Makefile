@@ -20,6 +20,10 @@ build: build-embed-assets
 	@echo "build binaries..."
 	@go build my-own-cluster
 
+build-releases: build-embed-assets
+	@echo building release files...
+	@./build-releases.sh
+
 .PHONY: run-serve
 run-serve: build-embed-assets tls.cert.pem
 	@echo "run binaries..."
