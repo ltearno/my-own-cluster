@@ -11,9 +11,13 @@ import (
 	"strings"
 )
 
-func CliCallFunction(verbs []string) {
-	functionName := verbs[0]
-	mode := strings.ToLower(verbs[1])
+func CliCallFunction(verbs []Verb) {
+	// skip the verb that triggered us, it is given to us in case it contains options
+	verbs = verbs[1:]
+
+	functionName := verbs[0].Name
+	mode := strings.ToLower(verbs[0].GetOptionOr("mode", "direct"))
+	input := verbs[0].GetOptionOr("input", "")
 
 	var bodyReq interface{} = nil
 
@@ -23,9 +27,9 @@ func CliCallFunction(verbs []string) {
 			CallFunctionRequest: CallFunctionRequest{
 				Name:  functionName,
 				Mode:  mode,
-				Input: nil,
+				Input: &input,
 			},
-			WasiFilename: "toto",
+			WasiFilename: verbs[0].GetOptionOr("wasi_file_name", "no_name"),
 			Arguments:    []string{"kjhgkjhg"},
 		}
 		break
@@ -35,10 +39,10 @@ func CliCallFunction(verbs []string) {
 			CallFunctionRequest: CallFunctionRequest{
 				Name:  functionName,
 				Mode:  mode,
-				Input: nil,
+				Input: &input,
 			},
 			Arguments:     []int{2, 66},
-			StartFunction: "_start",
+			StartFunction: verbs[0].GetOptionOr("start_function", "_start"),
 		}
 		break
 

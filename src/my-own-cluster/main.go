@@ -1,10 +1,10 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -13,6 +13,19 @@ const BASE_SERVER_URL = "https://localhost:8443"
 type Verb struct {
 	Name    string
 	Options map[string]string
+}
+
+func (v *Verb) GetOptionOr(optionName string, defaultValue string) string {
+	value, ok := v.Options[optionName]
+	if !ok {
+		value = defaultValue
+	}
+	return value
+}
+
+func (v *Verb) HasOption(optionName string) bool {
+	_, ok := v.Options[optionName]
+	return ok
 }
 
 func ParseArgs(args []string) ([]Verb, error) {
@@ -32,54 +45,42 @@ func ParseArgs(args []string) ([]Verb, error) {
 	return verbs, nil
 }
 
+func printHelp() {
+	fmt.Printf("\nmy-own-cluster usage :\n\n")
+	fmt.Printf("  help\n")
+	fmt.Printf("      prints this message\n")
+	fmt.Printf("  serve\n")
+	fmt.Printf("      start the web server\n")
+	fmt.Printf("  push FUNCTION_NAME WASM_FILE\n")
+	fmt.Printf("      sends a wasm code to the server\n")
+	fmt.Printf("  call FUNCTION_NAME posix")
+	fmt.Printf("      calls a function in POSIX mode (through WASI implementation)\n")
+	fmt.Printf("  call FUNCTION_NAME direct\n")
+	fmt.Printf("      calls a function in direct mode\n")
+}
+
 func main() {
-	v, _ := ParseArgs(os.Args)
-	fmt.Println(v)
-
-	var printUsage = false
-	var help = flag.Bool("help", false, "show this help")
-	var port = flag.Int("port", 8443, "webserver listening port")
-
-	flag.Parse()
-
-	if *help {
-		printUsage = true
+	verbs, err := ParseArgs(os.Args)
+	if err != nil {
+		printHelp()
+		return
 	}
 
-	verbs := flag.Args()
+	// remove process file name
+	verbs = verbs[1:]
 
-	if len(verbs) == 0 {
+	if len(verbs) == 0 || verbs[0].Name == "help" {
 		fmt.Println("not enough parameters, use '-help' !")
-		printUsage = true
-	}
-
-	printHelp := func() {
-		fmt.Printf("\nmy-own-cluster usage :\n\n  my-own-cluster [OPTIONS] verbs...\n\nOPTIONS :\n\n")
-		flag.PrintDefaults()
-		fmt.Printf("\nVERBS :\n\n")
-		fmt.Printf("  help\n")
-		fmt.Printf("      prints this message\n")
-		fmt.Printf("  serve\n")
-		fmt.Printf("      start the web server\n")
-		fmt.Printf("  push FUNCTION_NAME WASM_FILE\n")
-		fmt.Printf("      sends a wasm code to the server\n")
-		fmt.Printf("  call FUNCTION_NAME posix")
-		fmt.Printf("      calls a function in POSIX mode (through WASI implementation)\n")
-		fmt.Printf("  call FUNCTION_NAME direct\n")
-		fmt.Printf("      calls a function in direct mode\n")
-	}
-
-	if printUsage {
 		printHelp()
 		return
 	}
 
 	// execute the verb
-	switch verbs[0] {
+	switch verbs[0].Name {
 	case "serve":
 		relativeWorkdir := "."
 		if len(verbs) > 1 {
-			relativeWorkdir = verbs[1]
+			relativeWorkdir = verbs[1].Name
 		}
 
 		workingDir, err := filepath.Abs(relativeWorkdir)
@@ -90,7 +91,16 @@ func main() {
 
 		orchestrator := NewOrchestrator()
 
-		StartWebServer(*port, workingDir, orchestrator)
+		port := 8443
+		if portOption, ok := verbs[0].Options["port"]; ok {
+			port, err = strconv.Atoi(portOption)
+			if err != nil {
+				fmt.Printf("wrong port '%s', should be a number\n", portOption)
+				return
+			}
+		}
+
+		StartWebServer(port, workingDir, orchestrator)
 		break
 
 	case "push":
@@ -99,17 +109,18 @@ func main() {
 			return
 		}
 
-		functionName := verbs[1]
-		wasmFileName := verbs[2]
+		functionName := verbs[1].Name
+		wasmFileName := verbs[2].Name
 
 		CliPushFunction(functionName, wasmFileName)
 		break
 
 	case "call":
-		CliCallFunction(verbs[1:])
+		CliCallFunction(verbs)
 		break
 
 	default:
+		fmt.Printf("No argument received !\n")
 		printHelp()
 	}
 }
