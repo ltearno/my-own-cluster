@@ -223,8 +223,8 @@ func (server *WebServer) makeHandler(handler func(http.ResponseWriter, *http.Req
 }
 
 func (server *WebServer) init(router *httprouter.Router) {
-	router.POST("/api/functions", server.makeHandler(handlerRegisterFunction))
-	router.GET("/api/functions", server.makeHandler(handlerCallFunction))
+	router.POST("/api/functions/register", server.makeHandler(handlerRegisterFunction))
+	router.POST("/api/functions/call", server.makeHandler(handlerCallFunction))
 }
 
 type WebServer struct {
