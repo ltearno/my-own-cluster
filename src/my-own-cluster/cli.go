@@ -140,7 +140,19 @@ func CliCallFunction(verbs []Verb) {
 }
 
 func detectContentTypeFromFileName(name string) string {
-	return "application/octet-stream"
+	i := strings.LastIndex(name, ".")
+	if i < 0 {
+		return "application/octet-stream"
+	}
+
+	extension := name[i+1:]
+
+	mimeType, ok := MimeTypes[extension]
+	if !ok {
+		return "application/octet-stream"
+	}
+
+	return mimeType
 }
 
 func CliUploadFile(verbs []Verb) {
