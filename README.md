@@ -22,7 +22,7 @@ For a computer to be useful, it needs a model for :
 
 Clone this repository :
 
-```
+```bash
 git clone git@github.com:ltearno/my-own-cluster.git
 
 cd my-own-cluster
@@ -30,13 +30,13 @@ cd my-own-cluster
 
 The first time, download the dependencies :
 
-```
+```bash
 make build-prepare
 ```
 
 Then to run it, call this :
 
-```
+```bash
 # Some values will be asked for https autosigned certificates generation,
 # you can type [ENTER] until the end to use default values
 make
@@ -48,7 +48,7 @@ The program should build and start. It will listen on port 8443 with https proto
 
 In another terminal, go to the repository directory and type :
 
-```
+```bash
 cd samples
 
 # this will upload some webassembly compiled sources to the service instance
