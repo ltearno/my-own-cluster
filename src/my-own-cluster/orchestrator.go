@@ -19,19 +19,14 @@ type Orchestrator struct {
 
 	lock sync.Mutex
 
-	registeredFunctionsByName   map[string]string
-	registeredFunctionsByTechId map[string]RegisterFunction
-
 	db *leveldb.DB
 }
 
 func NewOrchestrator(db *leveldb.DB) *Orchestrator {
 	return &Orchestrator{
-		nextPortID:                  1,
-		outputPorts:                 make(map[int]*OutputPort),
-		registeredFunctionsByName:   make(map[string]string),
-		registeredFunctionsByTechId: make(map[string]RegisterFunction),
-		db:                          db,
+		nextPortID:  1,
+		outputPorts: make(map[int]*OutputPort),
+		db:          db,
 	}
 }
 
@@ -76,31 +71,35 @@ func (o *Orchestrator) GetFileBytes(techID string) ([]byte, bool) {
 	return fileBytes, true
 }
 
-func (o *Orchestrator) HasFunction(name string) bool {
-	_, ok := o.registeredFunctionsByName[name]
-	return ok
-}
-
 func (o *Orchestrator) RegisterFunction(name string, wasmBytes []byte) string {
 	techID := Sha256Sum(wasmBytes)
 
-	function := RegisterFunction{
-		TechId:    techID,
-		Name:      name,
-		WasmBytes: wasmBytes,
-	}
-	o.registeredFunctionsByTechId[techID] = function
-
-	alreadyRegisteredTechID, alreadyRegistered := o.registeredFunctionsByName[name]
-	if alreadyRegistered && alreadyRegisteredTechID == techID {
-		return techID
-	}
+	o.db.Put([]byte(fmt.Sprintf("/functions/byid/%s/bytes", techID)), wasmBytes, nil)
+	o.db.Put([]byte(fmt.Sprintf("/functions/byname/%s", name)), []byte(techID), nil)
 
 	fmt.Printf("registered_function '%s', size:%d, techID:%s\n", name, len(wasmBytes), techID)
 
-	o.registeredFunctionsByName[name] = techID
-
 	return techID
+}
+
+func (o *Orchestrator) GetFunctionTechIDFromName(name string) (string, bool) {
+	techIDBytes, err := o.db.Get([]byte(fmt.Sprintf("/functions/byname/%s", name)), nil)
+	if err != nil {
+		return "", false
+	}
+
+	techID := string(techIDBytes)
+
+	return techID, true
+}
+
+func (o *Orchestrator) GetFunctionBytes(techID string) ([]byte, bool) {
+	wasmBytes, err := o.db.Get([]byte(fmt.Sprintf("/functions/byid/%s/bytes", techID)), nil)
+	if err != nil {
+		return nil, false
+	}
+
+	return wasmBytes, true
 }
 
 func (o *Orchestrator) CreateOutputPort() int {

@@ -82,12 +82,12 @@ type VirtualFile interface {
 }
 
 func CreateWasmContext(o *Orchestrator, mode string, functionName string, startFunction string, input []byte, outputPortID int) *WasmProcessContext {
-	techID, ok := o.registeredFunctionsByName[functionName]
+	techID, ok := o.GetFunctionTechIDFromName(functionName)
 	if !ok {
 		return nil
 	}
 
-	function, ok := o.registeredFunctionsByTechId[techID]
+	wasmBytes, ok := o.GetFunctionBytes(techID)
 	if !ok {
 		return nil
 	}
@@ -96,7 +96,7 @@ func CreateWasmContext(o *Orchestrator, mode string, functionName string, startF
 		Orchestrator:  o,
 		Name:          functionName,
 		Mode:          mode,
-		WasmBytes:     function.WasmBytes,
+		WasmBytes:     wasmBytes,
 		InputBuffer:   input,
 		OutputPortID:  outputPortID,
 		StartFunction: startFunction,

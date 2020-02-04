@@ -3,9 +3,11 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/syndtr/goleveldb/leveldb"
 )
@@ -80,6 +82,9 @@ func main() {
 	// execute the verb
 	switch verbs[0].Name {
 	case "serve":
+		sigs := make(chan os.Signal, 1)
+		done := make(chan bool, 2)
+
 		relativeWorkdir := "."
 		if len(verbs) > 1 {
 			relativeWorkdir = verbs[1].Name
@@ -109,7 +114,23 @@ func main() {
 			}
 		}
 
-		StartWebServer(port, workingDir, orchestrator)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+		go func() {
+			StartWebServer(port, workingDir, orchestrator)
+			fmt.Printf("\nweb server terminated abruptly, exiting\n")
+			done <- true
+		}()
+
+		go func() {
+			sig := <-sigs
+			fmt.Printf("\nreceived signal %v, exiting\n", sig)
+			done <- true
+		}()
+
+		<-done
+		fmt.Printf("bye\n")
+
 		break
 
 	case "push":
