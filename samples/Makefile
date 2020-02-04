@@ -63,3 +63,9 @@ call:
 	@#echo Calling 'cowsay' POSIX mode, does not work yet !
 	@#curl -k -s https://localhost:8443/api/function/call -H 'Content-Type: application/json' -d '{"mode":"posix","name":"cowsay","arguments":["I wish I was a cow !"],"wasi_file_name":"cowsay"}' | jq
 	@#echo
+
+test-files:
+	@echo upload a file to some path
+	@../my-own-cluster upload /titi/bla.c uppercase.c
+	@echo curl the path :
+	@curl -k https://localhost:8443/titi/bla.c

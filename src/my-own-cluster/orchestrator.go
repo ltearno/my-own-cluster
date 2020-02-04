@@ -33,9 +33,16 @@ func NewOrchestrator(db *leveldb.DB) *Orchestrator {
 func (o *Orchestrator) RegisterFile(path string, contentType string, bytes []byte) string {
 	techID := Sha256Sum(bytes)
 
+	alreadyTechID, present := o.GetFileTechIDFromPath(path)
+	if present && alreadyTechID == techID {
+		return techID
+	}
+
 	o.db.Put([]byte(fmt.Sprintf("/files/byid/%s/content-type", techID)), []byte(contentType), nil)
 	o.db.Put([]byte(fmt.Sprintf("/files/byid/%s/bytes", techID)), bytes, nil)
 	o.db.Put([]byte(fmt.Sprintf("/files/bypath/%s", path)), []byte(techID), nil)
+
+	fmt.Printf("registered_file '%s', size:%d, techID:%s\n", path, len(bytes), techID)
 
 	return techID
 }
@@ -73,6 +80,11 @@ func (o *Orchestrator) GetFileBytes(techID string) ([]byte, bool) {
 
 func (o *Orchestrator) RegisterFunction(name string, wasmBytes []byte) string {
 	techID := Sha256Sum(wasmBytes)
+
+	alreadyTechID, present := o.GetFunctionTechIDFromName(name)
+	if present && alreadyTechID == techID {
+		return techID
+	}
 
 	o.db.Put([]byte(fmt.Sprintf("/functions/byid/%s/bytes", techID)), wasmBytes, nil)
 	o.db.Put([]byte(fmt.Sprintf("/functions/byname/%s", name)), []byte(techID), nil)
