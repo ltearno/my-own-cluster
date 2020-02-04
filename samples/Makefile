@@ -27,27 +27,18 @@ hello-go.wasm: hello-go.go
 	wasm2wat hello-go.wasm > hello-go.wat
 
 
-.PHONY: test-register test-call
+.PHONY: register call
 
-test-register: http-request.wasm api-demo-c.wasm uppercase.wasm wasi-write.wasm hello-go.wasm
+register: http-request.wasm api-demo-c.wasm uppercase.wasm wasi-write.wasm hello-go.wasm
 	@echo Registering functions...
-	@echo Register 'http-request'
-	@curl -k -s https://localhost:8443/api/functions/register -H 'Content-Type: application/json' -d '{"name":"http-request","wasm_bytes":"$(shell cat http-request.wasm | base64 -w 0)"}' | jq
-	@echo Register 'uppercase'
-	@curl -k -s https://localhost:8443/api/functions/register -H 'Content-Type: application/json' -d '{"name":"uppercase","wasm_bytes":"$(shell cat uppercase.wasm | base64 -w 0)"}' | jq
-	@echo Register 'api-demo-c'
-	@curl -k -s https://localhost:8443/api/functions/register -H 'Content-Type: application/json' -d '{"name":"api-demo-c","wasm_bytes":"$(shell cat api-demo-c.wasm | base64 -w 0)"}' | jq
-	@echo Register 'wasi-write'
-	@curl -k -s https://localhost:8443/api/functions/register -H 'Content-Type: application/json' -d '{"name":"wasi-write","wasm_bytes":"$(shell cat wasi-write.wasm | base64 -w 0)"}' | jq
-	@echo Register 'hello-go'
-	@curl -k -s https://localhost:8443/api/functions/register -H 'Content-Type: application/json' -d '{"name":"hello-go","wasm_bytes":"$(shell cat hello-go.wasm | base64 -w 0)"}' | jq
-	@echo Register 'cowsay'
-	@echo '{"name":"cowsay","wasm_bytes":"' > /tmp/tmp.json
-	@cat /tmp/wapm_packages/_/cowsay@0.2.0/target/wasm32-wasi/release/cowsay.wasm | base64 -w 0 >> /tmp/tmp.json
-	@echo '"}' >> /tmp/tmp.json
-	@curl -k -s https://localhost:8443/api/functions/register -H "Content-Type: application/json" -H 'Content-Type: application/json' -d @/tmp/tmp.json | jq
+	@../my-own-cluster push http-request http-request.wasm
+	@../my-own-cluster push uppercase uppercase.wasm
+	@../my-own-cluster push api-demo-c api-demo-c.wasm
+	@../my-own-cluster push wasi-write wasi-write.wasm
+	@../my-own-cluster push hello-go hello-go.wasm
+	@../my-own-cluster push cowsay cowsay.wasm
 
-test-call:
+call:
 	@echo Calling 'http-request' POSIX mode, the client code makes a http request through the my-own-cluster api and outputs its reply body
 	@curl -k -s https://localhost:8443/api/functions/call -H 'Content-Type: application/json' -d '{"mode":"posix","name":"http-request","arguments":["https://home.lteconsulting.fr"],"input":"Hello to you application","wasi_file_name":"http-request.wasm"}' | jq -r '.output' | base64 -d
 	@echo

@@ -246,6 +246,6 @@ func StartWebServer(port int, workingDir string, orchestrator *Orchestrator) {
 
 	server.init(router)
 
-	fmt.Printf("my-own-cluster is ready listening on port %d\n", port)
+	fmt.Printf("listening on port %d\n", port)
 	log.Fatal(http.ListenAndServeTLS(fmt.Sprintf("0.0.0.0:%d", port), filepath.Join(workingDir, "tls.cert.pem"), filepath.Join(workingDir, "tls.key.pem"), router))
 }

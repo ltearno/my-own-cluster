@@ -49,13 +49,16 @@ The program should build and start. It will listen on port 8443 with https proto
 In another terminal, go to the repository directory and type :
 
 ```bash
+# to build the executable binary (the previous step used "go run")
+make build
+
 cd samples
 
 # this will upload some webassembly compiled sources to the service instance
-make test-register
+make register
 
 # this will call the uploaded code and show some results
-make test-call
+make call
 ```
 
 ## APIS
