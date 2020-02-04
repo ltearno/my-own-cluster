@@ -100,8 +100,8 @@ Hooks and customization allow to customize web requests processing, filter, impl
 
 ## TODO
 
-Compile GNU core-utils and run them to see compatibility issues (https://github.com/coreutils/coreutils)
-
+- isolate wasm3 execution in KVM (base ourselves on https://github.com/google/novm)
+- compile GNU core-utils and run them to see compatibility issues (https://github.com/coreutils/coreutils)
 - cli for pushing and calling function
 - make those run on those languages :
 - golang (tinygo)
@@ -110,6 +110,9 @@ Compile GNU core-utils and run them to see compatibility issues (https://github.
 - others ? lua, javascipt, assembly script...
 - define guest/host api over wasi/libc
 - allow the function to call another function
-- provide key-value storage
+- provide persistent key-value storage
 - allow function to read/write in key-value storage
-- allow for easy backup and disaster recovery
+- provide way to publish files with persistence
+- allow for easy backup and disaster recovery, by default start on previous state
+- implement cron like scheduling api
+- think about distributing, replicating and scaling
