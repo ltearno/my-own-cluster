@@ -153,6 +153,10 @@ func main() {
 		CliUploadFile(verbs)
 		break
 
+	case "upload-dir":
+		CliUploadDir(verbs)
+		break
+
 	default:
 		fmt.Printf("No argument received !\n")
 		printHelp()

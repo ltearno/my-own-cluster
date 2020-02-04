@@ -66,6 +66,6 @@ call:
 
 test-files:
 	@echo upload a file to some path
-	@../my-own-cluster upload /titi/bla.c uppercase.c
+	@../my-own-cluster upload /titi/uppercase.c uppercase.c
 	@echo curl the path :
-	@curl -k https://localhost:8443/titi/bla.c
+	@curl -k https://localhost:8443/titi/uppercase.c

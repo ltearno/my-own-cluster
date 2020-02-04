@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -155,6 +157,37 @@ func detectContentTypeFromFileName(name string) string {
 	return mimeType
 }
 
+func CliUploadDir(verbs []Verb) {
+	verbs = verbs[1:]
+
+	pathPrefix := verbs[0].Name
+	directoryName := verbs[1].Name
+
+	directoryName, err := filepath.Abs(directoryName)
+	if err != nil {
+		fmt.Printf("error getting absolute path (%v)\n", err)
+		return
+	}
+
+	count := 0
+	countError := 0
+
+	filepath.Walk(directoryName, func(path string, info os.FileInfo, err error) error {
+		urlPath := filepath.Join(pathPrefix, path[len(directoryName):])
+		if !info.IsDir() {
+			fmt.Printf("%s  =>  %s\n", path, urlPath)
+			resp, err := uploadFile(urlPath, detectContentTypeFromFileName(path), path)
+			if err != nil || !resp.Status {
+				countError++
+			}
+			count++
+		}
+		return nil
+	})
+
+	fmt.Printf("uploaded %d files (%d errors).\n", count, countError)
+}
+
 func CliUploadFile(verbs []Verb) {
 	verbs = verbs[1:]
 
@@ -167,10 +200,24 @@ func CliUploadFile(verbs []Verb) {
 		contentType = detectContentTypeFromFileName(fileName)
 	}
 
+	response, err := uploadFile(path, contentType, fileName)
+	if err != nil {
+		fmt.Printf("error while doing things, %v\n", err)
+		return
+	}
+
+	if response.Status {
+		fmt.Printf("registered file '%s' '%s' size:%d content_type:%s techID:%s\n", fileName, response.Path, response.BytesSize, response.ContentType, response.TechID)
+	} else {
+		fmt.Printf("ERROR while registration '%s' of '%s' size:%d content_type:%s techID:%s\n", fileName, response.Path, response.BytesSize, response.ContentType, response.TechID)
+	}
+}
+
+func uploadFile(path string, contentType string, fileName string) (*RegisterFileResponse, error) {
 	fileBytes, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		fmt.Printf("cannot read file '%s'\n", fileName)
-		return
+		return nil, err
 	}
 
 	encodedBytes := base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(fileBytes)
@@ -184,7 +231,7 @@ func CliUploadFile(verbs []Verb) {
 	bodyBytes, err := json.Marshal(reqBody)
 	if err != nil {
 		fmt.Printf("cannot marshal json\n")
-		return
+		return nil, err
 	}
 
 	bodyReader := bytes.NewReader(bodyBytes)
@@ -197,7 +244,7 @@ func CliUploadFile(verbs []Verb) {
 
 	resp, err := client.Post(BASE_SERVER_URL+"/api/file/register", "application/json", bodyReader)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 
@@ -206,12 +253,8 @@ func CliUploadFile(verbs []Verb) {
 	response := &RegisterFileResponse{}
 	if json.Unmarshal(bytes, response) != nil {
 		fmt.Printf("cannot unmarshall server response : %s\n", string(bytes))
-		return
+		return nil, err
 	}
 
-	if response.Status {
-		fmt.Printf("registered file '%s' '%s' size:%d content_type:%s techID:%s\n", fileName, response.Path, response.BytesSize, response.ContentType, response.TechID)
-	} else {
-		fmt.Printf("ERROR while registration '%s' of '%s' size:%d content_type:%s techID:%s\n", fileName, response.Path, response.BytesSize, response.ContentType, response.TechID)
-	}
+	return response, nil
 }
