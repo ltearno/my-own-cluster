@@ -52,6 +52,7 @@ In another terminal, go to the repository directory and type :
 # to build the executable binary (the previous step used "go run")
 make build
 
+# the samples directory
 cd samples
 
 # this will upload some webassembly compiled sources to the service instance
@@ -105,7 +106,6 @@ Hooks and customization allow to customize web requests processing, filter, impl
 
 - isolate wasm3 execution in KVM (base ourselves on https://github.com/google/novm)
 - compile GNU core-utils and run them to see compatibility issues (https://github.com/coreutils/coreutils)
-- cli for pushing and calling function
 - make those run on those languages :
 - golang (tinygo)
 - rust
