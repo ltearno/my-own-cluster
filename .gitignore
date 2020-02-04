@@ -1,0 +1,9 @@
+/my-own-cluster
+*.pem
+.vscode/
+
+bin/
+pkg/
+src/github.com/
+
+src/github.com/ltearno/my-own-cluster/assetsgen/
