@@ -23,14 +23,19 @@ func CliCallFunction(verbs []Verb) {
 
 	switch mode {
 	case "posix":
+		arguments := []string{}
+		for a := 1; a < len(verbs); a++ {
+			arguments = append(arguments, verbs[a].Name)
+		}
+
 		bodyReq = &WASICallFunctionRequest{
 			CallFunctionRequest: CallFunctionRequest{
 				Name:  functionName,
 				Mode:  mode,
 				Input: &input,
 			},
-			WasiFilename: verbs[0].GetOptionOr("wasi_file_name", "no_name"),
-			Arguments:    []string{"kjhgkjhg"},
+			WasiFilename: verbs[0].GetOptionOr("wasi_file_name", functionName),
+			Arguments:    arguments,
 		}
 		break
 

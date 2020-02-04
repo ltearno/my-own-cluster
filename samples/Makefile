@@ -40,11 +40,12 @@ register: http-request.wasm api-demo-c.wasm uppercase.wasm wasi-write.wasm hello
 
 call:
 	@echo Calling 'http-request' POSIX mode, the client code makes a http request through the my-own-cluster api and outputs its reply body
-	@curl -k -s https://localhost:8443/api/functions/call -H 'Content-Type: application/json' -d '{"mode":"posix","name":"http-request","arguments":["https://home.lteconsulting.fr"],"input":"Hello to you application","wasi_file_name":"http-request.wasm"}' | jq -r '.output' | base64 -d
+	@../my-own-cluster call http-request -mode posix -input "Hello to you application" https://home.lteconsulting.fr | jq -r '.output' | base64 -d
 	@echo
 
 	@echo Calling 'uppercase' POSIX mode, result is the uppercase of the buffer given in the http request
-	@curl -k -s https://localhost:8443/api/functions/call -H 'Content-Type: application/json' -d '{"mode":"posix","name":"uppercase","arguments":[],"input":"This text should be in uppercase\nIf yes, you can say yeahh !\n","wasi_file_name":"uppercase"}' | jq -r '.output' | base64 -d
+	@../my-own-cluster call uppercase -mode posix -input "This text should be in uppercase, if yes, you can say yeahh !" | jq -r '.output' | base64 -d
+	@echo
 	@echo
 
 	@echo Calling 'api-demo-c' DIRECT mode, result is the addition of the two parameters we pass in the http query
@@ -52,11 +53,11 @@ call:
 	@echo
 
 	@echo Calling 'wasi-write' POSIX mode, a simple webassembly text compiled program
-	@../my-own-cluster call wasi-write posix | jq -r '.output' | base64 -d
+	@../my-own-cluster call wasi-write -mode posix | jq -r '.output' | base64 -d
 	@echo
 
 	@echo Calling 'hello-go' POSIX mode, a golang program compiled with TinyGo
-	@curl -k -s https://localhost:8443/api/functions/call -H 'Content-Type: application/json' -d '{"mode":"posix","name":"hello-go","arguments":[],"wasi_file_name":"uppercase"}' | jq
+	@../my-own-cluster call hello-go -mode posix -wasi_file_name some_name_eh_eh
 	@echo
 
 	@#echo Calling 'cowsay' POSIX mode, does not work yet !
