@@ -33,6 +33,9 @@ wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm: wasm-rust-demo/src/
 	@echo Compiling rust program to webassembly with wasi
 	@cd wasm-rust-demo && rustup target add wasm32-wasi && cargo build --target wasm32-wasi
 
+rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm: rust-nowasi/src/lib.rs
+	@echo Building rust program without wasi
+	@cd rust-nowasi && rustup target add wasm32-unknown-unknown && cargo build --target=wasm32-unknown-unknown
 
 .PHONY: register register-rust call
 
@@ -74,6 +77,7 @@ call:
 register-rust: wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm
 	@echo Registering rust sample
 	@../my-own-cluster push wasm-rust-demo wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm
+	@../my-own-cluster push rust-multiply rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm
 
 call-rust:
 	@echo Calling 'wasm-rust-demo', a little demo program written in Rust and built for the wasm32-wasi platform
@@ -81,6 +85,8 @@ call-rust:
 	@echo Decoding base64 output :
 	../my-own-cluster call wasm-rust-demo -mode posix "https://home.lteconsulting.fr" "api://output" | jq -r '.output' | base64 -d
 	@echo
+	@echo Calling multiply function implemented in Rust without wasi, result of the multiplication is found in the result field
+	../my-own-cluster call rust-multiply -start_function rustMultiply 4 3 | jq
 
 test-files:
 	@echo upload a file to some path
