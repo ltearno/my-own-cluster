@@ -1,6 +1,3 @@
-#ifndef api_demo_api_h
-#define api_demo_api_h
-
 #include <stdint.h>
 
 #define WASM_EXPORT                   extern __attribute__((used)) __attribute__((visibility ("default")))
@@ -8,6 +5,10 @@
 #define WASM_IMPORT(MODULE,NAME)      __attribute__((import_module(MODULE))) __attribute__((import_name(NAME)))
 #define WASM_CONSTRUCTOR              __attribute__((constructor))
 
-WASM_IMPORT("my-own-cluster", "test") uint32_t test();
+WASM_IMPORT("rust-multiply", "rustMultiply")
+uint32_t rustMultiply(uint32_t a, uint32_t b);
 
-#endif
+WASM_EXPORT
+uint32_t process(int a, int b) {
+    return rustMultiply(a,a) + rustMultiply(b,b);
+}

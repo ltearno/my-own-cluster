@@ -10,7 +10,7 @@ api-demo-c.wasm: api-demo-c.c
 	wasicc  -Os                                        \
         -z stack-size=4096 -Wl,--initial-memory=65536  \
         -Wl,--allow-undefined-file=api-demo-c.syms     \
-        -Wl,--strip-all -nostdlib                      \
+        -Wl,--strip-all -Wl,--no-entry -nostdlib                      \
         -o api-demo-c.wasm api-demo-c.c
 
 	# Optimize (optional)
@@ -18,6 +18,13 @@ api-demo-c.wasm: api-demo-c.c
 	#wasm-strip api-demo-c.wasm
 
 	wasm2wat api-demo-c.wasm > api-demo-c.wat
+
+interop.wasm: interop.c
+	wasicc  -Os                                        \
+        -z stack-size=4096 -Wl,--initial-memory=65536  \
+        -Wl,--allow-undefined-file=interop.syms     \
+        -Wl,--strip-all -Wl,--no-entry -nostdlib                      \
+        -o interop.wasm interop.c
 
 wasi-write.wasm: wasi-write.wat
 	wat2wasm wasi-write.wat -o wasi-write.wasm
@@ -39,7 +46,7 @@ rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm: rust-nowasi/sr
 
 .PHONY: register register-rust call
 
-register: http-request.wasm api-demo-c.wasm uppercase.wasm wasi-write.wasm hello-go.wasm
+register: http-request.wasm api-demo-c.wasm uppercase.wasm wasi-write.wasm hello-go.wasm interop.wasm
 	@echo Registering functions...
 	@../my-own-cluster push http-request http-request.wasm
 	@../my-own-cluster push uppercase uppercase.wasm
@@ -47,6 +54,7 @@ register: http-request.wasm api-demo-c.wasm uppercase.wasm wasi-write.wasm hello
 	@../my-own-cluster push wasi-write wasi-write.wasm
 	@../my-own-cluster push hello-go hello-go.wasm
 	@../my-own-cluster push cowsay cowsay.wasm
+	@../my-own-cluster push interop interop.wasm
 
 call:
 	@echo Calling 'http-request' POSIX mode, the client code makes a http request through the my-own-cluster api and outputs its reply body
@@ -87,6 +95,11 @@ call-rust:
 	@echo
 	@echo Calling multiply function implemented in Rust without wasi, result of the multiplication is found in the result field
 	../my-own-cluster call rust-multiply -start_function rustMultiply 4 3 | jq
+
+call-interop:
+	@echo Calling 'interop' DIRECT mode, result is processed in the C code that calls Rust code
+	../my-own-cluster call interop -start_function process 264 55 | jq
+	@echo
 
 test-files:
 	@echo upload a file to some path

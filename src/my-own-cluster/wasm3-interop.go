@@ -326,6 +326,32 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 		plugin.Bind(wctx)
 	}
 
+	for m := range wctx.GetImportedModules() {
+		if moduleFunctionTechID, ok := wctx.Orchestrator.GetFunctionTechIDFromName(m); ok {
+			fmt.Printf("emulating %s imported module with function %s techID:%s...\n", m, m, moduleFunctionTechID)
+			wctx.BindAPIFunction(m, "rustMultiply", "i(ii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
+				a := cs.GetParamUINT32(0)
+				b := cs.GetParamUINT32(1)
+
+				fmt.Printf("  >- emulation called -<\n")
+
+				portID := wctx.Orchestrator.CreateOutputPort()
+				subWctx := CreateWasmContext(wctx.Orchestrator, "direct", m, "rustMultiply", []byte{}, portID)
+				if subWctx == nil {
+					return 42, nil
+				}
+
+				subWctx.AddAPIPlugin(NewMyOwnClusterAPIPlugin())
+
+				subWctx.Run([]int{int(a), int(b)})
+
+				fmt.Printf("SUB WCTX returned %d\n", subWctx.Result)
+
+				return uint32(subWctx.Result), nil
+			})
+		}
+	}
+
 	// WITHOUT CALLING THIS, THE fn.Call() call fails ! need to investigate
 	wctx.Runtime.FindFunction(wctx.StartFunction)
 
