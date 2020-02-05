@@ -27,8 +27,13 @@ hello-go.wasm: hello-go.go
 	tinygo build -o hello-go.wasm -target wasm -wasm-abi generic hello-go.go
 	wasm2wat hello-go.wasm > hello-go.wat
 
+# you should have the rust toolchain to build that
+wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm: wasm-rust-demo/src/main.rs
+	@echo Compiling rust program to webassembly with wasi
+	@cd wasm-rust-demo && rustup target add wasm32-wasi && cargo build --target wasm32-wasi
 
-.PHONY: register call
+
+.PHONY: register register-rust call
 
 register: http-request.wasm api-demo-c.wasm uppercase.wasm wasi-write.wasm hello-go.wasm
 	@echo Registering functions...
@@ -64,6 +69,17 @@ call:
 	@#echo Calling 'cowsay' POSIX mode, does not work yet !
 	@#curl -k -s https://localhost:8443/api/function/call -H 'Content-Type: application/json' -d '{"mode":"posix","name":"cowsay","arguments":["I wish I was a cow !"],"wasi_file_name":"cowsay"}' | jq
 	@#echo
+
+register-rust: wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm
+	@echo Registering rust sample
+	@../my-own-cluster push wasm-rust-demo wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm
+
+call-rust:
+	@echo Calling 'wasm-rust-demo', a little demo program written in Rust and built for the wasm32-wasi platform
+	../my-own-cluster call wasm-rust-demo -mode posix "https://home.lteconsulting.fr" "api://output" | jq
+	@echo Decoding base64 output :
+	../my-own-cluster call wasm-rust-demo -mode posix "https://home.lteconsulting.fr" "api://output" | jq -r '.output' | base64 -d
+	@echo
 
 test-files:
 	@echo upload a file to some path
