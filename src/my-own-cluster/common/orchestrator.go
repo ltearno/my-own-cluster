@@ -1,4 +1,4 @@
-package main
+package common
 
 import (
 	"fmt"
@@ -108,6 +108,20 @@ func (o *Orchestrator) GetFunctionTechIDFromName(name string) (string, bool) {
 func (o *Orchestrator) GetFunctionBytes(techID string) ([]byte, bool) {
 	wasmBytes, err := o.db.Get([]byte(fmt.Sprintf("/functions/byid/%s/bytes", techID)), nil)
 	if err != nil {
+		return nil, false
+	}
+
+	return wasmBytes, true
+}
+
+func (o *Orchestrator) GetFunctionBytesByFunctionName(functionName string) ([]byte, bool) {
+	techID, ok := o.GetFunctionTechIDFromName(functionName)
+	if !ok {
+		return nil, false
+	}
+
+	wasmBytes, ok := o.GetFunctionBytes(techID)
+	if !ok {
 		return nil, false
 	}
 

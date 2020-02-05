@@ -1,4 +1,4 @@
-package main
+package common
 
 import (
 	"crypto/sha256"
@@ -9,7 +9,7 @@ import (
 
 var isLetter = regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString
 
-func printStack(sp unsafe.Pointer, count int) {
+func PrintStack(sp unsafe.Pointer, count int) {
 	lineLength := 8
 
 	chars := ""
@@ -35,7 +35,7 @@ func printStack(sp unsafe.Pointer, count int) {
 	fmt.Println()
 }
 
-func min(a int, b int) int {
+func Min(a int, b int) int {
 	if a <= b {
 		return a
 	}

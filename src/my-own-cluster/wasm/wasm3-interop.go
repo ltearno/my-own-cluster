@@ -1,4 +1,4 @@
-package main
+package wasm
 
 /*
 #cgo CFLAGS: -Iinclude
@@ -13,6 +13,8 @@ import (
 	"log"
 	"net/http"
 	"unsafe"
+
+	common "my-own-cluster/common"
 
 	wasm3 "github.com/ltearno/go-wasm3"
 )
@@ -50,7 +52,7 @@ func setWasiStat(fd int, fdStatAddr unsafe.Pointer) {
 
 // WasmProcessContext represents a running WASM context
 type WasmProcessContext struct {
-	Orchestrator *Orchestrator
+	Orchestrator *common.Orchestrator
 
 	Name string
 	Mode string
@@ -81,21 +83,7 @@ type VirtualFile interface {
 	Close() int
 }
 
-func (o *Orchestrator) GetFunctionBytesByFunctionName(functionName string) ([]byte, bool) {
-	techID, ok := o.GetFunctionTechIDFromName(functionName)
-	if !ok {
-		return nil, false
-	}
-
-	wasmBytes, ok := o.GetFunctionBytes(techID)
-	if !ok {
-		return nil, false
-	}
-
-	return wasmBytes, true
-}
-
-func CreateWasmContext(o *Orchestrator, mode string, functionName string, startFunction string, wasmBytes []byte, input []byte, outputPortID int) *WasmProcessContext {
+func CreateWasmContext(o *common.Orchestrator, mode string, functionName string, startFunction string, wasmBytes []byte, input []byte, outputPortID int) *WasmProcessContext {
 	wctx := &WasmProcessContext{
 		Orchestrator:  o,
 		Name:          functionName,
@@ -136,7 +124,7 @@ func CreateStdErrVirtualFile(wctx *WasmProcessContext) VirtualFile {
 }
 
 func (vf *StdAccess) Read(buffer []byte) int {
-	l := min(len(buffer), len(vf.ReadBuffer)-vf.ReadPos)
+	l := common.Min(len(buffer), len(vf.ReadBuffer)-vf.ReadPos)
 	copy(buffer, (vf.ReadBuffer)[vf.ReadPos:][:l])
 	vf.ReadPos = vf.ReadPos + l
 
@@ -165,7 +153,7 @@ func CreateInputVirtualFile(wctx *WasmProcessContext) VirtualFile {
 }
 
 func (vf *InputAccessState) Read(buffer []byte) int {
-	l := min(len(buffer), len(vf.Wctx.InputBuffer)-vf.ReadPos)
+	l := common.Min(len(buffer), len(vf.Wctx.InputBuffer)-vf.ReadPos)
 	copy(buffer, (vf.Wctx.InputBuffer)[vf.ReadPos:][:l])
 	vf.ReadPos = vf.ReadPos + l
 
@@ -234,7 +222,7 @@ func (vf *WebAccessState) Write(buffer []byte) int {
 func (vf *WebAccessState) Read(buffer []byte) int {
 	vf.readAll()
 
-	l := min(len(buffer), len(*vf.Response)-vf.ReadPos)
+	l := common.Min(len(buffer), len(*vf.Response)-vf.ReadPos)
 	copy(buffer, (*vf.Response)[vf.ReadPos:][:l])
 	vf.ReadPos = vf.ReadPos + l
 
@@ -562,5 +550,5 @@ func (cs *CallSite) GetParamUINT32Ptr(index int) *uint32 {
 
 // Print ptins
 func (cs *CallSite) Print() {
-	printStack(cs.sp, 16)
+	common.PrintStack(cs.sp, 16)
 }

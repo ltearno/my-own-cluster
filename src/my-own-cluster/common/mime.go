@@ -1,4 +1,4 @@
-package main
+package common
 
 var MimeTypes map[string]string = map[string]string{
 	"3dml": "text/vnd.in3d.3dml",

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"my-own-cluster/common"
+	"my-own-cluster/wasm"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -249,7 +251,7 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 	}
 
 	portID := server.orchestrator.CreateOutputPort()
-	wctx := CreateWasmContext(server.orchestrator, mode, baseReq.Name, startFunction, wasmBytes, input, portID)
+	wctx := wasm.CreateWasmContext(server.orchestrator, mode, baseReq.Name, startFunction, wasmBytes, input, portID)
 	if wctx == nil {
 		errorResponse(w, 404, "not found function, maybe you forgot to register it ?")
 		return
@@ -257,9 +259,9 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 
 	wctx.Trace = server.trace
 
-	wctx.AddAPIPlugin(NewMyOwnClusterAPIPlugin())
-	wctx.AddAPIPlugin(NewTinyGoAPIPlugin())
-	wctx.AddAPIPlugin(NewAutoLinkAPIPlugin())
+	wctx.AddAPIPlugin(wasm.NewMyOwnClusterAPIPlugin())
+	wctx.AddAPIPlugin(wasm.NewTinyGoAPIPlugin())
+	wctx.AddAPIPlugin(wasm.NewAutoLinkAPIPlugin())
 
 	switch mode {
 	case "direct":
@@ -273,10 +275,10 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 				return
 			}
 
-			wctx.AddAPIPlugin(NewWASIHostPlugin(bodyReq.WasiFilename, bodyReq.Arguments, map[int]VirtualFile{
-				0: CreateStdInVirtualFile(wctx, wctx.InputBuffer),
+			wctx.AddAPIPlugin(wasm.NewWASIHostPlugin(bodyReq.WasiFilename, bodyReq.Arguments, map[int]wasm.VirtualFile{
+				0: wasm.CreateStdInVirtualFile(wctx, wctx.InputBuffer),
 				1: wctx.Orchestrator.GetOutputPort(wctx.OutputPortID), // CreateStdOutVirtualFile(wctx)
-				2: CreateStdErrVirtualFile(wctx),
+				2: wasm.CreateStdErrVirtualFile(wctx),
 			}))
 			break
 		}
@@ -313,12 +315,12 @@ func (server *WebServer) init(router *httprouter.Router) {
 
 type WebServer struct {
 	name         string
-	orchestrator *Orchestrator
+	orchestrator *common.Orchestrator
 	trace        bool
 }
 
 // Start runs a webserver hosting the application
-func StartWebServer(port int, workingDir string, orchestrator *Orchestrator, trace bool) {
+func StartWebServer(port int, workingDir string, orchestrator *common.Orchestrator, trace bool) {
 	router := httprouter.New()
 	if router == nil {
 		fmt.Printf("Failed to instantiate the router, exit\n")

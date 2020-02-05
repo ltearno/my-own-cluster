@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"my-own-cluster/common"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -103,7 +104,7 @@ func main() {
 		}
 		defer db.Close()
 
-		orchestrator := NewOrchestrator(db)
+		orchestrator := common.NewOrchestrator(db)
 
 		port := 8443
 		if portOption, ok := verbs[0].Options["port"]; ok {

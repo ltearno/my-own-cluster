@@ -1,4 +1,4 @@
-package main
+package wasm
 
 /*
 #cgo CFLAGS: -Iinclude
