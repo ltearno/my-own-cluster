@@ -70,7 +70,13 @@ func (s *state) Bind(wctx *WasmProcessContext) {
 
 	importedModules := wctx.GetImportedModules()
 
-	if _, ok := importedModules["wasi_unstable"]; !ok {
+	var wasiModuleName string
+	if _, ok := importedModules["wasi_unstable"]; ok {
+		// official temporary wasi
+		wasiModuleName = "wasi_unstable"
+	} else if _, ok := importedModules["wasi_snapshot_preview1"]; ok {
+		wasiModuleName = "wasi_snapshot_preview1"
+	} else {
 		return
 	}
 
@@ -80,49 +86,49 @@ func (s *state) Bind(wctx *WasmProcessContext) {
 
 	s.prepareCmdLineArgs()
 
-	s.BindAPIFunction("wasi_unstable", "path_open", "i(ii*iiiii*)", WASIPathOpen)
-	s.BindAPIFunction("wasi_unstable", "proc_exit", "i(i)", WASIProcExit)
-	s.BindAPIFunction("wasi_unstable", "fd_readdir", "i(i*ii*)", WASIFdReadDir)
-	s.BindAPIFunction("wasi_unstable", "args_sizes_get", "i(**)", WASIArgsSizesGet)
-	s.BindAPIFunction("wasi_unstable", "args_get", "i(**)", WASIArgsGet)
-	s.BindAPIFunction("wasi_unstable", "fd_prestat_get", "i(i*)", WASIFdPrestatGet)
-	s.BindAPIFunction("wasi_unstable", "fd_prestat_dir_name", "i(i*i)", WASIFdPrestatDirName)
-	s.BindAPIFunction("wasi_unstable", "fd_fdstat_get", "i(i*)", WASIFdFdStatGet)
-	s.BindAPIFunction("wasi_unstable", "path_filestat_get", "i(ii*i*)", WASIPathFilestatGet)
-	s.BindAPIFunction("wasi_unstable", "fd_write", "i(iii*)", WASIFdWrite)
-	s.BindAPIFunction("wasi_unstable", "fd_read", "i(iii*)", WASIFdRead)
-	s.BindAPIFunction("wasi_unstable", "fd_seek", "i(iii*)", WASIFdSeek)
-	s.BindAPIFunction("wasi_unstable", "fd_close", "i(i)", WASIFdClose)
-	s.BindAPIFunction("wasi_unstable", "environ_sizes_get", "i(**)", WASIEnvironSizesGet)
-	s.BindAPIFunction("wasi_unstable", "environ_get", "i(**)", WASIEnvironGet)
+	s.BindAPIFunction(wasiModuleName, "path_open", "i(ii*iiiii*)", WASIPathOpen)
+	s.BindAPIFunction(wasiModuleName, "proc_exit", "i(i)", WASIProcExit)
+	s.BindAPIFunction(wasiModuleName, "fd_readdir", "i(i*ii*)", WASIFdReadDir)
+	s.BindAPIFunction(wasiModuleName, "args_sizes_get", "i(**)", WASIArgsSizesGet)
+	s.BindAPIFunction(wasiModuleName, "args_get", "i(**)", WASIArgsGet)
+	s.BindAPIFunction(wasiModuleName, "fd_prestat_get", "i(i*)", WASIFdPrestatGet)
+	s.BindAPIFunction(wasiModuleName, "fd_prestat_dir_name", "i(i*i)", WASIFdPrestatDirName)
+	s.BindAPIFunction(wasiModuleName, "fd_fdstat_get", "i(i*)", WASIFdFdStatGet)
+	s.BindAPIFunction(wasiModuleName, "path_filestat_get", "i(ii*i*)", WASIPathFilestatGet)
+	s.BindAPIFunction(wasiModuleName, "fd_write", "i(iii*)", WASIFdWrite)
+	s.BindAPIFunction(wasiModuleName, "fd_read", "i(iii*)", WASIFdRead)
+	s.BindAPIFunction(wasiModuleName, "fd_seek", "i(iii*)", WASIFdSeek)
+	s.BindAPIFunction(wasiModuleName, "fd_close", "i(i)", WASIFdClose)
+	s.BindAPIFunction(wasiModuleName, "environ_sizes_get", "i(**)", WASIEnvironSizesGet)
+	s.BindAPIFunction(wasiModuleName, "environ_get", "i(**)", WASIEnvironGet)
 
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "fd_fdstat_set_flags", "i(ii)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "fd_datasync", "i(i)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "clock_res_get", "i(i*)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "clock_time_get", "i(ii*)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "fd_renumber", "i(ii)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "fd_tell", "i(i*)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "fd_fdstat_set_rights", "i(iii)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "fd_advise", "i(iiii)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "fd_allocate", "i(iii)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "path_create_directory", "i(i*i)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "path_link", "i(ii*ii*i)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "path_readlink", "i(i*i*i*)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "path_rename", "i(i*ii*i)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "fd_filestat_get", "i(i*)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "fd_filestat_set_times", "i(iiii)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "fd_filestat_set_size", "i(ii)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "path_filestat_set_times", "i(ii*iiii)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "path_symlink", "i(*ii*i)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "path_unlink_file", "i(i*i)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "path_remove_directory", "i(i*i)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "poll_oneoff", "i(**i*)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "proc_raise", "i(i)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "random_get", "i(*i)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "sock_recv", "i(i*ii**)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "sock_send", "i(i*ii*)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "sock_shutdown", "i(ii)")
-	wctx.BindNotYetImplementedFunction("wasi_unstable", "sched_yield", "i()")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "fd_fdstat_set_flags", "i(ii)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "fd_datasync", "i(i)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "clock_res_get", "i(i*)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "clock_time_get", "i(ii*)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "fd_renumber", "i(ii)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "fd_tell", "i(i*)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "fd_fdstat_set_rights", "i(iii)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "fd_advise", "i(iiii)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "fd_allocate", "i(iii)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "path_create_directory", "i(i*i)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "path_link", "i(ii*ii*i)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "path_readlink", "i(i*i*i*)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "path_rename", "i(i*ii*i)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "fd_filestat_get", "i(i*)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "fd_filestat_set_times", "i(iiii)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "fd_filestat_set_size", "i(ii)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "path_filestat_set_times", "i(ii*iiii)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "path_symlink", "i(*ii*i)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "path_unlink_file", "i(i*i)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "path_remove_directory", "i(i*i)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "poll_oneoff", "i(**i*)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "proc_raise", "i(i)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "random_get", "i(*i)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "sock_recv", "i(i*ii**)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "sock_send", "i(i*ii*)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "sock_shutdown", "i(ii)")
+	wctx.BindNotYetImplementedFunction(wasiModuleName, "sched_yield", "i()")
 }
 
 func (s *state) prepareCmdLineArgs() {
@@ -161,7 +167,6 @@ func WASIPathOpen(state *state, cs *CallSite) (uint32, int) {
 			fd,
 			path,
 		)
-		cs.Print()
 	}
 
 	var virtualFile VirtualFile = nil
