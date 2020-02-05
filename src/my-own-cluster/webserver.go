@@ -249,7 +249,7 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 		return
 	}
 
-	wctx.Trace = false
+	wctx.Trace = server.trace
 
 	wctx.AddAPIPlugin(NewMyOwnClusterAPIPlugin())
 	wctx.AddAPIPlugin(NewTinyGoAPIPlugin())
@@ -307,10 +307,11 @@ func (server *WebServer) init(router *httprouter.Router) {
 type WebServer struct {
 	name         string
 	orchestrator *Orchestrator
+	trace        bool
 }
 
 // Start runs a webserver hosting the application
-func StartWebServer(port int, workingDir string, orchestrator *Orchestrator) {
+func StartWebServer(port int, workingDir string, orchestrator *Orchestrator, trace bool) {
 	router := httprouter.New()
 	if router == nil {
 		fmt.Printf("Failed to instantiate the router, exit\n")
@@ -319,6 +320,7 @@ func StartWebServer(port int, workingDir string, orchestrator *Orchestrator) {
 	server := &WebServer{
 		name:         "my-own-cluster",
 		orchestrator: orchestrator,
+		trace:        trace,
 	}
 
 	server.init(router)

@@ -114,10 +114,12 @@ func main() {
 			}
 		}
 
+		trace := verbs[0].GetOptionOr("trace", "false") == "true"
+
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 		go func() {
-			StartWebServer(port, workingDir, orchestrator)
+			StartWebServer(port, workingDir, orchestrator, trace)
 			fmt.Printf("\nweb server terminated abruptly, exiting\n")
 			done <- true
 		}()
