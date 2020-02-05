@@ -332,39 +332,43 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 				iField := f.GetImportField()
 				if iModule != nil && *iModule == m && iField != nil {
 					fmt.Printf("- imports func %s (%d) from module %s\n", *iField, f.GetNumArgs(), *iModule)
+					wasmBytes, ok := wctx.Orchestrator.GetFunctionBytesByFunctionName(m)
+					if !ok {
+						fmt.Printf("error: can't find sub function bytes (%s)\n", m)
+						continue
+					}
+
+					// for each function imported from that module, bind a stub with the corresponding signature.
+					// TODO check signature
+
+					wctx.BindAPIFunction(m, *iField, "i(ii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
+						// TODO : get variable param length
+						a := cs.GetParamUINT32(0)
+						b := cs.GetParamUINT32(1)
+
+						fmt.Printf("  >- emulation called -<\n")
+
+						// TODO factorize that with webserver call
+
+						portID := wctx.Orchestrator.CreateOutputPort()
+						subWctx := CreateWasmContext(wctx.Orchestrator, "direct", m, *iField, wasmBytes, []byte{}, portID)
+						if subWctx == nil {
+							return 42, nil
+						}
+
+						subWctx.AddAPIPlugin(NewMyOwnClusterAPIPlugin())
+						subWctx.AddAPIPlugin(NewTinyGoAPIPlugin())
+						subWctx.AddAPIPlugin(NewAutoLinkAPIPlugin())
+
+						subWctx.Run([]int{int(a), int(b)})
+
+						fmt.Printf("SUB WCTX returned %d\n", subWctx.Result)
+
+						return uint32(subWctx.Result), nil
+					})
 				}
 			}
 
-			wasmBytes, ok := wctx.Orchestrator.GetFunctionBytesByFunctionName(m)
-			if !ok {
-				fmt.Printf("error: can't find sub function bytes (%s)\n", m)
-				continue
-			}
-
-			// for each function imported from that module, bind a stub with the corresponding signature.
-
-			wctx.BindAPIFunction(m, "rustMultiply", "i(ii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
-				a := cs.GetParamUINT32(0)
-				b := cs.GetParamUINT32(1)
-
-				fmt.Printf("  >- emulation called -<\n")
-
-				portID := wctx.Orchestrator.CreateOutputPort()
-				subWctx := CreateWasmContext(wctx.Orchestrator, "direct", m, "rustMultiply", wasmBytes, []byte{}, portID)
-				if subWctx == nil {
-					return 42, nil
-				}
-
-				subWctx.AddAPIPlugin(NewMyOwnClusterAPIPlugin())
-				subWctx.AddAPIPlugin(NewTinyGoAPIPlugin())
-				subWctx.AddAPIPlugin(NewAutoLinkAPIPlugin())
-
-				subWctx.Run([]int{int(a), int(b)})
-
-				fmt.Printf("SUB WCTX returned %d\n", subWctx.Result)
-
-				return uint32(subWctx.Result), nil
-			})
 		}
 	}
 
