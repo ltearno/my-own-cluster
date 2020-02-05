@@ -102,6 +102,19 @@ The platforms should be very open and ease the creation of a community ecosystem
 
 Hooks and customization allow to customize web requests processing, filter, implement ACLs and security and so on...
 
+## Samples
+
+The `samples` directory contains littles samples compiled from different languages, using wasi or not.
+
+Here the list :
+
+- Rust : `wasm-rust-demo` (with WASI)
+- C : `api-demo-c` (without WASI), `http-request` (with WASI), `uppercase` (with WASI), `cowsay` (does not work yet)
+- WebAssembly (native) : `wasi-write` (with WASI)
+- Go : `hello-go` (with WASI) can be compiled with `tinygo` and normal `go` compiler.
+
+More samples are coming...
+
 ## TODO
 
 - provide way to publish files with persistence
