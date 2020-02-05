@@ -307,7 +307,7 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 	{
 		module, err := wctx.Runtime.ParseModule(wctx.WasmBytes)
 		if err != nil {
-			panic(err)
+			return -1, err
 		}
 
 		wctx.Module = module
@@ -315,7 +315,7 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 
 	_, err := wctx.Runtime.LoadModule(wctx.Module)
 	if err != nil {
-		panic(err)
+		return -2, err
 	}
 
 	if wctx.Trace {
@@ -331,8 +331,8 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 
 	fn, err := wctx.Module.GetFunctionByName(wctx.StartFunction)
 	if err != nil {
-		log.Printf("not Found '%s' function (using module.GetFunctionByName)", wctx.StartFunction)
-		panic(err)
+		log.Printf("not found '%s' function (using module.GetFunctionByName)", wctx.StartFunction)
+		return -3, err
 	}
 
 	fmt.Printf("calling function_name:\"%s\" start_function:\"%s\" mode:%s input_size:%d ...", wctx.Name, wctx.StartFunction, wctx.Mode, len(wctx.InputBuffer))
