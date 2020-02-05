@@ -259,6 +259,7 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 
 	wctx.AddAPIPlugin(NewMyOwnClusterAPIPlugin())
 	wctx.AddAPIPlugin(NewTinyGoAPIPlugin())
+	wctx.AddAPIPlugin(NewAutoLinkAPIPlugin())
 
 	switch mode {
 	case "direct":

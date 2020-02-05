@@ -334,6 +334,19 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 		if moduleFunctionTechID, ok := wctx.Orchestrator.GetFunctionTechIDFromName(m); ok {
 			fmt.Printf("emulating %s imported module with function %s techID:%s...\n", m, m, moduleFunctionTechID)
 
+			for i := 0; i < wctx.Module.NumFunctions(); i++ {
+				f, err := wctx.Module.GetFunction(uint(i))
+				if err != nil {
+					continue
+				}
+
+				iModule := f.GetImportModule()
+				iField := f.GetImportField()
+				if iModule != nil && *iModule == m && iField != nil {
+					fmt.Printf("- imports func %s (%d) from module %s\n", *iField, f.GetNumArgs(), *iModule)
+				}
+			}
+
 			wasmBytes, ok := wctx.Orchestrator.GetFunctionBytesByFunctionName(m)
 			if !ok {
 				fmt.Printf("error: can't find sub function bytes (%s)\n", m)
@@ -355,6 +368,8 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 				}
 
 				subWctx.AddAPIPlugin(NewMyOwnClusterAPIPlugin())
+				subWctx.AddAPIPlugin(NewTinyGoAPIPlugin())
+				subWctx.AddAPIPlugin(NewAutoLinkAPIPlugin())
 
 				subWctx.Run([]int{int(a), int(b)})
 
