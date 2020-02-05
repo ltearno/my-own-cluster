@@ -365,9 +365,9 @@ func (p *TinyGoAPIPlugin) Bind(wctx *WasmProcessContext) {
 		return
 	}
 
-	if wctx.Trace {
-		fmt.Println("binding TinyGo 0.11.0 API...")
-	}
+	//if wctx.Trace {
+	fmt.Println("binding TinyGo 0.11.0 API...")
+	//}
 
 	wctx.Runtime.AttachFunction("env", "io_get_stdout", "i()", func(runtime wasm3.RuntimeT, sp unsafe.Pointer, mem unsafe.Pointer) int {
 		if wctx.Trace {
@@ -389,6 +389,19 @@ func (p *TinyGoAPIPlugin) Bind(wctx *WasmProcessContext) {
 
 		return uint32(len(buffer)), nil
 	})
+
+	wctx.BindNotYetImplementedFunction("env", "runtime.ticks", "i()")
+	wctx.BindNotYetImplementedFunction("env", "runtime.sleepTicks", "i(i)")
+	wctx.BindNotYetImplementedFunction("env", "syscall/js.valueLength", "i(*ii)")
+	wctx.BindNotYetImplementedFunction("env", "syscall/js.valueCall", "i(i*iiiiiii)")
+	wctx.BindNotYetImplementedFunction("env", "syscall/js.valueIndex", "i()")
+	wctx.BindNotYetImplementedFunction("env", "syscall/js.valueGet", "i()")
+	wctx.BindNotYetImplementedFunction("env", "syscall/js.valueNew", "i()")
+	wctx.BindNotYetImplementedFunction("env", "syscall/js.valueSet", "i()")
+	wctx.BindNotYetImplementedFunction("env", "syscall/js.valueSetIndex", "i()")
+	wctx.BindNotYetImplementedFunction("env", "syscall/js.stringVal", "i()")
+	wctx.BindNotYetImplementedFunction("env", "syscall/js.valuePrepareString", "i()")
+	wctx.BindNotYetImplementedFunction("env", "syscall/js.valueLoadString", "i()")
 }
 
 type MyOwnClusterAPIPlugin struct{}
@@ -442,8 +455,8 @@ func (wctx *WasmProcessContext) BindAPIFunction(moduleName string, functionName 
 }
 
 // BindNotYetImplementedFunction exits the whole process when not yet implemented function is called
-func (wctx *WasmProcessContext) BindNotYetImplementedFunction(name string, signature string) {
-	wctx.Runtime.AttachFunction("wasi_unstable", name, signature, func(runtime wasm3.RuntimeT, sp unsafe.Pointer, mem unsafe.Pointer) int {
+func (wctx *WasmProcessContext) BindNotYetImplementedFunction(module string, name string, signature string) {
+	wctx.Runtime.AttachFunction(module, name, signature, func(runtime wasm3.RuntimeT, sp unsafe.Pointer, mem unsafe.Pointer) int {
 		fmt.Printf("called wasi function '%s', but it is not yet implemented... ABORTING PROGRAM EXECUTION\n", name)
 		return -2
 	})
