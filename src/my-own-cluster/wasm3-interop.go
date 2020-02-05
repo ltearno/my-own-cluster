@@ -81,17 +81,21 @@ type VirtualFile interface {
 	Close() int
 }
 
-func CreateWasmContext(o *Orchestrator, mode string, functionName string, startFunction string, input []byte, outputPortID int) *WasmProcessContext {
+func (o *Orchestrator) GetFunctionBytesByFunctionName(functionName string) ([]byte, bool) {
 	techID, ok := o.GetFunctionTechIDFromName(functionName)
 	if !ok {
-		return nil
+		return nil, false
 	}
 
 	wasmBytes, ok := o.GetFunctionBytes(techID)
 	if !ok {
-		return nil
+		return nil, false
 	}
 
+	return wasmBytes, true
+}
+
+func CreateWasmContext(o *Orchestrator, mode string, functionName string, startFunction string, wasmBytes []byte, input []byte, outputPortID int) *WasmProcessContext {
 	wctx := &WasmProcessContext{
 		Orchestrator:  o,
 		Name:          functionName,
@@ -329,6 +333,15 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 	for m := range wctx.GetImportedModules() {
 		if moduleFunctionTechID, ok := wctx.Orchestrator.GetFunctionTechIDFromName(m); ok {
 			fmt.Printf("emulating %s imported module with function %s techID:%s...\n", m, m, moduleFunctionTechID)
+
+			wasmBytes, ok := wctx.Orchestrator.GetFunctionBytesByFunctionName(m)
+			if !ok {
+				fmt.Printf("error: can't find sub function bytes (%s)\n", m)
+				continue
+			}
+
+			// for each function imported from that module, bind a stub with the corresponding signature.
+
 			wctx.BindAPIFunction(m, "rustMultiply", "i(ii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
 				a := cs.GetParamUINT32(0)
 				b := cs.GetParamUINT32(1)
@@ -336,7 +349,7 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 				fmt.Printf("  >- emulation called -<\n")
 
 				portID := wctx.Orchestrator.CreateOutputPort()
-				subWctx := CreateWasmContext(wctx.Orchestrator, "direct", m, "rustMultiply", []byte{}, portID)
+				subWctx := CreateWasmContext(wctx.Orchestrator, "direct", m, "rustMultiply", wasmBytes, []byte{}, portID)
 				if subWctx == nil {
 					return 42, nil
 				}

@@ -242,8 +242,14 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 		arguments = bodyReq.Arguments
 	}
 
+	wasmBytes, ok := server.orchestrator.GetFunctionBytesByFunctionName(baseReq.Name)
+	if !ok {
+		errorResponse(w, 400, fmt.Sprintf("can't find sub function bytes (%s)\n", baseReq.Name))
+		return
+	}
+
 	portID := server.orchestrator.CreateOutputPort()
-	wctx := CreateWasmContext(server.orchestrator, mode, baseReq.Name, startFunction, input, portID)
+	wctx := CreateWasmContext(server.orchestrator, mode, baseReq.Name, startFunction, wasmBytes, input, portID)
 	if wctx == nil {
 		errorResponse(w, 404, "not found function, maybe you forgot to register it ?")
 		return
