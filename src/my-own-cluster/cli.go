@@ -15,7 +15,14 @@ import (
 	"strings"
 )
 
-func CliPushFunction(functionName string, wasmFileName string) {
+func CliPushFunction(verbs []Verb) {
+	// skip the verb that triggered us, it is given to us in case it contains options
+	baseUrl := verbs[0].GetOptionOr("baseUrl", "https://localhost:8443")
+	verbs = verbs[1:]
+
+	functionName := verbs[0].Name
+	wasmFileName := verbs[1].Name
+
 	wasmBytes, err := ioutil.ReadFile(wasmFileName)
 	if err != nil {
 		fmt.Printf("cannot read file '%s'\n", wasmFileName)
@@ -42,7 +49,7 @@ func CliPushFunction(functionName string, wasmFileName string) {
 			InsecureSkipVerify: true,
 		},
 	}}
-	resp, err := client.Post(BASE_SERVER_URL+"/api/function/register", "application/json", bodyReader)
+	resp, err := client.Post(baseUrl+"/api/function/register", "application/json", bodyReader)
 	if err != nil {
 		panic(err)
 	}
@@ -65,6 +72,7 @@ func CliPushFunction(functionName string, wasmFileName string) {
 
 func CliCallFunction(verbs []Verb) {
 	// skip the verb that triggered us, it is given to us in case it contains options
+	baseUrl := verbs[0].GetOptionOr("baseUrl", "https://localhost:8443")
 	verbs = verbs[1:]
 
 	functionName := verbs[0].Name
@@ -131,7 +139,7 @@ func CliCallFunction(verbs []Verb) {
 			InsecureSkipVerify: true,
 		},
 	}}
-	resp, err := client.Post(BASE_SERVER_URL+"/api/function/call", "application/json", bodyReader)
+	resp, err := client.Post(baseUrl+"/api/function/call", "application/json", bodyReader)
 	if err != nil {
 		panic(err)
 	}
@@ -159,6 +167,7 @@ func detectContentTypeFromFileName(name string) string {
 }
 
 func CliUploadDir(verbs []Verb) {
+	baseUrl := verbs[0].GetOptionOr("baseUrl", "https://localhost:8443")
 	verbs = verbs[1:]
 
 	pathPrefix := verbs[0].Name
@@ -177,7 +186,7 @@ func CliUploadDir(verbs []Verb) {
 		urlPath := filepath.Join(pathPrefix, path[len(directoryName):])
 		if !info.IsDir() {
 			fmt.Printf("%s  =>  %s\n", path, urlPath)
-			resp, err := uploadFile(urlPath, detectContentTypeFromFileName(path), path)
+			resp, err := uploadFile(baseUrl, urlPath, detectContentTypeFromFileName(path), path)
 			if err != nil || !resp.Status {
 				countError++
 			}
@@ -190,6 +199,7 @@ func CliUploadDir(verbs []Verb) {
 }
 
 func CliUploadFile(verbs []Verb) {
+	baseUrl := verbs[0].GetOptionOr("baseUrl", "https://localhost:8443")
 	verbs = verbs[1:]
 
 	path := verbs[0].Name
@@ -201,7 +211,7 @@ func CliUploadFile(verbs []Verb) {
 		contentType = detectContentTypeFromFileName(fileName)
 	}
 
-	response, err := uploadFile(path, contentType, fileName)
+	response, err := uploadFile(baseUrl, path, contentType, fileName)
 	if err != nil {
 		fmt.Printf("error while doing things, %v\n", err)
 		return
@@ -214,7 +224,7 @@ func CliUploadFile(verbs []Verb) {
 	}
 }
 
-func uploadFile(path string, contentType string, fileName string) (*RegisterFileResponse, error) {
+func uploadFile(serverBaseUrl string, path string, contentType string, fileName string) (*RegisterFileResponse, error) {
 	fileBytes, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		fmt.Printf("cannot read file '%s'\n", fileName)
@@ -243,7 +253,7 @@ func uploadFile(path string, contentType string, fileName string) (*RegisterFile
 		},
 	}}
 
-	resp, err := client.Post(BASE_SERVER_URL+"/api/file/register", "application/json", bodyReader)
+	resp, err := client.Post(serverBaseUrl+"/api/file/register", "application/json", bodyReader)
 	if err != nil {
 		return nil, err
 	}

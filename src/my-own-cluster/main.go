@@ -13,8 +13,6 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
-const BASE_SERVER_URL = "https://localhost:8443"
-
 type Verb struct {
 	Name    string
 	Options map[string]string
@@ -137,15 +135,7 @@ func main() {
 		break
 
 	case "push":
-		if len(verbs) != 3 {
-			printHelp()
-			return
-		}
-
-		functionName := verbs[1].Name
-		wasmFileName := verbs[2].Name
-
-		CliPushFunction(functionName, wasmFileName)
+		CliPushFunction(verbs)
 		break
 
 	case "call":
