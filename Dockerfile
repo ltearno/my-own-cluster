@@ -23,10 +23,19 @@ RUN make build-embed-assets
 
 RUN make build
 
-RUN chown -R 1000:1000 /my-own-cluster
-
 RUN mkdir /data
 ADD tls.key.pem /data/
 ADD tls.cert.pem /data/
+
+ARG UID=1000
+ARG GID=1000
+
+RUN addgroup --gid ${GID} hexa-backup-group || echo "group ${GID} already exists"
+RUN adduser --uid ${UID} -G hexa-backup-group hexa-backup-user || echo "user ${UID} already exists"
+
+RUN chown -R ${UID}:${GID} /my-own-cluster
+RUN chown -R ${UID}:${GID} /data
+
+USER ${UID}
 
 ENTRYPOINT [ "/my-own-cluster/my-own-cluster", "serve", "/data" ]

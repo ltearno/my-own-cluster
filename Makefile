@@ -1,6 +1,7 @@
 export GOPATH := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 export APP_NAME := my-own-cluster
 
+IMAGE := my-own-cluster:latest
 COMMIT := latest
 
 all: run-serve
@@ -35,7 +36,17 @@ tls.cert.pem:
 
 docker-build: tls.cert.pem
 	@echo building docker image
-	@docker build . -t my-own-cluster:latest
+	@docker build . --build-arg UID=$(shell id -u) --build-arg GID=$(shell id -g) -t my-own-cluster:latest
 
 docker-run:
-	@docker run --rm -it -p 8443:8443 -v $(shell pwd)/my-own-cluster-database-provisional:/data/my-own-cluster-database-provisional my-own-cluster:latest
+	@docker run --rm -it -p 8443:8443 -v $(shell pwd)/my-own-cluster-database-provisional:/data/my-own-cluster-database-provisional $(IMAGE)
+
+run-server:
+	docker stop $(APP_NAME) || echo "$(APP_NAME) already stopped"
+	docker rm $(APP_NAME) || echo "$(APP_NAME) already removed"
+	mkdir -p $(HOME)/$(APP_NAME)-data
+	docker run --name $(APP_NAME) -d --restart always \
+		-u $(shell id -u) \
+		-p 9870:8443 \
+		-v $(HOME)/$(APP_NAME)-data:/data/my-own-cluster-database-provisional \
+	    $(IMAGE)
