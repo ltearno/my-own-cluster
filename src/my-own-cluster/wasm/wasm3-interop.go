@@ -354,21 +354,22 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 
 				iModule := f.GetImportModule()
 				iField := f.GetImportField()
+				iSignature := f.GetSignature()
 				if iModule != nil && *iModule == m && iField != nil {
-					fmt.Printf("- imports func %s (%d) from module %s\n", *iField, f.GetNumArgs(), *iModule)
+					fmt.Printf("- imports func %s '%s' from module %s\n", *iField, iSignature, *iModule)
 					wasmBytes, ok := wctx.Orchestrator.GetFunctionBytesByFunctionName(m)
 					if !ok {
 						fmt.Printf("error: can't find sub function bytes (%s)\n", m)
 						continue
 					}
 
-					// for each function imported from that module, bind a stub with the corresponding signature.
-					// TODO check signature
+					// TODO check imported signature is the same as exported signature...
 
-					wctx.BindAPIFunction(m, *iField, "i(ii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
-						// TODO : get variable param length
-						a := cs.GetParamUINT32(0)
-						b := cs.GetParamUINT32(1)
+					wctx.BindAPIFunction(m, *iField, iSignature, func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
+						parameters := make([]int, f.GetNumArgs())
+						for i := 0; i < int(f.GetNumArgs()); i++ {
+							parameters[i] = int(cs.GetParamUINT32(i))
+						}
 
 						outputPortID := wctx.Orchestrator.CreateOutputPort()
 
@@ -386,7 +387,7 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 							return 0xffff, err
 						}
 
-						subWctx.Run([]int{int(a), int(b)})
+						subWctx.Run(parameters)
 
 						return uint32(subWctx.Result), nil
 					})
