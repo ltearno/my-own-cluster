@@ -124,7 +124,7 @@ func (p *MyOwnClusterAPIPlugin) Bind(wctx *WasmProcessContext) {
 
 		resp, err := http.Get(url)
 		if err != nil {
-			panic(err)
+			return uint32(0xffff), nil
 		}
 		defer resp.Body.Close()
 
