@@ -30,8 +30,8 @@ ADD tls.cert.pem /data/
 ARG UID=1000
 ARG GID=1000
 
-RUN addgroup --gid ${GID} hexa-backup-group || echo "group ${GID} already exists"
-RUN adduser --uid ${UID} -G hexa-backup-group hexa-backup-user || echo "user ${UID} already exists"
+RUN addgroup --gid ${GID} my-own-cluster-group || echo "group ${GID} already exists"
+RUN adduser --uid ${UID} -G my-own-cluster-group my-own-cluster-user || echo "user ${UID} already exists"
 
 RUN chown -R ${UID}:${GID} /my-own-cluster
 RUN chown -R ${UID}:${GID} /data
