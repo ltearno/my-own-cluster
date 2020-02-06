@@ -233,7 +233,8 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 
 	mode := strings.ToLower(baseReq.Mode)
 
-	if mode == "direct" {
+	switch mode {
+	case "direct":
 		bodyReq := DirectCallFunctionRequest{}
 		if json.Unmarshal(body, &bodyReq) != nil {
 			errorResponse(w, 400, "cannot read/parse your body for DIRECT mode")
@@ -242,6 +243,14 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 
 		startFunction = bodyReq.StartFunction
 		arguments = bodyReq.Arguments
+		break
+
+	case "posix":
+		break
+
+	default:
+		errorResponse(w, 400, fmt.Sprintf("invalid execution mode '%s', aborting", mode))
+		return
 	}
 
 	wasmBytes, ok := server.orchestrator.GetFunctionBytesByFunctionName(baseReq.Name)
@@ -252,40 +261,28 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 
 	outputPortID := server.orchestrator.CreateOutputPort()
 
-	wctx := wasm.CreateWasmContext(server.orchestrator, mode, baseReq.Name, startFunction, wasmBytes, input, outputPortID)
-	if wctx == nil {
-		errorResponse(w, 404, "not found function, maybe you forgot to register it ?")
+	wctx, err := wasm.PorcelainPrepareWasm(
+		server.orchestrator,
+		mode,
+		baseReq.Name,
+		startFunction,
+		wasmBytes,
+		input,
+		outputPortID,
+		server.trace)
+	if err != nil {
+		errorResponse(w, 404, fmt.Sprintf("cannot create function: %v", err))
 		return
 	}
 
-	wctx.Trace = server.trace
-
-	wctx.AddAPIPlugin(wasm.NewMyOwnClusterAPIPlugin())
-	wctx.AddAPIPlugin(wasm.NewTinyGoAPIPlugin())
-	wctx.AddAPIPlugin(wasm.NewAutoLinkAPIPlugin())
-
-	switch mode {
-	case "direct":
-		break
-
-	case "posix":
-		{
-			bodyReq := WASICallFunctionRequest{}
-			if json.Unmarshal(body, &bodyReq) != nil {
-				errorResponse(w, 400, "cannot read/parse your body POSIX mode")
-				return
-			}
-
-			wctx.AddAPIPlugin(wasm.NewWASIHostPlugin(bodyReq.WasiFilename, bodyReq.Arguments, map[int]wasm.VirtualFile{
-				0: wasm.CreateStdInVirtualFile(wctx, wctx.InputBuffer),
-				1: wctx.Orchestrator.GetOutputPort(wctx.OutputPortID), // CreateStdOutVirtualFile(wctx)
-				2: wasm.CreateStdErrVirtualFile(wctx),
-			}))
-			break
+	if mode == "posix" {
+		bodyReq := WASICallFunctionRequest{}
+		if json.Unmarshal(body, &bodyReq) != nil {
+			errorResponse(w, 400, "cannot read/parse your body POSIX mode")
+			return
 		}
-	default:
-		errorResponse(w, 400, "execution mode not specified, aborting")
-		return
+
+		wasm.PorcelainAddWASIPlugin(wctx, bodyReq.WasiFilename, bodyReq.Arguments)
 	}
 
 	wctx.Run(arguments)

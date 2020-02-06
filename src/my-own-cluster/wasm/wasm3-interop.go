@@ -289,15 +289,7 @@ func (wctx *WasmProcessContext) AddAPIPlugin(plugin APIPlugin) {
 	wctx.APIPlugins = append(wctx.APIPlugins, plugin)
 }
 
-func PorcelainPrepareWasm(o *common.Orchestrator) (*WasmProcessContext, error) {
-	mode := "direct"
-	functionName := "http-request"
-	startFunction := "_start"
-	wasmBytes := []byte{}
-	inputBytes := []byte{}
-	outputPortID := o.CreateOutputPort()
-	trace := false
-
+func PorcelainPrepareWasm(o *common.Orchestrator, mode string, functionName string, startFunction string, wasmBytes []byte, inputBytes []byte, outputPortID int, trace bool) (*WasmProcessContext, error) {
 	wctx := CreateWasmContext(o, mode, functionName, startFunction, wasmBytes, inputBytes, outputPortID)
 	if wctx == nil {
 		return nil, errors.New("cannot create wasm context")
@@ -378,23 +370,23 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 						a := cs.GetParamUINT32(0)
 						b := cs.GetParamUINT32(1)
 
-						fmt.Printf("  >- emulation called -<\n")
+						outputPortID := wctx.Orchestrator.CreateOutputPort()
 
-						// TODO factorize that with webserver call
-
-						portID := wctx.Orchestrator.CreateOutputPort()
-						subWctx := CreateWasmContext(wctx.Orchestrator, "direct", m, *iField, wasmBytes, []byte{}, portID)
-						if subWctx == nil {
-							return 42, nil
+						subWctx, err := PorcelainPrepareWasm(
+							wctx.Orchestrator,
+							"direct",
+							m,
+							*iField,
+							wasmBytes,
+							[]byte{},
+							outputPortID,
+							wctx.Trace,
+						)
+						if err != nil {
+							return 0xffff, err
 						}
 
-						subWctx.AddAPIPlugin(NewMyOwnClusterAPIPlugin())
-						subWctx.AddAPIPlugin(NewTinyGoAPIPlugin())
-						subWctx.AddAPIPlugin(NewAutoLinkAPIPlugin())
-
 						subWctx.Run([]int{int(a), int(b)})
-
-						fmt.Printf("SUB WCTX returned %d\n", subWctx.Result)
 
 						return uint32(subWctx.Result), nil
 					})
