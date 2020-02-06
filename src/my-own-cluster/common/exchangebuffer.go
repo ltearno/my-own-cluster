@@ -1,25 +1,25 @@
 package common
 
-type OutputPort struct {
+type ExchangeBuffer struct {
 	buffer []byte
 }
 
-func (p *OutputPort) GetBuffer() []byte {
+func (p *ExchangeBuffer) GetBuffer() []byte {
 	return p.buffer
 }
 
-func (p *OutputPort) Read(buffer []byte) int {
+func (p *ExchangeBuffer) Read(buffer []byte) int {
 	return 0
 }
 
-func (p *OutputPort) Write(buffer []byte) int {
+func (p *ExchangeBuffer) Write(buffer []byte) int {
 	// TODO WARNING THIS DOES NOT TAKE WRITE POS IN ACCOUNT !!!
 	p.buffer = appendSlice(p.buffer, buffer)
 
 	return len(buffer)
 }
 
-func (p *OutputPort) Close() int {
+func (p *ExchangeBuffer) Close() int {
 	return 0
 }
 

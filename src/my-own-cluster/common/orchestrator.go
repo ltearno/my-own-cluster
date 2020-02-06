@@ -15,8 +15,8 @@ type RegisterFunction struct {
 }
 
 type Orchestrator struct {
-	nextPortID  int32
-	outputPorts map[int]*OutputPort
+	nextExchangeBufferID int32
+	exchangeBuffers      map[int]*ExchangeBuffer
 
 	lock sync.Mutex
 
@@ -25,9 +25,9 @@ type Orchestrator struct {
 
 func NewOrchestrator(db *leveldb.DB) *Orchestrator {
 	return &Orchestrator{
-		nextPortID:  1,
-		outputPorts: make(map[int]*OutputPort),
-		db:          db,
+		nextExchangeBufferID: 0,
+		exchangeBuffers:      make(map[int]*ExchangeBuffer),
+		db:                   db,
 	}
 }
 
@@ -129,18 +129,18 @@ func (o *Orchestrator) GetFunctionBytesByFunctionName(functionName string) ([]by
 	return wasmBytes, true
 }
 
-func (o *Orchestrator) CreateOutputPort() int {
-	portID := atomic.AddInt32(&o.nextPortID, 1)
-	o.outputPorts[int(portID)] = &OutputPort{
+func (o *Orchestrator) CreateExchangeBuffer() int {
+	bufferID := atomic.AddInt32(&o.nextExchangeBufferID, 1)
+	o.exchangeBuffers[int(bufferID)] = &ExchangeBuffer{
 		buffer: []byte{},
 	}
-	return int(portID)
+	return int(bufferID)
 }
 
-func (o *Orchestrator) GetOutputPort(portID int) *OutputPort {
-	return o.outputPorts[portID]
+func (o *Orchestrator) GetExchangeBuffer(bufferID int) *ExchangeBuffer {
+	return o.exchangeBuffers[bufferID]
 }
 
-func (o *Orchestrator) ReleaseOutputPort(portID int) {
-	delete(o.outputPorts, portID)
+func (o *Orchestrator) ReleaseExchangeBuffer(bufferID int) {
+	delete(o.exchangeBuffers, bufferID)
 }

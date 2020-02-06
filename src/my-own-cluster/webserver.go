@@ -259,7 +259,7 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 		return
 	}
 
-	outputPortID := server.orchestrator.CreateOutputPort()
+	outputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
 
 	wctx, err := wasm.PorcelainPrepareWasm(
 		server.orchestrator,
@@ -268,7 +268,7 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 		startFunction,
 		wasmBytes,
 		input,
-		outputPortID,
+		outputExchangeBufferID,
 		server.trace)
 	if err != nil {
 		errorResponse(w, 404, fmt.Sprintf("cannot create function: %v", err))
@@ -287,11 +287,11 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 
 	wctx.Run(arguments)
 
-	outputBuffer := wctx.Orchestrator.GetOutputPort(wctx.OutputPortID).GetBuffer()
+	outputExchangeBuffer := wctx.Orchestrator.GetExchangeBuffer(wctx.OutputExchangeBufferID).GetBuffer()
 
 	jsonResponse(w, 200, CallFunctionResponse{
 		Result: wctx.Result,
-		Output: base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(outputBuffer),
+		Output: base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(outputExchangeBuffer),
 		Error:  false,
 	})
 }

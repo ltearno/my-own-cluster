@@ -63,8 +63,9 @@ type WasmProcessContext struct {
 
 	InputBuffer []byte
 
-	Result       int
-	OutputPortID int
+	HasFinishedRunning     bool
+	Result                 int
+	OutputExchangeBufferID int
 
 	Runtime *wasm3.Runtime
 	Module  *wasm3.Module
@@ -84,16 +85,16 @@ type VirtualFile interface {
 	Close() int
 }
 
-func CreateWasmContext(o *common.Orchestrator, mode string, functionName string, startFunction string, wasmBytes []byte, input []byte, outputPortID int) *WasmProcessContext {
+func CreateWasmContext(o *common.Orchestrator, mode string, functionName string, startFunction string, wasmBytes []byte, input []byte, outputExchangeBufferID int) *WasmProcessContext {
 	wctx := &WasmProcessContext{
-		Orchestrator:  o,
-		Name:          functionName,
-		Mode:          mode,
-		WasmBytes:     wasmBytes,
-		InputBuffer:   input,
-		OutputPortID:  outputPortID,
-		StartFunction: startFunction,
-		APIPlugins:    []APIPlugin{},
+		Orchestrator:           o,
+		Name:                   functionName,
+		Mode:                   mode,
+		WasmBytes:              wasmBytes,
+		InputBuffer:            input,
+		OutputExchangeBufferID: outputExchangeBufferID,
+		StartFunction:          startFunction,
+		APIPlugins:             []APIPlugin{},
 	}
 
 	return wctx
@@ -188,16 +189,16 @@ func (vf *OutputAccessState) Read(buffer []byte) int {
 }
 
 func (vf *OutputAccessState) Write(buffer []byte) int {
-	port := vf.Wctx.Orchestrator.GetOutputPort(vf.Wctx.OutputPortID)
-	written := port.Write(buffer)
+	exchangeBuffer := vf.Wctx.Orchestrator.GetExchangeBuffer(vf.Wctx.OutputExchangeBufferID)
+	written := exchangeBuffer.Write(buffer)
 	vf.WritePos += written
 
 	return written
 }
 
 func (vf *OutputAccessState) Close() int {
-	port := vf.Wctx.Orchestrator.GetOutputPort(vf.Wctx.OutputPortID)
-	port.Close()
+	exchangeBuffer := vf.Wctx.Orchestrator.GetExchangeBuffer(vf.Wctx.OutputExchangeBufferID)
+	exchangeBuffer.Close()
 	return 0
 }
 
@@ -289,8 +290,8 @@ func (wctx *WasmProcessContext) AddAPIPlugin(plugin APIPlugin) {
 	wctx.APIPlugins = append(wctx.APIPlugins, plugin)
 }
 
-func PorcelainPrepareWasm(o *common.Orchestrator, mode string, functionName string, startFunction string, wasmBytes []byte, inputBytes []byte, outputPortID int, trace bool) (*WasmProcessContext, error) {
-	wctx := CreateWasmContext(o, mode, functionName, startFunction, wasmBytes, inputBytes, outputPortID)
+func PorcelainPrepareWasm(o *common.Orchestrator, mode string, functionName string, startFunction string, wasmBytes []byte, inputBytes []byte, outputExchangeBufferID int, trace bool) (*WasmProcessContext, error) {
+	wctx := CreateWasmContext(o, mode, functionName, startFunction, wasmBytes, inputBytes, outputExchangeBufferID)
 	if wctx == nil {
 		return nil, errors.New("cannot create wasm context")
 	}
@@ -307,7 +308,7 @@ func PorcelainPrepareWasm(o *common.Orchestrator, mode string, functionName stri
 func PorcelainAddWASIPlugin(wctx *WasmProcessContext, wasiFileName string, arguments []string) {
 	wctx.AddAPIPlugin(NewWASIHostPlugin(wasiFileName, arguments, map[int]VirtualFile{
 		0: CreateStdInVirtualFile(wctx, wctx.InputBuffer),
-		1: wctx.Orchestrator.GetOutputPort(wctx.OutputPortID), // CreateStdOutVirtualFile(wctx)
+		1: wctx.Orchestrator.GetExchangeBuffer(wctx.OutputExchangeBufferID), // CreateStdOutVirtualFile(wctx)
 		2: CreateStdErrVirtualFile(wctx),
 	}))
 }
@@ -374,7 +375,7 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 							parameters[i] = int(cs.GetParamUINT32(i))
 						}
 
-						outputPortID := wctx.Orchestrator.CreateOutputPort()
+						outputExchangeBufferID := wctx.Orchestrator.CreateExchangeBuffer()
 
 						subWctx, err := PorcelainPrepareWasm(
 							wctx.Orchestrator,
@@ -383,7 +384,7 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 							*iField,
 							wasmBytes,
 							[]byte{},
-							outputPortID,
+							outputExchangeBufferID,
 							wctx.Trace,
 						)
 						if err != nil {
@@ -419,10 +420,8 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 
 	fmt.Printf(" result:%d, err:%+v\n", wctx.Result, err)
 
+	wctx.HasFinishedRunning = true
 	wctx.Result = result
-
-	// TODO temporary and hacky, should only be done if the port has not been redirected, a concept to clarify...
-	wctx.Orchestrator.GetOutputPort(wctx.OutputPortID).Close()
 
 	return wctx.Result, err
 }

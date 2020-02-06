@@ -32,13 +32,13 @@ func (p *MyOwnClusterAPIPlugin) Bind(wctx *WasmProcessContext) {
 	// params : buffer addr, buffer length
 	wctx.BindAPIFunction("my-own-cluster", "register_buffer", "i(ii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
 		buffer := cs.GetParamByteBuffer(0, 1)
-		bufferID := wctx.Orchestrator.CreateOutputPort()
-		outputPort := wctx.Orchestrator.GetOutputPort(bufferID)
-		if outputPort == nil {
-			return 0, errors.New("cannot get just created output port")
+		bufferID := wctx.Orchestrator.CreateExchangeBuffer()
+		exchangeBuffer := wctx.Orchestrator.GetExchangeBuffer(bufferID)
+		if exchangeBuffer == nil {
+			return 0, errors.New("cannot get just created exchange buffer")
 		}
 
-		outputPort.Write(buffer)
+		exchangeBuffer.Write(buffer)
 
 		return uint32(bufferID), nil
 	})
@@ -46,13 +46,13 @@ func (p *MyOwnClusterAPIPlugin) Bind(wctx *WasmProcessContext) {
 	// params : buffer id
 	wctx.BindAPIFunction("my-own-cluster", "get_buffer_size", "i(i)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
 		bufferID := cs.GetParamUINT32(0)
-		outputPort := wctx.Orchestrator.GetOutputPort(int(bufferID))
-		if outputPort == nil {
-			fmt.Printf("GET BUFFER SIZE FOR UNKNOWN BUFFER %d\n", bufferID)
+		exchangeBuffer := wctx.Orchestrator.GetExchangeBuffer(int(bufferID))
+		if exchangeBuffer == nil {
+			fmt.Printf("GET EXCHANGE BUFFER SIZE FOR UNKNOWN BUFFER %d\n", bufferID)
 			return 0, nil
 		}
 
-		buffer := outputPort.GetBuffer()
+		buffer := exchangeBuffer.GetBuffer()
 
 		return uint32(len(buffer)), nil
 	})
@@ -62,13 +62,13 @@ func (p *MyOwnClusterAPIPlugin) Bind(wctx *WasmProcessContext) {
 		bufferID := cs.GetParamUINT32(0)
 		buffer := cs.GetParamByteBuffer(1, 2)
 
-		outputPort := wctx.Orchestrator.GetOutputPort(int(bufferID))
-		if outputPort == nil {
-			fmt.Printf("GET BUFFER FOR UNKNOWN BUFFER %d\n", bufferID)
+		exchangeBuffer := wctx.Orchestrator.GetExchangeBuffer(int(bufferID))
+		if exchangeBuffer == nil {
+			fmt.Printf("GET EXCHANGE BUFFER FOR UNKNOWN BUFFER %d\n", bufferID)
 			return 0, nil
 		}
 
-		sourceBuffer := outputPort.GetBuffer()
+		sourceBuffer := exchangeBuffer.GetBuffer()
 
 		if len(buffer) != len(sourceBuffer) {
 			fmt.Printf("GET BUFFER WITH WRONG SIZE given %d, required %d\n", len(buffer), len(sourceBuffer))
@@ -84,7 +84,7 @@ func (p *MyOwnClusterAPIPlugin) Bind(wctx *WasmProcessContext) {
 	wctx.BindAPIFunction("my-own-cluster", "free_buffer", "i(i)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
 		bufferID := cs.GetParamUINT32(0)
 
-		wctx.Orchestrator.ReleaseOutputPort(int(bufferID))
+		wctx.Orchestrator.ReleaseExchangeBuffer(int(bufferID))
 
 		return uint32(0), nil
 	})
