@@ -1,3 +1,5 @@
+SERVER_BASE_URL ?= https://localhost:8443
+
 all: uppercase.wasm wasi-write.wasm hello-go.wasm http-request.wasm api-demo-c.wasm
 
 http-request.wasm: http-request.c
@@ -48,34 +50,34 @@ rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm: rust-nowasi/sr
 
 register: http-request.wasm api-demo-c.wasm uppercase.wasm wasi-write.wasm hello-go.wasm interop.wasm api-demo-c.wasm
 	@echo Registering functions...
-	@../my-own-cluster push http-request http-request.wasm
-	@../my-own-cluster push uppercase uppercase.wasm
-	@../my-own-cluster push api-demo-c api-demo-c.wasm
-	@../my-own-cluster push wasi-write wasi-write.wasm
-	@../my-own-cluster push hello-go hello-go.wasm
-	@../my-own-cluster push cowsay cowsay.wasm
-	@../my-own-cluster push interop interop.wasm
+	@../my-own-cluster push -baseUrl $(SERVER_BASE_URL) http-request http-request.wasm
+	@../my-own-cluster push -baseUrl $(SERVER_BASE_URL) uppercase uppercase.wasm
+	@../my-own-cluster push -baseUrl $(SERVER_BASE_URL) api-demo-c api-demo-c.wasm
+	@../my-own-cluster push -baseUrl $(SERVER_BASE_URL) wasi-write wasi-write.wasm
+	@../my-own-cluster push -baseUrl $(SERVER_BASE_URL) hello-go hello-go.wasm
+	@../my-own-cluster push -baseUrl $(SERVER_BASE_URL) cowsay cowsay.wasm
+	@../my-own-cluster push -baseUrl $(SERVER_BASE_URL) interop interop.wasm
 
 call:
 	@echo Calling 'http-request' POSIX mode, the client code makes a http request through the my-own-cluster api and outputs its reply body
-	@../my-own-cluster call http-request -mode posix -input "Hello to you application" https://home.lteconsulting.fr | jq -r '.output' | base64 -d
+	@../my-own-cluster call -baseUrl $(SERVER_BASE_URL) http-request -mode posix -input "Hello to you application" https://home.lteconsulting.fr | jq -r '.output' | base64 -d
 	@echo
 
 	@echo Calling 'uppercase' POSIX mode, result is the uppercase of the buffer given in the http request
-	@../my-own-cluster call uppercase -mode posix -input "This text should be in uppercase, if yes, you can say yeahh !" | jq -r '.output' | base64 -d
+	@../my-own-cluster call -baseUrl $(SERVER_BASE_URL) uppercase -mode posix -input "This text should be in uppercase, if yes, you can say yeahh !" | jq -r '.output' | base64 -d
 	@echo
 	@echo
 
 	@echo Calling 'api-demo-c' DIRECT mode, result is the addition of the two parameters we pass in the http query
-	@../my-own-cluster call api-demo-c 264 55 | jq
+	@../my-own-cluster call -baseUrl $(SERVER_BASE_URL) api-demo-c 264 55 | jq
 	@echo
 
 	@echo Calling 'wasi-write' POSIX mode, a simple webassembly text compiled program
-	@../my-own-cluster call wasi-write -mode posix -wasi_file_name some_name_eh_eh | jq -r '.output' | base64 -d
+	@../my-own-cluster call -baseUrl $(SERVER_BASE_URL) wasi-write -mode posix -wasi_file_name some_name_eh_eh | jq -r '.output' | base64 -d
 	@echo
 
 	@echo Calling 'hello-go' POSIX mode, a golang program compiled with TinyGo
-	../my-own-cluster call hello-go -mode posix
+	../my-own-cluster call -baseUrl $(SERVER_BASE_URL) hello-go -mode posix
 	@echo
 
 	@#echo Calling 'cowsay' POSIX mode, does not work yet !
@@ -84,25 +86,25 @@ call:
 
 register-rust: wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm
 	@echo Registering rust sample
-	@../my-own-cluster push wasm-rust-demo wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm
-	@../my-own-cluster push rust-multiply rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm
+	@../my-own-cluster push -baseUrl $(SERVER_BASE_URL) wasm-rust-demo wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm
+	@../my-own-cluster push -baseUrl $(SERVER_BASE_URL) rust-multiply rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm
 
 call-rust:
 	@echo Calling 'wasm-rust-demo', a little demo program written in Rust and built for the wasm32-wasi platform
-	../my-own-cluster call wasm-rust-demo -mode posix "https://home.lteconsulting.fr" "api://output" | jq
+	../my-own-cluster call -baseUrl $(SERVER_BASE_URL) wasm-rust-demo -mode posix "https://home.lteconsulting.fr" "api://output" | jq
 	@echo Decoding base64 output :
-	../my-own-cluster call wasm-rust-demo -mode posix "https://home.lteconsulting.fr" "api://output" | jq -r '.output' | base64 -d
+	../my-own-cluster call -baseUrl $(SERVER_BASE_URL) wasm-rust-demo -mode posix "https://home.lteconsulting.fr" "api://output" | jq -r '.output' | base64 -d
 	@echo
 	@echo Calling multiply function implemented in Rust without wasi, result of the multiplication is found in the result field
-	../my-own-cluster call rust-multiply -start_function rustMultiply 4 3 | jq
+	../my-own-cluster call -baseUrl $(SERVER_BASE_URL) rust-multiply -start_function rustMultiply 4 3 | jq
 
 call-interop:
 	@echo Calling 'interop' DIRECT mode, result is processed in the C code that calls Rust code
-	../my-own-cluster call interop -start_function process 264 55 | jq
+	../my-own-cluster call -baseUrl $(SERVER_BASE_URL) interop -start_function process 264 55 | jq
 	@echo
 
 test-files:
 	@echo upload a file to some path
-	@../my-own-cluster upload /titi/uppercase.c uppercase.c
+	@../my-own-cluster upload -baseUrl $(SERVER_BASE_URL) /titi/uppercase.c uppercase.c
 	@echo curl the path :
 	@curl -k https://localhost:8443/titi/uppercase.c
