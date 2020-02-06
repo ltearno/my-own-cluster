@@ -82,7 +82,7 @@ call:
 	@#curl -k -s https://localhost:8443/api/function/call -H 'Content-Type: application/json' -d '{"mode":"posix","name":"cowsay","arguments":["I wish I was a cow !"],"wasi_file_name":"cowsay"}' | jq
 	@#echo
 
-register-rust: wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm
+register-rust: wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm
 	@echo Registering rust sample
 	@../my-own-cluster push wasm-rust-demo wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm
 	@../my-own-cluster push rust-multiply rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm

@@ -18,3 +18,8 @@ pub extern fn rustMultiply(a : i32, b:i32) -> i32 {
 
     a * b
 }
+
+#[no_mangle]
+pub extern fn rustDivide(a : i32, b:i32) -> i32 {
+    a / b
+}
