@@ -250,8 +250,9 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 		return
 	}
 
-	portID := server.orchestrator.CreateOutputPort()
-	wctx := wasm.CreateWasmContext(server.orchestrator, mode, baseReq.Name, startFunction, wasmBytes, input, portID)
+	outputPortID := server.orchestrator.CreateOutputPort()
+
+	wctx := wasm.CreateWasmContext(server.orchestrator, mode, baseReq.Name, startFunction, wasmBytes, input, outputPortID)
 	if wctx == nil {
 		errorResponse(w, 404, "not found function, maybe you forgot to register it ?")
 		return
@@ -290,11 +291,10 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 	wctx.Run(arguments)
 
 	outputBuffer := wctx.Orchestrator.GetOutputPort(wctx.OutputPortID).GetBuffer()
-	outputString := base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(outputBuffer)
 
 	jsonResponse(w, 200, CallFunctionResponse{
 		Result: wctx.Result,
-		Output: outputString,
+		Output: base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(outputBuffer),
 		Error:  false,
 	})
 }

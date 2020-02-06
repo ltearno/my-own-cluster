@@ -8,6 +8,7 @@ package wasm
 import "C"
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -286,6 +287,37 @@ func (wctx *WasmProcessContext) PrintImportedModules() {
 
 func (wctx *WasmProcessContext) AddAPIPlugin(plugin APIPlugin) {
 	wctx.APIPlugins = append(wctx.APIPlugins, plugin)
+}
+
+func PorcelainPrepareWasm(o *common.Orchestrator) (*WasmProcessContext, error) {
+	mode := "direct"
+	functionName := "http-request"
+	startFunction := "_start"
+	wasmBytes := []byte{}
+	inputBytes := []byte{}
+	outputPortID := o.CreateOutputPort()
+	trace := false
+
+	wctx := CreateWasmContext(o, mode, functionName, startFunction, wasmBytes, inputBytes, outputPortID)
+	if wctx == nil {
+		return nil, errors.New("cannot create wasm context")
+	}
+
+	wctx.Trace = trace
+
+	wctx.AddAPIPlugin(NewMyOwnClusterAPIPlugin())
+	wctx.AddAPIPlugin(NewTinyGoAPIPlugin())
+	wctx.AddAPIPlugin(NewAutoLinkAPIPlugin())
+
+	return wctx, nil
+}
+
+func PorcelainAddWASIPlugin(wctx *WasmProcessContext, wasiFileName string, arguments []string) {
+	wctx.AddAPIPlugin(NewWASIHostPlugin(wasiFileName, arguments, map[int]VirtualFile{
+		0: CreateStdInVirtualFile(wctx, wctx.InputBuffer),
+		1: wctx.Orchestrator.GetOutputPort(wctx.OutputPortID), // CreateStdOutVirtualFile(wctx)
+		2: CreateStdErrVirtualFile(wctx),
+	}))
 }
 
 // Run runs the process
