@@ -125,10 +125,17 @@ More samples are coming...
 - golang (tinygo)
 - rust
 - C/C++ (wasicc)
-- others ? lua, javascipt, assembly script...
+- C#
+- Lua
+- AssemblyScript
+- Python
+- Ruby
+- Kotlin/Native
+- PHP
 - define guest/host api over wasi/libc
 - provide persistent key-value storage
 - allow function to read/write in key-value storage
 - allow for easy backup and disaster recovery, by default start on previous state
 - implement cron like scheduling api
 - think about distributing, replicating and scaling
+- think about integrating "https://github.com/svaarala/duktape" compiled in web assembly, in order to run javascript code...
