@@ -1,1 +1,5 @@
 test
+register_buffer
+get_buffer_size
+get_buffer
+free_buffer

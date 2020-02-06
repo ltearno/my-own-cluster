@@ -342,6 +342,9 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 		plugin.Bind(wctx)
 	}
 
+	// TODO move that in the MyOwnCluster API plugin
+	// auto import and dynamically link functions together
+	// TODO watch for updates on https://webassembly.org/docs/dynamic-linking/
 	for m := range wctx.GetImportedModules() {
 		if moduleFunctionTechID, ok := wctx.Orchestrator.GetFunctionTechIDFromName(m); ok {
 			fmt.Printf("emulating %s imported module with function %s techID:%s...\n", m, m, moduleFunctionTechID)

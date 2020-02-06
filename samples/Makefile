@@ -6,7 +6,7 @@ http-request.wasm: http-request.c
 uppercase.wasm: uppercase.c
 	wasicc uppercase.c -o uppercase.wasm
 
-api-demo-c.wasm: api-demo-c.c
+api-demo-c.wasm: api-demo-c.c api-demo-c.h api-demo-c.syms
 	wasicc  -Os                                        \
         -z stack-size=4096 -Wl,--initial-memory=65536  \
         -Wl,--allow-undefined-file=api-demo-c.syms     \
@@ -46,7 +46,7 @@ rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm: rust-nowasi/sr
 
 .PHONY: register register-rust call
 
-register: http-request.wasm api-demo-c.wasm uppercase.wasm wasi-write.wasm hello-go.wasm interop.wasm
+register: http-request.wasm api-demo-c.wasm uppercase.wasm wasi-write.wasm hello-go.wasm interop.wasm api-demo-c.wasm
 	@echo Registering functions...
 	@../my-own-cluster push http-request http-request.wasm
 	@../my-own-cluster push uppercase uppercase.wasm
