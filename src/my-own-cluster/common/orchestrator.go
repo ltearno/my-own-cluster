@@ -140,3 +140,7 @@ func (o *Orchestrator) CreateOutputPort() int {
 func (o *Orchestrator) GetOutputPort(portID int) *OutputPort {
 	return o.outputPorts[portID]
 }
+
+func (o *Orchestrator) ReleaseOutputPort(portID int) {
+	delete(o.outputPorts, portID)
+}
