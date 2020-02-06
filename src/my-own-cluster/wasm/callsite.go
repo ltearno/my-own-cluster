@@ -1,6 +1,7 @@
 package wasm
 
 import (
+	"fmt"
 	common "my-own-cluster/common"
 	"unsafe"
 )
@@ -45,7 +46,30 @@ func (cs *CallSite) GetParamUINT32Ptr(index int) *uint32 {
 
 // Print ptins
 func (cs *CallSite) Print() {
-	common.PrintStack(cs.sp, 16)
+	lineLength := 8
+	count := 16
+
+	chars := ""
+	for i := 0; i < count; i++ {
+		if i%lineLength == 0 {
+			fmt.Printf("%08x: ", unsafe.Pointer(uintptr(cs.sp)+uintptr(i)))
+			chars = ""
+		}
+
+		b := *(*byte)(unsafe.Pointer(uintptr(cs.sp) + uintptr(i)))
+		fmt.Printf("%02x ", b)
+		if common.IsLetter(string(b)) {
+			chars = chars + string(b)
+		} else {
+			chars = chars + "."
+		}
+
+		if (i+1)%lineLength == 0 {
+			fmt.Printf(" %s\n", chars)
+		}
+	}
+
+	fmt.Println()
 }
 
 func getParameter(sp unsafe.Pointer, index int) uint32 {
