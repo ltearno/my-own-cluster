@@ -19,7 +19,7 @@ api-demo-c.wasm: api-demo-c.c api-demo-c.h api-demo-c.syms
 
 	wasm2wat api-demo-c.wasm > api-demo-c.wat
 
-interop.wasm: interop.c
+interop.wasm: interop.c api-demo-c.h
 	wasicc  -Os                                        \
         -z stack-size=4096 -Wl,--initial-memory=65536  \
         -Wl,--allow-undefined-file=interop.syms     \

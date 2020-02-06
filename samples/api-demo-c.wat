@@ -88,9 +88,13 @@
     i32.add
     global.set 0
     local.get 4)
+  (func (;6;) (type 2) (param i32) (result i32)
+    local.get 0
+    call 2)
   (table (;0;) 1 1 anyfunc)
   (memory (;0;) 1)
   (global (;0;) (mut i32) (i32.const 5136))
   (export "memory" (memory 0))
   (export "_start" (func 5))
+  (export "get_size_of_passed_buffer" (func 6))
   (data (;0;) (i32.const 1024) "hello\00"))

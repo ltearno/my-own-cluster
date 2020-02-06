@@ -3,3 +3,5 @@ register_buffer
 get_buffer_size
 get_buffer
 free_buffer
+get_input_buffer_id
+get_output_buffer_id

@@ -90,6 +90,11 @@ func (p *MyOwnClusterAPIPlugin) Bind(wctx *WasmProcessContext) {
 	})
 
 	// params : buffer id
+	wctx.BindAPIFunction("my-own-cluster", "get_input_buffer_id", "i()", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
+		return uint32(wctx.InputExchangeBufferID), nil
+	})
+
+	// params : buffer id
 	wctx.BindAPIFunction("my-own-cluster", "get_output_buffer_id", "i()", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
 		return uint32(wctx.OutputExchangeBufferID), nil
 	})

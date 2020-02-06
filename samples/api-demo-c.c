@@ -33,3 +33,8 @@ uint32_t _start(int a, int b) {
 
     return 700;
 }
+
+WASM_EXPORT
+uint32_t get_size_of_passed_buffer(int bufferId) {
+    return get_buffer_size(bufferId);
+}
