@@ -88,4 +88,9 @@ func (p *MyOwnClusterAPIPlugin) Bind(wctx *WasmProcessContext) {
 
 		return uint32(0), nil
 	})
+
+	// params : buffer id
+	wctx.BindAPIFunction("my-own-cluster", "get_output_buffer_id", "i()", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
+		return uint32(wctx.OutputExchangeBufferID), nil
+	})
 }
