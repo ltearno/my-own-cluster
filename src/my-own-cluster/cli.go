@@ -17,7 +17,7 @@ import (
 
 func CliPushFunction(verbs []Verb) {
 	// skip the verb that triggered us, it is given to us in case it contains options
-	baseUrl := verbs[0].GetOptionOr("baseUrl", "https://localhost:8443")
+	baseUrl := getBaseUrl(verbs[0])
 	verbs = verbs[1:]
 
 	functionName := verbs[0].Name
@@ -72,7 +72,7 @@ func CliPushFunction(verbs []Verb) {
 
 func CliCallFunction(verbs []Verb) {
 	// skip the verb that triggered us, it is given to us in case it contains options
-	baseUrl := verbs[0].GetOptionOr("baseUrl", "https://localhost:8443")
+	baseUrl := getBaseUrl(verbs[0])
 	verbs = verbs[1:]
 
 	functionName := verbs[0].Name
@@ -166,8 +166,17 @@ func detectContentTypeFromFileName(name string) string {
 	return mimeType
 }
 
+func getBaseUrl(verb Verb) string {
+	defaultUrl, ok := os.LookupEnv("MYOWNCLUSTER_SERVER_BASE_URL")
+	if !ok {
+		defaultUrl = "https://localhost:8443"
+	}
+
+	return verb.GetOptionOr("baseUrl", defaultUrl)
+}
+
 func CliUploadDir(verbs []Verb) {
-	baseUrl := verbs[0].GetOptionOr("baseUrl", "https://localhost:8443")
+	baseUrl := getBaseUrl(verbs[0])
 	verbs = verbs[1:]
 
 	pathPrefix := verbs[0].Name
@@ -199,7 +208,7 @@ func CliUploadDir(verbs []Verb) {
 }
 
 func CliUploadFile(verbs []Verb) {
-	baseUrl := verbs[0].GetOptionOr("baseUrl", "https://localhost:8443")
+	baseUrl := getBaseUrl(verbs[0])
 	verbs = verbs[1:]
 
 	path := verbs[0].Name
