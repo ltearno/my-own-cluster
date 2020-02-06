@@ -3,6 +3,8 @@ package wasm
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"unsafe"
 
 	"github.com/ltearno/go-wasm3"
@@ -97,5 +99,26 @@ func (p *MyOwnClusterAPIPlugin) Bind(wctx *WasmProcessContext) {
 	// params : buffer id
 	wctx.BindAPIFunction("my-own-cluster", "get_output_buffer_id", "i()", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
 		return uint32(wctx.OutputExchangeBufferID), nil
+	})
+
+	// params : url addr, url length
+	// returns: content buffer id
+	wctx.BindAPIFunction("my-own-cluster", "get_url", "i(ii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
+		url := cs.GetParamString(0, 1)
+
+		resp, err := http.Get(url)
+		if err != nil {
+			panic(err)
+		}
+		defer resp.Body.Close()
+
+		bytes, _ := ioutil.ReadAll(resp.Body)
+
+		contentBufferID := wctx.Orchestrator.CreateExchangeBuffer()
+		contentBuffer := wctx.Orchestrator.GetExchangeBuffer(contentBufferID)
+
+		contentBuffer.Write(bytes)
+
+		return uint32(contentBufferID), nil
 	})
 }

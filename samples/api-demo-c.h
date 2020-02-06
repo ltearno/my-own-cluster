@@ -16,5 +16,6 @@ WASM_IMPORT("my-own-cluster", "get_buffer") uint32_t get_buffer(int bufferId, vo
 WASM_IMPORT("my-own-cluster", "free_buffer") uint32_t free_buffer(int bufferId);
 WASM_IMPORT("my-own-cluster", "get_input_buffer_id") uint32_t get_input_buffer_id();
 WASM_IMPORT("my-own-cluster", "get_output_buffer_id") uint32_t get_output_buffer_id();
+WASM_IMPORT("my-own-cluster", "get_url") uint32_t get_url(char *url, int length);
 
 #endif
