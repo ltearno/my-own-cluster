@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 
 	"github.com/syndtr/goleveldb/leveldb"
 )
@@ -14,7 +15,7 @@ type RegisterFunction struct {
 }
 
 type Orchestrator struct {
-	nextPortID  int
+	nextPortID  int32
 	outputPorts map[int]*OutputPort
 
 	lock sync.Mutex
@@ -129,68 +130,13 @@ func (o *Orchestrator) GetFunctionBytesByFunctionName(functionName string) ([]by
 }
 
 func (o *Orchestrator) CreateOutputPort() int {
-	o.lock.Lock()
-	portID := o.nextPortID
-	o.outputPorts[portID] = &OutputPort{
-		closed:    false,
-		buffer:    []byte{},
-		listeners: []*chan []byte{},
+	portID := atomic.AddInt32(&o.nextPortID, 1)
+	o.outputPorts[int(portID)] = &OutputPort{
+		buffer: []byte{},
 	}
-	o.nextPortID++
-	o.lock.Unlock()
-	return portID
-}
-
-func appendSlice(slice []byte, data []byte) []byte {
-	m := len(slice)
-	n := m + len(data)
-	if n > cap(slice) {
-		newSlice := make([]byte, (n+1)*2)
-		copy(newSlice, slice)
-		slice = newSlice
-	}
-	slice = slice[0:n]
-	copy(slice[m:n], data)
-	return slice
+	return int(portID)
 }
 
 func (o *Orchestrator) GetOutputPort(portID int) *OutputPort {
 	return o.outputPorts[portID]
-}
-
-type OutputPort struct {
-	closed    bool
-	buffer    []byte
-	listeners []*chan []byte
-}
-
-func (p *OutputPort) RegisterChannel() chan []byte {
-	c := make(chan []byte, 1)
-	p.listeners = append(p.listeners, &c)
-	return c
-}
-
-func (p *OutputPort) GetBuffer() []byte {
-	return p.buffer
-}
-
-func (p *OutputPort) Read(buffer []byte) int {
-	return 0
-}
-
-func (p *OutputPort) Write(buffer []byte) int {
-	// TODO WARNING THIS DOES NOT TAKE WRITE POS IN ACCOUNT !!!
-	p.buffer = appendSlice(p.buffer, buffer)
-
-	return len(buffer)
-}
-
-func (p *OutputPort) Close() int {
-	p.closed = true
-
-	for _, listener := range p.listeners {
-		*listener <- p.buffer
-	}
-
-	return 0
 }
