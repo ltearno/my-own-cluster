@@ -9,6 +9,7 @@
 #define WASM_CONSTRUCTOR              __attribute__((constructor))
 
 WASM_IMPORT("my-own-cluster", "test") uint32_t test();
+WASM_IMPORT("my-own-cluster", "print_debug") uint32_t print_debug(void *buffer, int length);
 
 WASM_IMPORT("my-own-cluster", "register_buffer") uint32_t register_buffer(void *buffer, int length);
 WASM_IMPORT("my-own-cluster", "get_buffer_size") uint32_t get_buffer_size(int bufferId);
