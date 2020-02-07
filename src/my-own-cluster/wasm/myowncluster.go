@@ -35,7 +35,7 @@ func (p *MyOwnClusterAPIPlugin) Bind(wctx *WasmProcessContext) {
 	wctx.BindAPIFunction("my-own-cluster", "print_debug", "i(ii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
 		buffer := cs.GetParamByteBuffer(0, 1)
 
-		fmt.Printf("[my-own-cluster api, ctx %s, print_debug]: %s", wctx.Name, string(buffer))
+		fmt.Printf("\n[my-own-cluster api, ctx %s, print_debug]: %s\n", wctx.Name, string(buffer))
 
 		return uint32(len(buffer)), nil
 	})
