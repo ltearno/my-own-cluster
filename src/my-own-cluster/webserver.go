@@ -105,8 +105,63 @@ type RegisterFileResponse struct {
 	BytesSize   int    `json:"bytes_size"`
 }
 
-func handlerGetFile(w http.ResponseWriter, r *http.Request, p httprouter.Params, server *WebServer) {
+func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Params, server *WebServer) {
 	path := p.ByName("path")
+
+	name, startFunction, present := server.orchestrator.GetPluggedFunctionFromPath(path)
+	if present {
+		wasmBytes, ok := server.orchestrator.GetFunctionBytesByFunctionName(name)
+		if !ok {
+			errorResponse(w, 400, fmt.Sprintf("can't find plugged function bytes (%s)\n", name))
+			return
+		}
+
+		/*
+			Instead of waiting for the end of the call, we should count references to the exchange buffer
+			and wait for the last reference to dissappear. At this moment, the http response is complete and
+			can be sent back to the client. This allows the first callee to transfer its output exchange
+			buffer to another function and exit. The other function will then do whatever it wants to do
+			(fan out, fan in and so on...).
+		*/
+		outputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
+		input := []byte{}
+
+		wctx, err := wasm.PorcelainPrepareWasm(
+			server.orchestrator,
+			"direct",
+			name,
+			startFunction,
+			wasmBytes,
+			input,
+			outputExchangeBufferID,
+			server.trace)
+		if err != nil {
+			errorResponse(w, 404, fmt.Sprintf("cannot create function: %v", err))
+			return
+		}
+
+		wctx.Run([]int{})
+
+		// as seen in the previous comment, here we will have to wait for the output buffer to be released by
+		// all components before returning the http response. If the buffer is not touched, we will respond
+		// with some user well known 5xx code.
+		// That's a kind of distributed GC for buffers...
+		outputExchangeBuffer := wctx.Orchestrator.GetExchangeBuffer(wctx.OutputExchangeBufferID)
+
+		// TODO this is just to test, normally the called function would have set the content-type header...
+		// bute the API is not yet ready
+		outputExchangeBuffer.SetHeader("content-type", "application/json")
+
+		// copy output exchange buffer headers to the response headers
+		outputExchangeBuffer.GetHeaders(func(name string, value string) {
+			w.Header().Set(name, value)
+		})
+		w.WriteHeader(200)
+
+		// copy output exchange buffer content to response body
+		w.Write(outputExchangeBuffer.GetBuffer())
+		return
+	}
 
 	techID, present := server.orchestrator.GetFileTechIDFromPath(path)
 	if !present {
@@ -154,6 +209,46 @@ func handlerRegisterFile(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 		Path:        bodyReq.Path,
 		ContentType: bodyReq.ContentType,
 		BytesSize:   len(bytes),
+	}
+
+	jsonResponse(w, 200, response)
+}
+
+/*-----------------------------------------------------------------------------
+
+Plug function
+
+-----------------------------------------------------------------------------*/
+
+type PlugFunctionRequest struct {
+	Path          string `json:"path"`
+	Name          string `json:"name"`
+	StartFunction string `json:"start_function"`
+}
+
+type PlugFunctionResponse struct {
+	Status        bool   `json:"status"`
+	Path          string `json:"path"`
+	Name          string `json:"name"`
+	StartFunction string `json:"start_function"`
+}
+
+func handlerPlugFunction(w http.ResponseWriter, r *http.Request, p httprouter.Params, server *WebServer) {
+	bodyReq := PlugFunctionRequest{}
+	err := extractBodyAsJSON(r, &bodyReq)
+	if err != nil {
+		fmt.Println(err)
+		errorResponse(w, 500, "cannot read/parse your body")
+		return
+	}
+
+	ok := server.orchestrator.PlugFunction(bodyReq.Path, bodyReq.Name, bodyReq.StartFunction)
+
+	response := PlugFunctionResponse{
+		Status:        ok,
+		Path:          bodyReq.Path,
+		Name:          bodyReq.Name,
+		StartFunction: bodyReq.StartFunction,
 	}
 
 	jsonResponse(w, 200, response)
@@ -321,10 +416,17 @@ func (server *WebServer) init(router *httprouter.Router) {
 	 * - one that receives users http requests
 	 */
 
+	// associate an url to a file
 	router.POST("/api/file/register", server.makeHandler(handlerRegisterFile))
+	// associate an url to a function call
+	router.POST("/api/function/plug", server.makeHandler(handlerPlugFunction))
+	// associate a name with a function code
 	router.POST("/api/function/register", server.makeHandler(handlerRegisterFunction))
+	// calls a named function
 	router.POST("/api/function/call", server.makeHandler(handlerCallFunction))
-	router.GET("/*path", server.makeHandler(handlerGetFile))
+
+	// replies to non-api requests
+	router.GET("/*path", server.makeHandler(handlerGetGeneric))
 }
 
 type WebServer struct {

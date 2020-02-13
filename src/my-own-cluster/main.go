@@ -13,6 +13,17 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
+/**
+
+TODO
+
+BE CAREFUL, SOON WE WILL REPLACE NAMES :
+
+- FUNCTION BY MODULE
+- START_FUNCTION BY FUNCTION
+
+**/
+
 type Verb struct {
 	Name    string
 	Options map[string]string
@@ -148,6 +159,10 @@ func main() {
 
 	case "upload-dir":
 		CliUploadDir(verbs)
+		break
+
+	case "plug":
+		CliPlugFunction(verbs)
 		break
 
 	default:

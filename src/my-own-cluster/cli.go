@@ -207,6 +207,56 @@ func CliUploadDir(verbs []Verb) {
 	fmt.Printf("uploaded %d files (%d errors).\n", count, countError)
 }
 
+func CliPlugFunction(verbs []Verb) {
+	serverBaseUrl := getBaseUrl(verbs[0])
+	verbs = verbs[1:]
+
+	path := verbs[0].Name
+	name := verbs[1].Name
+	startFunction := verbs[2].Name
+
+	reqBody := &PlugFunctionRequest{
+		Path:          path,
+		Name:          name,
+		StartFunction: startFunction,
+	}
+
+	bodyBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		fmt.Printf("cannot marshal json (%v)\n", err)
+		return
+	}
+
+	bodyReader := bytes.NewReader(bodyBytes)
+
+	client := &http.Client{Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}}
+
+	resp, err := client.Post(serverBaseUrl+"/api/function/plug", "application/json", bodyReader)
+	if err != nil {
+		fmt.Printf("error during http request (%v)\n", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	bytes, _ := ioutil.ReadAll(resp.Body)
+
+	response := &PlugFunctionResponse{}
+	if json.Unmarshal(bytes, response) != nil {
+		fmt.Printf("cannot unmarshall server response : %s\n", string(bytes))
+		return
+	}
+
+	if response.Status {
+		fmt.Printf("ok, done\n")
+	} else {
+		fmt.Printf("error (response:%v)!\n", response)
+	}
+}
+
 func CliUploadFile(verbs []Verb) {
 	baseUrl := getBaseUrl(verbs[0])
 	verbs = verbs[1:]

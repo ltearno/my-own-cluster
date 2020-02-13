@@ -31,6 +31,29 @@ func NewOrchestrator(db *leveldb.DB) *Orchestrator {
 	}
 }
 
+func (o *Orchestrator) PlugFunction(path string, name string, startFunction string) bool {
+	o.db.Put([]byte(fmt.Sprintf("/function_plugs/bypath/%s/name", path)), []byte(name), nil)
+	o.db.Put([]byte(fmt.Sprintf("/function_plugs/bypath/%s/start_function", path)), []byte(startFunction), nil)
+
+	fmt.Printf("plugged_function '%s', name:%s, start_function:%s\n", path, name, startFunction)
+
+	return true
+}
+
+func (o *Orchestrator) GetPluggedFunctionFromPath(path string) (string, string, bool) {
+	name, err := o.db.Get([]byte(fmt.Sprintf("/function_plugs/bypath/%s/name", path)), nil)
+	if err != nil {
+		return "", "", false
+	}
+
+	startFunction, err := o.db.Get([]byte(fmt.Sprintf("/function_plugs/bypath/%s/start_function", path)), nil)
+	if err != nil {
+		return "", "", false
+	}
+
+	return string(name), string(startFunction), true
+}
+
 func (o *Orchestrator) RegisterFile(path string, contentType string, bytes []byte) string {
 	techID := Sha256Sum(bytes)
 
