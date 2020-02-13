@@ -1,0 +1,18 @@
+xg-debian@debian:~/novm$ find .|grep -rl "IOCTL"
+src/novmm/platform/kvm_vcpu.go
+src/novmm/platform/kvm_xsave.go
+src/novmm/platform/kvm_xcrs.go
+src/novmm/platform/kvm.go
+src/novmm/platform/kvm_caps.go
+src/novmm/platform/kvm_cpuid.go
+src/novmm/platform/kvm_apic.go
+src/novmm/platform/kvm_mpstate.go
+src/novmm/platform/kvm_pit.go
+src/novmm/platform/kvm_fpu.go
+src/novmm/platform/kvm_memory.go
+src/novmm/platform/kvm_x86.go
+src/novmm/platform/kvm_events.go
+src/novmm/platform/kvm_msrs.go
+src/novmm/platform/kvm_clock.go
+src/novmm/platform/kvm_eventfd.go
+

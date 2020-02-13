@@ -1,0 +1,28 @@
+What the fuck is:
+
+
+The XSAVE?
+	A save of the current state of the CPU?
+
+The XCR?
+	eXtended Control Register
+	CR3/CR0
+	CR0 proc mode
+	CR3 physical address of table 1
+
+
+Memory handling?
+	Need base address before doing all this
+	1 page for EPT identity map (?)
+	3 pages TSS address => tast state segment => stack => not needed
+
+Running
+	struct_kvm_run seems to point to interpreted bytes
+	
+
+MMAP (memory map?)
+	You need a SPAPR_TCE (virtual translation control entry) => KVM_CREATE_SPAPR_TCE
+	Size of mmap wth KVM_GET_VCPU_MMAP_SIZE
+
+RIP
+	REgister Instruction Pointer
