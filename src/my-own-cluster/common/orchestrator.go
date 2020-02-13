@@ -131,9 +131,7 @@ func (o *Orchestrator) GetFunctionBytesByFunctionName(functionName string) ([]by
 
 func (o *Orchestrator) CreateExchangeBuffer() int {
 	bufferID := atomic.AddInt32(&o.nextExchangeBufferID, 1)
-	o.exchangeBuffers[int(bufferID)] = &ExchangeBuffer{
-		buffer: []byte{},
-	}
+	o.exchangeBuffers[int(bufferID)] = newExchangeBuffer()
 	return int(bufferID)
 }
 
