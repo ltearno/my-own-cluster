@@ -294,6 +294,9 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 
 	wctx.Run(arguments)
 
+	// as seen in the previous comment, here we will have to wait for the output buffer to be released by
+	// all components before returning the http response. If the buffer is not touched, we will respond
+	// with some user well known 5xx code.
 	outputExchangeBuffer := wctx.Orchestrator.GetExchangeBuffer(wctx.OutputExchangeBufferID).GetBuffer()
 
 	jsonResponse(w, 200, CallFunctionResponse{
