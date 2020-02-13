@@ -80,6 +80,34 @@ File system :
 - `api://output` : application output payload
 - `http://` and `https://` : used by the guest application to issue a request to some JSON REST Service services.
 
+There is also a raw API.
+
+Here is the current implemented API, for the guest to communicate with my-own-cluster :
+
+```rust
+#[link(wasm_import_module = "my-own-cluster")]
+extern {
+    pub fn test() -> u32;
+    pub fn print_debug(buffer: *const u8, length: u32) -> u32;
+    pub fn register_buffer(buffer: *const u8, length: u32) -> u32;
+    pub fn get_buffer_size(buffer_id: u32) -> u32;
+    pub fn get_buffer(buffer_id: u32, buffer: *const u8, length: u32) -> u32;
+    pub fn write_buffer(buffer_id: u32, buffer: *const u8, length: u32) -> u32;
+    pub fn write_buffer_header(buffer_id: u32, name: *const u8, name_length: u32, value: *const u8, value_length: u32) -> u32;
+    pub fn free_buffer(buffer_id: u32) -> i32;
+    pub fn get_input_buffer_id() -> u32;
+    pub fn get_output_buffer_id() -> u32;
+    pub fn get_url(buffer: *const u8, length: u32) -> u32;
+}
+```
+
+Those functions can be called by whatever language which is targetting WASM and has an FFI (nearly all serious ones).
+
+## Automatic module binding
+
+You can import a wasm module and my-own-cluster will bind a stub to module registered with same name if it exists. The importing module can then call the imported
+module as if it was in the same VM instance. In reality they execute in separate KVM vcpu instance.
+
 ## IFC (Inter Function Call)
 
 Different modes possibles, based on low level directives.
