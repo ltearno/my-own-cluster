@@ -259,6 +259,13 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 		return
 	}
 
+	/*
+		Instead of waiting for the end of the call, we should count references to the exchange buffer
+		and wait for the last reference to dissappear. At this moment, the http response is complete and
+		can be sent back to the client. This allows the first callee to transfer its output exchange
+		buffer to another function and exit. The other function will then do whatever it wants to do
+		(fan out, fan in and so on...).
+	*/
 	outputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
 
 	wctx, err := wasm.PorcelainPrepareWasm(
@@ -304,6 +311,12 @@ func (server *WebServer) makeHandler(handler func(http.ResponseWriter, *http.Req
 }
 
 func (server *WebServer) init(router *httprouter.Router) {
+	/**
+	 * The web server should be split into two :
+	 * - one that receives commands (push, upload, call, ...)
+	 * - one that receives users http requests
+	 */
+
 	router.POST("/api/file/register", server.makeHandler(handlerRegisterFile))
 	router.POST("/api/function/register", server.makeHandler(handlerRegisterFunction))
 	router.POST("/api/function/call", server.makeHandler(handlerCallFunction))
