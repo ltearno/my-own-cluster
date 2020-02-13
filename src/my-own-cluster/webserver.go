@@ -148,10 +148,6 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 		// That's a kind of distributed GC for buffers...
 		outputExchangeBuffer := wctx.Orchestrator.GetExchangeBuffer(wctx.OutputExchangeBufferID)
 
-		// TODO this is just to test, normally the called function would have set the content-type header...
-		// bute the API is not yet ready
-		outputExchangeBuffer.SetHeader("content-type", "application/json")
-
 		// copy output exchange buffer headers to the response headers
 		outputExchangeBuffer.GetHeaders(func(name string, value string) {
 			w.Header().Set(name, value)

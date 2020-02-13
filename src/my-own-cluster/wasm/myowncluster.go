@@ -107,6 +107,23 @@ func (p *MyOwnClusterAPIPlugin) Bind(wctx *WasmProcessContext) {
 		return uint32(len(buffer)), nil
 	})
 
+	// params : buffer id, buffer addr, buffer length
+	wctx.BindAPIFunction("my-own-cluster", "write_buffer_header", "i(iiiii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
+		bufferID := cs.GetParamUINT32(0)
+		name := cs.GetParamByteBuffer(1, 2)
+		value := cs.GetParamByteBuffer(3, 4)
+
+		exchangeBuffer := wctx.Orchestrator.GetExchangeBuffer(int(bufferID))
+		if exchangeBuffer == nil {
+			fmt.Printf("GET EXCHANGE BUFFER FOR UNKNOWN BUFFER %d\n", bufferID)
+			return 0, nil
+		}
+
+		exchangeBuffer.SetHeader(string(name), string(value))
+
+		return uint32(1), nil
+	})
+
 	// params : buffer id
 	wctx.BindAPIFunction("my-own-cluster", "free_buffer", "i(i)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
 		bufferID := cs.GetParamUINT32(0)

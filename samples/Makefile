@@ -88,6 +88,10 @@ register-rust: wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm rust-
 	@echo Registering rust sample
 	@../my-own-cluster push wasm-rust-demo wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm
 	@../my-own-cluster push rust-multiply rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm
+	@../my-own-cluster upload /watchdog rust-nowasi/index.html
+	@../my-own-cluster upload /watchdog/ rust-nowasi/index.html
+	@../my-own-cluster push watchdog-backend rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm
+	@../my-own-cluster plug /watchdog/status watchdog-backend getStatus
 
 call-rust:
 	@echo Calling 'wasm-rust-demo', a little demo program written in Rust and built for the wasm32-wasi platform
@@ -97,6 +101,9 @@ call-rust:
 	@echo
 	@echo Calling multiply function implemented in Rust without wasi, result of the multiplication is found in the result field
 	../my-own-cluster call rust-multiply -start_function rustMultiply 4 3 | jq
+	#curl -k $$MYOWNCLUSTER_SERVER_BASE_URL/watchdog
+	#my-own-cluster call watchdog-backend -start_function getStatus | jq -r '.output' | base64 -d | jq
+	#curl -v -k $$MYOWNCLUSTER_SERVER_BASE_URL/watchdog/status
 
 call-interop:
 	@echo Calling 'interop' DIRECT mode, result is processed in the C code that calls Rust code
