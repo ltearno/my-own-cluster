@@ -6,8 +6,18 @@
 #include <linux/kvm.h>
 #include <sys/mman.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 
 int main(int argc, char* argv[]) {
+
+	//func to read file size, thanks stackoverflow
+	off_t fsize(const char *filename) {
+		struct stat st; 
+		if (stat(filename, &st) == 0) {
+			return st.st_size;
+		}
+	    return -1; 
+	}
 
 	//Create the fd for the driver
 	int devkvm_fd = open("/dev/kvm", O_RDWR | O_CLOEXEC);
@@ -52,7 +62,13 @@ int main(int argc, char* argv[]) {
 	//from file
 	int mem_fd;
 	mem_fd = open("hw", O_RDWR);
-	__u64 *memory = mmap(NULL, 4096, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE, mem_fd, 0);
+	//File size
+	size_t mem_size = 0x8000; 
+	//size_t mem_size = (size_t)fsize("hw");
+	size_t prg_size = (size_t)fsize("hw");
+	printf("mem size=%u\n", mem_size);
+	printf("prg size=%u\n", prg_size);
+	__u64 *memory = mmap(NULL, mem_size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE, mem_fd, 0);
 	if(memory == MAP_FAILED) {
 		printf("error mem map");
 		close(vcpu_fd);
@@ -67,8 +83,8 @@ int main(int argc, char* argv[]) {
 	//Tell kvm about this memory space
 	struct kvm_userspace_memory_region region = {
 		.slot = 0,
-		.guest_phys_addr = 4096,
-		.memory_size = 4096,
+		.guest_phys_addr = mem_size,
+		.memory_size = mem_size,
 		.userspace_addr = memory,
 	};
 	int memset_rc = ioctl(vm_fd, KVM_SET_USER_MEMORY_REGION, &region);
@@ -91,9 +107,9 @@ int main(int argc, char* argv[]) {
 	if(get_sregs_sc == -1) {
 		printf("can't get sregs");
 	}
-	sregs.cs.base = 0;
-	sregs.cs.selector = 0;
-	int set_sregs_cs = ioctl(vcpu_fd, KVM_SET_SREGS, vcpu_sregs);
+	vcpu_sregs.cs.base = 0;
+	vcpu_sregs.cs.selector = 0;
+	int set_sregs_sc = ioctl(vcpu_fd, KVM_SET_SREGS, &vcpu_sregs);
 	if(set_sregs_sc == -1) {
 		printf("can't set sregs");
 	}
@@ -119,11 +135,13 @@ int main(int argc, char* argv[]) {
 	int time_to_run = ioctl(vcpu_fd, KVM_RUN, NULL);
 	printf("%d\n", time_to_run);
 
+	//Read memory
+	ssize_t s = write(STDOUT_FILENO, memory, mem_size);
 
 	//Dispose of borrowed memory
 	//TODO: P sure we forgot shit
 	munmap(kvm_run_parameters, mmap_size);
-	munmap(memory, 1024);
+	munmap(memory, mem_size);
 
 	//Close all open resources
 	close(vcpu_fd);
@@ -131,4 +149,5 @@ int main(int argc, char* argv[]) {
 	close(devkvm_fd);
 
 	return 0;
+
 }
