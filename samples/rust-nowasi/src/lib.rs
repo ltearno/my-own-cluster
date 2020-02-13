@@ -67,6 +67,9 @@ pub fn write_buffer_header(buffer_id: u32, name: &str, value: &str) {
 
 #[no_mangle]
 pub extern fn getStatus() -> u32 {
+    // TODO read the input buffer and the input headers
+    // because in the sample, they will come from a customer request
+
     let r = get_url("https://jsonplaceholder.typicode.com/todos/1");
 
     let rStatus = serde_json::from_str::<WatchdogStatus>(&r);

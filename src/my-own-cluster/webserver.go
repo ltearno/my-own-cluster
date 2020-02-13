@@ -124,7 +124,21 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			(fan out, fan in and so on...).
 		*/
 		outputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
-		input := []byte{}
+
+		inputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
+		inputExchangeBuffer := server.orchestrator.GetExchangeBuffer(inputExchangeBufferID)
+
+		body, err := ioutil.ReadAll(r.Body)
+		if err == nil {
+			inputExchangeBuffer.Write(body)
+		} else {
+			fmt.Printf("CANNOT READ BODY\n")
+		}
+
+		for k, v := range r.Header {
+			// TODO why not support multiple values ?
+			inputExchangeBuffer.SetHeader(k, v[0])
+		}
 
 		wctx, err := wasm.PorcelainPrepareWasm(
 			server.orchestrator,
@@ -132,7 +146,7 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			name,
 			startFunction,
 			wasmBytes,
-			input,
+			inputExchangeBufferID,
 			outputExchangeBufferID,
 			server.trace)
 		if err != nil {
@@ -359,13 +373,17 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 	*/
 	outputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
 
+	inputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
+	inputExchangeBuffer := server.orchestrator.GetExchangeBuffer(inputExchangeBufferID)
+	inputExchangeBuffer.Write(input)
+
 	wctx, err := wasm.PorcelainPrepareWasm(
 		server.orchestrator,
 		mode,
 		baseReq.Name,
 		startFunction,
 		wasmBytes,
-		input,
+		inputExchangeBufferID,
 		outputExchangeBufferID,
 		server.trace)
 	if err != nil {

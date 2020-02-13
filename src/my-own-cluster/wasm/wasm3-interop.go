@@ -84,11 +84,7 @@ type VirtualFile interface {
 	Close() int
 }
 
-func CreateWasmContext(o *common.Orchestrator, mode string, functionName string, startFunction string, wasmBytes []byte, input []byte, outputExchangeBufferID int) *WasmProcessContext {
-	inputExchangeBufferID := o.CreateExchangeBuffer()
-	inputExchangeBuffer := o.GetExchangeBuffer(inputExchangeBufferID)
-	inputExchangeBuffer.Write(input)
-
+func CreateWasmContext(o *common.Orchestrator, mode string, functionName string, startFunction string, wasmBytes []byte, inputExchangeBufferID int, outputExchangeBufferID int) *WasmProcessContext {
 	wctx := &WasmProcessContext{
 		Orchestrator:           o,
 		Name:                   functionName,
@@ -295,8 +291,8 @@ func (wctx *WasmProcessContext) AddAPIPlugin(plugin APIPlugin) {
 	wctx.APIPlugins = append(wctx.APIPlugins, plugin)
 }
 
-func PorcelainPrepareWasm(o *common.Orchestrator, mode string, functionName string, startFunction string, wasmBytes []byte, inputBytes []byte, outputExchangeBufferID int, trace bool) (*WasmProcessContext, error) {
-	wctx := CreateWasmContext(o, mode, functionName, startFunction, wasmBytes, inputBytes, outputExchangeBufferID)
+func PorcelainPrepareWasm(o *common.Orchestrator, mode string, functionName string, startFunction string, wasmBytes []byte, inputExchangeBufferID int, outputExchangeBufferID int, trace bool) (*WasmProcessContext, error) {
+	wctx := CreateWasmContext(o, mode, functionName, startFunction, wasmBytes, inputExchangeBufferID, outputExchangeBufferID)
 	if wctx == nil {
 		return nil, errors.New("cannot create wasm context")
 	}
@@ -387,6 +383,7 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 						}
 
 						outputExchangeBufferID := wctx.Orchestrator.CreateExchangeBuffer()
+						inputExchangeBufferID := wctx.Orchestrator.CreateExchangeBuffer()
 
 						subWctx, err := PorcelainPrepareWasm(
 							wctx.Orchestrator,
@@ -394,7 +391,7 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 							m,
 							*iField,
 							wasmBytes,
-							[]byte{},
+							inputExchangeBufferID,
 							outputExchangeBufferID,
 							wctx.Trace,
 						)
