@@ -140,6 +140,10 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			inputExchangeBuffer.SetHeader(k, v[0])
 		}
 
+		// TODO add special headers, like :
+		// - x-moc-url => called url path
+		// - x-moc-PATH_COMPONENT_NAME => parsed path components...
+
 		wctx, err := wasm.PorcelainPrepareWasm(
 			server.orchestrator,
 			"direct",
