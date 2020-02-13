@@ -1,12 +1,24 @@
+#include <err.h>
 #include <fcntl.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
 #include <linux/kvm.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+
+/**
+ * You can find the KVM documentation here :
+ * 
+ * https://www.kernel.org/doc/Documentation/virtual/kvm/api.txt
+ * 
+ * a snapshot of this file is available here : kvm-api.txt
+ * 
+ **/
 
 int main(int argc, char* argv[]) {
 
@@ -35,15 +47,14 @@ int main(int argc, char* argv[]) {
 	int kvm_api_version = ioctl(devkvm_fd, KVM_GET_API_VERSION, NULL);
 	printf("version %d\n", kvm_api_version);
 	
-	//create vm
-	//May want to remplace ARM IPA size with 0 to ensure backwards comp
+	// create vm, see doc section 4.2 KVM_CREATE_VM
 	int vm_fd = ioctl(devkvm_fd, KVM_CREATE_VM, 0);
 	if(vm_fd == -1) {
 		printf("error");
 		return 1;
 	}
 
-	//create vcpu
+	// create vcpu, see doc section 4.7 KVM_CREATE_VCPU
 	int vcpu_fd = ioctl(vm_fd, KVM_CREATE_VCPU, 0);
 	if(vm_fd == -1) {
 		printf("error");
@@ -92,9 +103,7 @@ int main(int argc, char* argv[]) {
 		printf("error set mem region");
 	}
 
-	//Get KVM_RUN implicit parameter block for the lulz
-	int mmap_size = ioctl(vcpu_fd, KVM_GET_VCPU_MMAP_SIZE, NULL);
-	struct kvm_run *kvm_run_parameters = mmap(NULL, mmap_size, PROT_READ, MAP_PRIVATE, vcpu_fd, 0);
+	
 
 	//ssize_t s = write(STDOUT_FILENO, memory, 1024);
 	
@@ -129,8 +138,11 @@ int main(int argc, char* argv[]) {
 	}
 
 
+	// get KVM_RUN implicit parameter block for the lulz (this is documented in doc section 4.10 KVM_RUN)
+	int mmap_size = ioctl(vcpu_fd, KVM_GET_VCPU_MMAP_SIZE, NULL);
+	struct kvm_run *kvm_run_parameters = mmap(NULL, mmap_size, PROT_READ, MAP_PRIVATE, vcpu_fd, 0);
 
-	//Pick a god and pray
+	// Pick a god and pray, see doc section 4.10 KVM_RUN
 	//TODO: if no errors, real code.
 	int time_to_run = ioctl(vcpu_fd, KVM_RUN, NULL);
 	printf("%d\n", time_to_run);
