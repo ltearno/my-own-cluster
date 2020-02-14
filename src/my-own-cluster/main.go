@@ -73,6 +73,16 @@ func printHelp() {
 	fmt.Printf("      calls a function in direct mode\n")
 }
 
+func dumpDB(db *leveldb.DB) {
+	fmt.Println("=database_dump=>")
+	iter := db.NewIterator(nil, nil)
+	for iter.Next() {
+		fmt.Printf("%s\n", string(iter.Key()))
+	}
+	iter.Release()
+	fmt.Println("<=database_dump_finished=")
+}
+
 func main() {
 	verbs, err := ParseArgs(os.Args)
 	if err != nil {
@@ -112,6 +122,8 @@ func main() {
 			return
 		}
 		defer db.Close()
+
+		dumpDB(db)
 
 		orchestrator := common.NewOrchestrator(db)
 
