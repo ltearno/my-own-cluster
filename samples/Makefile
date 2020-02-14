@@ -105,7 +105,8 @@ call-rust:
 	../my-own-cluster call rust-multiply -start_function rustMultiply 4 3 | jq
 	curl -k $(SERVER_PUBLIC_URL)/watchdog
 	my-own-cluster call watchdog-backend -start_function getStatus | jq -r '.output' | base64 -d | jq
-	curl -v -k $(SERVER_PUBLIC_URL)/watchdog/status
+	curl -s -k $(SERVER_PUBLIC_URL)/watchdog/status
+	curl -s -k -X POST $(SERVER_PUBLIC_URL)/watchdog/status -H "content-type: application/json" -d '{"name":"home-light-1","message":"everything ok"}'
 
 call-interop:
 	@echo Calling 'interop' DIRECT mode, result is processed in the C code that calls Rust code

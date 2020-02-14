@@ -18,6 +18,30 @@ struct WatchdogStatus {
     services: HashMap<String, WatchdogServiceStatus>,
 }
 
+#[derive(Serialize, Deserialize)]
+struct WatchdogServicePostStatus {
+    name: String,
+    message: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct MessageResponse {
+    status: bool,
+    message: String,
+}
+
+fn message_response(message: &str) {
+    let body = &MessageResponse {
+        status: true,
+        message: message.to_string(),
+    };
+
+    let serialized = serde_json::to_string(&body).unwrap();
+
+    write_buffer_header(get_output_buffer_id(), "content-type", "application/json");
+    write_buffer(get_output_buffer_id(), serialized.as_bytes());
+}
+
 // import the 'my-own-cluster' library
 mod raw {
     #[link(wasm_import_module = "my-own-cluster")]
@@ -36,6 +60,18 @@ mod raw {
     }
 }
 
+pub fn get_input_buffer_id() -> u32 {
+    unsafe {
+        raw::get_input_buffer_id()
+    }
+}
+
+pub fn get_output_buffer_id() -> u32 {
+    unsafe {
+        raw::get_output_buffer_id()
+    }
+}
+
 pub fn print_debug(s: &str) {
     unsafe {
         let bytes = s.as_bytes();
@@ -46,16 +82,34 @@ pub fn print_debug(s: &str) {
     }
 }
 
-pub fn get_url(url: &str) -> String {
+pub fn read_buffer(buffer_id: u32) -> Vec<u8> {
     unsafe {
-        let bytes = url.as_bytes();
-        let buffer_id = raw::get_url(bytes.as_ptr(), bytes.len() as u32);
         let buffer_size = raw::get_buffer_size(buffer_id);
         let mut dest = Vec::with_capacity(buffer_size as usize);
         dest.resize(buffer_size as usize, 0);
         raw::get_buffer(buffer_id, dest.as_ptr(), buffer_size);
+        dest
+    }
+}
+
+pub fn read_buffer_as_string(buffer_id: u32) -> String {
+    String::from_utf8(read_buffer(buffer_id)).unwrap()
+}
+
+pub fn get_url(url: &str) -> String {
+    unsafe {
+        let bytes = url.as_bytes();
+        let buffer_id = raw::get_url(bytes.as_ptr(), bytes.len() as u32);
+        let content = read_buffer_as_string(buffer_id);
         raw::free_buffer(buffer_id);
-        String::from_utf8(dest).unwrap()
+
+        content
+    }
+}
+
+pub fn write_buffer(buffer_id: u32, buffer: &[u8]) -> u32 {
+    unsafe {
+        raw::write_buffer(buffer_id, buffer.as_ptr(), buffer.len() as u32)
     }
 }
 
@@ -72,9 +126,6 @@ pub fn write_buffer_header(buffer_id: u32, name: &str, value: &str) {
 
 #[no_mangle]
 pub extern fn getStatus() -> u32 {
-    // TODO read the input buffer and the input headers
-    // because in the sample, they will come from a customer request
-
     let status = &WatchdogStatus{
         description: "everything ok".to_string(),
         services: HashMap::new(),
@@ -82,12 +133,8 @@ pub extern fn getStatus() -> u32 {
 
     match serde_json::to_string(&status) {
         Ok(serialized) => {
-            unsafe {
-                write_buffer_header(raw::get_output_buffer_id(), "content-type", "application/json");
-                raw::write_buffer(raw::get_output_buffer_id(), serialized.as_bytes().as_ptr(), serialized.as_bytes().len() as u32)
-            };
-
-            print_debug(&format!("serialized our response which is {} bytes long", serialized.as_bytes().len()));
+            write_buffer_header(get_output_buffer_id(), "content-type", "application/json");
+            write_buffer(get_output_buffer_id(), serialized.as_bytes());
             
             serialized.as_bytes().len() as u32
         },
@@ -100,18 +147,21 @@ pub extern fn getStatus() -> u32 {
 
 #[no_mangle]
 pub extern fn postStatus() -> u32 {
-    // TODO read the input buffer and the input headers
-    // because in the sample, they will come from a customer request
-
-    let serialized = "{}";
-    unsafe {
-        write_buffer_header(raw::get_output_buffer_id(), "content-type", "application/json");
-        raw::write_buffer(raw::get_output_buffer_id(), serialized.as_bytes().as_ptr(), serialized.as_bytes().len() as u32)
-    };
-
-    print_debug(&format!("serialized our response which is {} bytes long", serialized.as_bytes().len()));
-    
-    serialized.as_bytes().len() as u32
+    let body = read_buffer_as_string(get_input_buffer_id());
+    let status = serde_json::from_str::<WatchdogServicePostStatus>(&body);
+    match status {
+        Ok(status) => {
+            // TODO
+            // get timestamp
+            // set key value for service in serverless database
+            message_response("status saved, thanks");
+            200 as u32
+        },
+        Err(err) =>{
+            message_response("cannot parse");
+            400 as u32
+        },
+    }
 }
 
 // import the 'my-own-cluster' library
