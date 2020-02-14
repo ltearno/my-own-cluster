@@ -93,7 +93,8 @@ register-rust: wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm rust-
 	@../my-own-cluster upload /watchdog/ rust-nowasi/index.html
 	@../my-own-cluster push watchdog-backend rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm
 	@../my-own-cluster plug /watchdog/status watchdog-backend getStatus
-	@../my-own-cluster plug -method post /watchdog/status watchdog-backend postStatus
+	@../my-own-cluster plug /watchdog/update/!service watchdog-backend postStatus
+	#@../my-own-cluster plug -method post /watchdog/status watchdog-backend postStatus
 
 call-rust:
 	@echo Calling 'wasm-rust-demo', a little demo program written in Rust and built for the wasm32-wasi platform
@@ -103,7 +104,8 @@ call-rust:
 	@echo
 	@echo Calling multiply function implemented in Rust without wasi, result of the multiplication is found in the result field
 	../my-own-cluster call rust-multiply -start_function rustMultiply 4 3 | jq
-	curl -k $(SERVER_PUBLIC_URL)/watchdog/mon-service/update
+	#curl -k $(SERVER_PUBLIC_URL)/zzz
+	curl -k $(SERVER_PUBLIC_URL)/watchdog/update/mon-service
 	curl -k $(SERVER_PUBLIC_URL)/watchdog/
 	#my-own-cluster call watchdog-backend -start_function getStatus | jq -r '.output' | base64 -d | jq
 	curl -s -k $(SERVER_PUBLIC_URL)/watchdog/status | jq

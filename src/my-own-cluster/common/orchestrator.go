@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
@@ -153,21 +154,97 @@ func (o *Orchestrator) PlugFile(method string, path string, contentType string, 
 	return techID
 }
 
-func (o *Orchestrator) findPlug(method string, path string) {
-	prefix := []byte(fmt.Sprintf("/plugs/byspec/%s/", method))
+func getString(db *leveldb.DB, key string) (string, bool) {
+	bytes, err := db.Get([]byte(key), nil)
+	if err != nil {
+		return "", false
+	}
 
-	iter := o.db.NewIterator(nil, nil)
-	defer iter.Release()
+	return string(bytes), true
+}
+
+type walker struct {
+	db         *leveldb.DB
+	it         iterator.Iterator
+	basePrefix string
+}
+
+func (w *walker) Key() string {
+	if w.it.Key() == nil {
+		return "-"
+	}
+
+	return string(w.it.Key()[len(w.basePrefix):])
+}
+
+func (w *walker) Seek(key string) bool {
+	key = w.basePrefix + key
+	if strings.HasPrefix(string(w.it.Key()), key) {
+		return true
+	}
+
+	w.it.Seek([]byte(key))
+	return strings.HasPrefix(string(w.it.Key()), key)
+}
+
+func (o *Orchestrator) findPlug(method string, path string) {
+	walker := &walker{
+		db:         o.db,
+		it:         o.db.NewIterator(nil, nil),
+		basePrefix: fmt.Sprintf("/plugs/byspec/%s/", method),
+	}
+
+	prefix := ""
+
+	defer walker.it.Release()
+
+	if !walker.Seek("") {
+		fmt.Printf("no plugs registered (%s)\n", walker.Key())
+		return
+	}
 
 	// seek the beginning of the plug entries
-	ok := iter.Seek(prefix)
+	for {
+		if path == "" {
+			fmt.Printf("WE HAVE A MATCH !\n")
+			return
+		}
 
-	for ok {
+		fmt.Printf("(%s) [%s] '%s' '%s' '%s'\n", method, path, prefix, walker.Key(), path)
+
+		starKey := prefix + "/!"
+		ok := walker.Seek(starKey)
+		if ok {
+			// we have a plug that consumes the path part
+			fmt.Println("YEAAAH NEXT EPISODE")
+			break
+		}
+
+		// we must seek to the path part and have a match
+		askedPathPart := path
+		nextPartIndex := 1 + strings.Index(askedPathPart[1:], "/")
+		if nextPartIndex > 0 {
+			askedPathPart = askedPathPart[:nextPartIndex]
+		}
+
+		prefix = prefix + askedPathPart
+		ok = walker.Seek(prefix)
+		if !ok {
+			fmt.Printf("finished on cannot seek 2 %s\n", prefix)
+			break
+		}
+
+		path = path[nextPartIndex:]
+
+		continue
+	}
+
+	/*for ok {
 		pluggedPath := string(iter.Key())
 
 		// finished
 		if !strings.HasPrefix(pluggedPath, string(prefix)) {
-			fmt.Println("finished")
+			fmt.Printf("finished on %s\n", pluggedPath)
 			break
 		}
 
@@ -187,10 +264,11 @@ func (o *Orchestrator) findPlug(method string, path string) {
 			ok = iter.Next()
 		} else {
 			// je consomme le premier element, je vérifie qu'il existe bien en base, j'avance
+			path = path[nextPartIndex:]
 			prefix = append(prefix, []byte(askedPathPart)...)
 			ok = iter.Seek(prefix)
 		}
-	}
+	}*/
 }
 
 func (o *Orchestrator) GetPlugFromPath(method string, path string) (bool, string, interface{}) {

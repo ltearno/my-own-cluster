@@ -123,8 +123,6 @@ func main() {
 		}
 		defer db.Close()
 
-		db.Put([]byte("/plugs/byspec/get//watchdog/!service/update"), []byte("lkjh"), nil)
-
 		dumpDB(db)
 
 		orchestrator := common.NewOrchestrator(db)
