@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -39,22 +40,26 @@ func NewOrchestrator(db *leveldb.DB) *Orchestrator {
  * The named parameters should then be injected as headers in the called input exchange buffer
  */
 
-func (o *Orchestrator) PlugFunction(path string, name string, startFunction string) bool {
-	o.db.Put([]byte(fmt.Sprintf("/function_plugs/bypath/%s/name", path)), []byte(name), nil)
-	o.db.Put([]byte(fmt.Sprintf("/function_plugs/bypath/%s/start_function", path)), []byte(startFunction), nil)
+func (o *Orchestrator) PlugFunction(method string, path string, name string, startFunction string) bool {
+	method = strings.ToLower(method)
 
-	fmt.Printf("plugged_function '%s', name:%s, start_function:%s\n", path, name, startFunction)
+	o.db.Put([]byte(fmt.Sprintf("/function_plugs/bymethod/%s/bypath/%s/name", method, path)), []byte(name), nil)
+	o.db.Put([]byte(fmt.Sprintf("/function_plugs/bymethod/%s/bypath/%s/start_function", method, path)), []byte(startFunction), nil)
+
+	fmt.Printf("plugged_function on method:%s, path:'%s', name:%s, start_function:%s\n", method, path, name, startFunction)
 
 	return true
 }
 
-func (o *Orchestrator) GetPluggedFunctionFromPath(path string) (string, string, bool) {
-	name, err := o.db.Get([]byte(fmt.Sprintf("/function_plugs/bypath/%s/name", path)), nil)
+func (o *Orchestrator) GetPluggedFunctionFromPath(method string, path string) (string, string, bool) {
+	method = strings.ToLower(method)
+
+	name, err := o.db.Get([]byte(fmt.Sprintf("/function_plugs/bymethod/%s/bypath/%s/name", method, path)), nil)
 	if err != nil {
 		return "", "", false
 	}
 
-	startFunction, err := o.db.Get([]byte(fmt.Sprintf("/function_plugs/bypath/%s/start_function", path)), nil)
+	startFunction, err := o.db.Get([]byte(fmt.Sprintf("/function_plugs/bymethod/%s/bypath/%s/start_function", method, path)), nil)
 	if err != nil {
 		return "", "", false
 	}

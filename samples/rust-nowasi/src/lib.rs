@@ -8,9 +8,14 @@ use std::collections::HashMap;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[derive(Serialize, Deserialize)]
+struct WatchdogServiceStatus {
+    timestamp: i64,
+}
+
+#[derive(Serialize, Deserialize)]
 struct WatchdogStatus {
-    id: i32,
-    title: String,
+    description: String,
+    services: HashMap<String, WatchdogServiceStatus>,
 }
 
 // import the 'my-own-cluster' library
@@ -70,33 +75,43 @@ pub extern fn getStatus() -> u32 {
     // TODO read the input buffer and the input headers
     // because in the sample, they will come from a customer request
 
-    let r = get_url("https://jsonplaceholder.typicode.com/todos/1");
+    let status = &WatchdogStatus{
+        description: "everything ok".to_string(),
+        services: HashMap::new(),
+    };
 
-    let rStatus = serde_json::from_str::<WatchdogStatus>(&r);
-    match rStatus {
-        Ok(status) => {
-            match serde_json::to_string(&status) {
-                Ok(serialized) => {
-                    unsafe {
-                        write_buffer_header(raw::get_output_buffer_id(), "content-type", "application/json");
-                        raw::write_buffer(raw::get_output_buffer_id(), serialized.as_bytes().as_ptr(), serialized.as_bytes().len() as u32)
-                    };
+    match serde_json::to_string(&status) {
+        Ok(serialized) => {
+            unsafe {
+                write_buffer_header(raw::get_output_buffer_id(), "content-type", "application/json");
+                raw::write_buffer(raw::get_output_buffer_id(), serialized.as_bytes().as_ptr(), serialized.as_bytes().len() as u32)
+            };
 
-                    print_debug(&format!("serialized our response which is {} bytes long", serialized.as_bytes().len()));
-                    
-                    serialized.as_bytes().len() as u32
-                },
-                Err(err) => {
-                    print_debug(&format!("error when serializing our response : {}", err));
-                    13 as u32
-                },
-            }
+            print_debug(&format!("serialized our response which is {} bytes long", serialized.as_bytes().len()));
+            
+            serialized.as_bytes().len() as u32
         },
         Err(err) => {
-            print_debug(&format!("error when deserializing backend response : {}", err));
-            11 as u32
+            print_debug(&format!("error when serializing our response : {}", err));
+            13 as u32
         },
     }
+}
+
+#[no_mangle]
+pub extern fn postStatus() -> u32 {
+    // TODO read the input buffer and the input headers
+    // because in the sample, they will come from a customer request
+
+    let serialized = "{}";
+    unsafe {
+        write_buffer_header(raw::get_output_buffer_id(), "content-type", "application/json");
+        raw::write_buffer(raw::get_output_buffer_id(), serialized.as_bytes().as_ptr(), serialized.as_bytes().len() as u32)
+    };
+
+    print_debug(&format!("serialized our response which is {} bytes long", serialized.as_bytes().len()));
+    
+    serialized.as_bytes().len() as u32
 }
 
 // import the 'my-own-cluster' library

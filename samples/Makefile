@@ -1,5 +1,5 @@
-SERVER_BASE_URL ?= https://localhost:8443
-MYOWNCLUSTER_SERVER_BASE_URL ?= https://localhost:8443
+SERVER_PUBLIC_URL ?= https://localhost:8443
+MYOWNCLUSTER_SERVER_BASE_URL ?= https://localhost:8444
 
 all: uppercase.wasm wasi-write.wasm hello-go.wasm http-request.wasm api-demo-c.wasm
 
@@ -82,7 +82,7 @@ call:
 	@echo
 
 	@#echo Calling 'cowsay' POSIX mode, does not work yet !
-	@#curl -k -s https://localhost:8443/api/function/call -H 'Content-Type: application/json' -d '{"mode":"posix","name":"cowsay","arguments":["I wish I was a cow !"],"wasi_file_name":"cowsay"}' | jq
+	@#curl -k -s $(SERVER_PUBLIC_URL)/api/function/call -H 'Content-Type: application/json' -d '{"mode":"posix","name":"cowsay","arguments":["I wish I was a cow !"],"wasi_file_name":"cowsay"}' | jq
 	@#echo
 
 register-rust: wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm
@@ -93,6 +93,7 @@ register-rust: wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm rust-
 	@../my-own-cluster upload /watchdog/ rust-nowasi/index.html
 	@../my-own-cluster push watchdog-backend rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm
 	@../my-own-cluster plug /watchdog/status watchdog-backend getStatus
+	@../my-own-cluster plug -method post /watchdog/status watchdog-backend postStatus
 
 call-rust:
 	@echo Calling 'wasm-rust-demo', a little demo program written in Rust and built for the wasm32-wasi platform
@@ -102,9 +103,9 @@ call-rust:
 	@echo
 	@echo Calling multiply function implemented in Rust without wasi, result of the multiplication is found in the result field
 	../my-own-cluster call rust-multiply -start_function rustMultiply 4 3 | jq
-	curl -k $(MYOWNCLUSTER_SERVER_BASE_URL)/watchdog
+	curl -k $(SERVER_PUBLIC_URL)/watchdog
 	my-own-cluster call watchdog-backend -start_function getStatus | jq -r '.output' | base64 -d | jq
-	curl -v -k $(MYOWNCLUSTER_SERVER_BASE_URL)/watchdog/status
+	curl -v -k $(SERVER_PUBLIC_URL)/watchdog/status
 
 call-interop:
 	@echo Calling 'interop' DIRECT mode, result is processed in the C code that calls Rust code
@@ -115,4 +116,4 @@ test-files:
 	@echo upload a file to some path
 	@../my-own-cluster upload /titi/uppercase.c uppercase.c
 	@echo curl the path :
-	@curl -k https://localhost:8443/titi/uppercase.c
+	@curl -k $(SERVER_PUBLIC_URL)/titi/uppercase.c

@@ -169,7 +169,7 @@ func detectContentTypeFromFileName(name string) string {
 func getBaseUrl(verb Verb) string {
 	defaultUrl, ok := os.LookupEnv("MYOWNCLUSTER_SERVER_BASE_URL")
 	if !ok {
-		defaultUrl = "https://localhost:8443"
+		defaultUrl = "https://localhost:8444"
 	}
 
 	return verb.GetOptionOr("baseUrl", defaultUrl)
@@ -209,6 +209,7 @@ func CliUploadDir(verbs []Verb) {
 
 func CliPlugFunction(verbs []Verb) {
 	serverBaseUrl := getBaseUrl(verbs[0])
+	method := verbs[0].GetOptionOr("method", "get")
 	verbs = verbs[1:]
 
 	path := verbs[0].Name
@@ -216,6 +217,7 @@ func CliPlugFunction(verbs []Verb) {
 	startFunction := verbs[2].Name
 
 	reqBody := &PlugFunctionRequest{
+		Method:        method,
 		Path:          path,
 		Name:          name,
 		StartFunction: startFunction,

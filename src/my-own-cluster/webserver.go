@@ -108,7 +108,7 @@ type RegisterFileResponse struct {
 func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Params, server *WebServer) {
 	path := p.ByName("path")
 
-	name, startFunction, present := server.orchestrator.GetPluggedFunctionFromPath(path)
+	name, startFunction, present := server.orchestrator.GetPluggedFunctionFromPath(r.Method, path)
 	if present {
 		wasmBytes, ok := server.orchestrator.GetFunctionBytesByFunctionName(name)
 		if !ok {
@@ -185,7 +185,7 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 
 	techID, present := server.orchestrator.GetFileTechIDFromPath(path)
 	if !present {
-		errorResponse(w, 404, "sorry, unbound resource")
+		errorResponse(w, 404, fmt.Sprintf("sorry, unbound resource '%s', method:%s", path, r.Method))
 		return
 	}
 
@@ -241,6 +241,7 @@ Plug function
 -----------------------------------------------------------------------------*/
 
 type PlugFunctionRequest struct {
+	Method        string `json:"method"`
 	Path          string `json:"path"`
 	Name          string `json:"name"`
 	StartFunction string `json:"start_function"`
@@ -248,6 +249,7 @@ type PlugFunctionRequest struct {
 
 type PlugFunctionResponse struct {
 	Status        bool   `json:"status"`
+	Method        string `json:"method"`
 	Path          string `json:"path"`
 	Name          string `json:"name"`
 	StartFunction string `json:"start_function"`
@@ -262,10 +264,11 @@ func handlerPlugFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 		return
 	}
 
-	ok := server.orchestrator.PlugFunction(bodyReq.Path, bodyReq.Name, bodyReq.StartFunction)
+	ok := server.orchestrator.PlugFunction(bodyReq.Method, bodyReq.Path, bodyReq.Name, bodyReq.StartFunction)
 
 	response := PlugFunctionResponse{
 		Status:        ok,
+		Method:        bodyReq.Method,
 		Path:          bodyReq.Path,
 		Name:          bodyReq.Name,
 		StartFunction: bodyReq.StartFunction,
@@ -433,7 +436,7 @@ func (server *WebServer) makeHandler(handler func(http.ResponseWriter, *http.Req
 	}
 }
 
-func (server *WebServer) init(router *httprouter.Router) {
+func initControlRouting(server *WebServer, router *httprouter.Router) {
 	/**
 	 * The web server should be split into two :
 	 * - one that receives commands (push, upload, call, ...)
@@ -448,9 +451,12 @@ func (server *WebServer) init(router *httprouter.Router) {
 	router.POST("/api/function/register", server.makeHandler(handlerRegisterFunction))
 	// calls a named function
 	router.POST("/api/function/call", server.makeHandler(handlerCallFunction))
+}
 
+func initRouting(server *WebServer, router *httprouter.Router) {
 	// replies to non-api requests
 	router.GET("/*path", server.makeHandler(handlerGetGeneric))
+	router.POST("/*path", server.makeHandler(handlerGetGeneric))
 }
 
 type WebServer struct {
@@ -460,20 +466,39 @@ type WebServer struct {
 }
 
 // Start runs a webserver hosting the application
-func StartWebServer(port int, workingDir string, orchestrator *common.Orchestrator, trace bool) {
-	router := httprouter.New()
-	if router == nil {
-		fmt.Printf("Failed to instantiate the router, exit\n")
-	}
-
+func StartWebServer(port int, controlPort int, workingDir string, orchestrator *common.Orchestrator, trace bool) {
 	server := &WebServer{
 		name:         "my-own-cluster",
 		orchestrator: orchestrator,
 		trace:        trace,
 	}
 
-	server.init(router)
+	router := httprouter.New()
+	if router == nil {
+		fmt.Printf("Failed to instantiate the router, exit\n")
+	}
 
-	fmt.Printf("listening on port %d\n", port)
-	log.Fatal(http.ListenAndServeTLS(fmt.Sprintf("0.0.0.0:%d", port), filepath.Join(workingDir, "tls.cert.pem"), filepath.Join(workingDir, "tls.key.pem"), router))
+	controlRouter := httprouter.New()
+	if router == nil {
+		fmt.Printf("Failed to instantiate the control-router, exit\n")
+	}
+
+	initControlRouting(server, controlRouter)
+	initRouting(server, router)
+
+	endSignal := make(chan bool, 1)
+
+	go func() {
+		log.Fatal(http.ListenAndServeTLS(fmt.Sprintf("0.0.0.0:%d", controlPort), filepath.Join(workingDir, "tls.cert.pem"), filepath.Join(workingDir, "tls.key.pem"), controlRouter))
+		endSignal <- true
+	}()
+
+	go func() {
+		log.Fatal(http.ListenAndServeTLS(fmt.Sprintf("0.0.0.0:%d", port), filepath.Join(workingDir, "tls.cert.pem"), filepath.Join(workingDir, "tls.key.pem"), router))
+		endSignal <- true
+	}()
+
+	fmt.Printf("listening on port %d, control-port on %d\n", port, controlPort)
+
+	<-endSignal
 }

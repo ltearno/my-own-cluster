@@ -124,12 +124,21 @@ func main() {
 			}
 		}
 
+		controlPort := 8444
+		if controlPortOption, ok := verbs[0].Options["control-port"]; ok {
+			controlPort, err = strconv.Atoi(controlPortOption)
+			if err != nil {
+				fmt.Printf("wrong control-port '%s', should be a number\n", controlPortOption)
+				return
+			}
+		}
+
 		trace := verbs[0].GetOptionOr("trace", "false") == "true"
 
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 		go func() {
-			StartWebServer(port, workingDir, orchestrator, trace)
+			StartWebServer(port, controlPort, workingDir, orchestrator, trace)
 			fmt.Printf("\nweb server terminated abruptly, exiting\n")
 			done <- true
 		}()
