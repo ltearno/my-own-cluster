@@ -116,13 +116,6 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			return
 		}
 
-		/*
-			Instead of waiting for the end of the call, we should count references to the exchange buffer
-			and wait for the last reference to dissappear. At this moment, the http response is complete and
-			can be sent back to the client. This allows the first callee to transfer its output exchange
-			buffer to another function and exit. The other function will then do whatever it wants to do
-			(fan out, fan in and so on...).
-		*/
 		outputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
 
 		inputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
@@ -140,8 +133,14 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			inputExchangeBuffer.SetHeader(k, v[0])
 		}
 
+		inputExchangeBuffer.SetHeader("x-moc-host", r.Host)
+		inputExchangeBuffer.SetHeader("x-moc-method", r.Method)
+		inputExchangeBuffer.SetHeader("x-moc-proto", r.Proto)
+		inputExchangeBuffer.SetHeader("x-moc-remote-addr", r.RemoteAddr)
+		inputExchangeBuffer.SetHeader("x-moc-request-uri", r.RequestURI)
+		inputExchangeBuffer.SetHeader("x-moc-url-path", r.URL.Path)
+
 		// TODO add special headers, like :
-		// - x-moc-url => called url path
 		// - x-moc-PATH_COMPONENT_NAME => parsed path components...
 
 		wctx, err := wasm.PorcelainPrepareWasm(
@@ -160,7 +159,14 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 
 		wctx.Run([]int{})
 
-		// as seen in the previous comment, here we will have to wait for the output buffer to be released by
+		/*
+			Instead of waiting for the end of the call, we should count references to the exchange buffer
+			and wait for the last reference to dissappear. At this moment, the http response is complete and
+			can be sent back to the client. This allows the first callee to transfer its output exchange
+			buffer to another function and exit. The other function will then do whatever it wants to do
+			(fan out, fan in and so on...).
+		*/
+		// here we will have to wait for the output buffer to be released by
 		// all components before returning the http response. If the buffer is not touched, we will respond
 		// with some user well known 5xx code.
 		// That's a kind of distributed GC for buffers...
