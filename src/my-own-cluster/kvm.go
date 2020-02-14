@@ -42,19 +42,21 @@ func CreateVM() (int, error) {
 	//Note that with those, no need to pass an unsafe pointer. (see https://github.com/golang/sys/blob/master/unix/ioctl.go)
 
 	//Check version
-	version, err := C.ioctl(devkvm, C.KVM_GET_API_VERSION, 0)
-	if err != nil || version != 12 {
+	version, err := unix.IoctlGetInt(devkvm, C.KVM_GET_API_VERSION)
+	if err != nil {
 		return -1, err
 	}
 
+	fmt.Printf("KVM version: %d\n", version)
+
 	//Create vm
-	vmFd, err := C.ioctl(devkvm, C.KVM_CREATE_VCPU, 0)
+	vmFd, err := unix.IoctlGetInt(devkvm, C.KVM_CREATE_VCPU)
 	if err != nil {
 		return -1, err
 	}
 	defer unix.Close(vmFd)
 
-	//Return it all
+	return vmFd, nil
 }
 
 //CreateNewCell makes a new vCPU and memory band in a VM and packs it all tightly
@@ -62,8 +64,7 @@ func CreateNewCell(vmFd int) (*Cell, error) {
 	return nil, nil
 }
 
-func main() {
-
+func TestKVM() {
 	vm, err := CreateVM()
 	fmt.Println(vm)
 	fmt.Println(err)

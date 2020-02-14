@@ -454,14 +454,14 @@ func initControlRouting(server *WebServer) {
 }
 
 func initRouting(server *WebServer) {
+	fmt.Println("files:")
 	for path, techID := range server.orchestrator.GetUploadedFiles() {
-		server.router.GET(path, server.makeHandler(handlerGetGeneric))
+		fmt.Printf(" %s => %s\n", path, techID)
 	}
 
+	fmt.Println("functions:")
 	for spec, pluggedFunction := range server.orchestrator.GetPluggedFunctions() {
-		if strings.HasPrefix(spec, "get/") {
-		} else if strings.HasPrefix(spec, "post/") {
-		}
+		fmt.Printf(" %s => %s::%s\n", spec, pluggedFunction.Name, pluggedFunction.StartFunction)
 	}
 
 	// replies to non-api requests
@@ -498,8 +498,6 @@ func StartWebServer(port int, controlPort int, workingDir string, orchestrator *
 	}
 
 	initControlRouting(server)
-
-	// for each plugged function and uploaded file, add a handler
 	initRouting(server)
 
 	endSignal := make(chan bool, 1)

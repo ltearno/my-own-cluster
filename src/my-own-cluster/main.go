@@ -174,6 +174,10 @@ func main() {
 		CliPlugFunction(verbs)
 		break
 
+	case "kvm_test":
+		TestKVM()
+		break
+
 	default:
 		fmt.Printf("No argument received !\n")
 		printHelp()
