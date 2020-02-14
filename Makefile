@@ -50,3 +50,6 @@ run-server:
 		-p 9870:8443 \
 		-v $(HOME)/$(APP_NAME)-data:/data/my-own-cluster-database-provisional \
 	    $(IMAGE)
+
+clean-db:
+	rm -rf my-own-cluster-database-provisional/
