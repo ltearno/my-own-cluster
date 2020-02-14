@@ -1,6 +1,8 @@
 package wasm
 
 import (
+	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -30,6 +32,64 @@ func (p *MyOwnClusterAPIPlugin) Bind(wctx *WasmProcessContext) {
 	wctx.Runtime.AttachFunction("my-own-cluster", "test", "i()", func(runtime wasm3.RuntimeT, sp unsafe.Pointer, mem unsafe.Pointer) int {
 		*(*uint32)(sp) = 0
 		return 0
+	})
+
+	// params : key addr, key length, value addr, value length
+	wctx.BindAPIFunction("my-own-cluster", "persistence_set", "i(iiii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
+		key := cs.GetParamByteBuffer(0, 1)
+		value := cs.GetParamByteBuffer(2, 3)
+
+		ok := wctx.Orchestrator.PersistenceSet(key, value)
+		if !ok {
+			return uint32(0xffff), nil
+		}
+
+		return uint32(0), nil
+	})
+
+	// params : key addr, key length
+	wctx.BindAPIFunction("my-own-cluster", "persistence_get", "i(ii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
+		key := cs.GetParamByteBuffer(0, 1)
+
+		value, present := wctx.Orchestrator.PersistenceGet(key)
+		if !present {
+			return uint32(0xffff), nil
+		}
+
+		bufferID := wctx.Orchestrator.CreateExchangeBuffer()
+		buffer := wctx.Orchestrator.GetExchangeBuffer(bufferID)
+		buffer.Write(value)
+
+		return uint32(bufferID), nil
+	})
+
+	// params : prefix addr, prefix length
+	wctx.BindAPIFunction("my-own-cluster", "persistence_get_subset", "i(ii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
+		prefix := cs.GetParamByteBuffer(0, 1)
+
+		subset, err := wctx.Orchestrator.PersistenceGetSubset(prefix)
+		if err != nil {
+			return uint32(0xffff), nil
+		}
+
+		var b bytes.Buffer
+		bs := make([]byte, 4)
+
+		binary.LittleEndian.PutUint32(bs, uint32(len(subset)))
+		b.Write(bs)
+
+		for i := 0; i < len(subset); i++ {
+			binary.LittleEndian.PutUint32(bs, uint32(len(subset[i])))
+			b.Write(bs)
+
+			b.Write(subset[i])
+		}
+
+		bufferID := wctx.Orchestrator.CreateExchangeBuffer()
+		buffer := wctx.Orchestrator.GetExchangeBuffer(bufferID)
+		buffer.Write(b.Bytes())
+
+		return uint32(bufferID), nil
 	})
 
 	// params : buffer id, buffer addr, buffer length

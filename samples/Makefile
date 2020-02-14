@@ -104,9 +104,10 @@ call-rust:
 	@echo Calling multiply function implemented in Rust without wasi, result of the multiplication is found in the result field
 	../my-own-cluster call rust-multiply -start_function rustMultiply 4 3 | jq
 	curl -k $(SERVER_PUBLIC_URL)/watchdog
-	my-own-cluster call watchdog-backend -start_function getStatus | jq -r '.output' | base64 -d | jq
+	#my-own-cluster call watchdog-backend -start_function getStatus | jq -r '.output' | base64 -d | jq
 	curl -s -k $(SERVER_PUBLIC_URL)/watchdog/status
-	curl -s -k -X POST $(SERVER_PUBLIC_URL)/watchdog/status -H "content-type: application/json" -d '{"name":"home-light-1","message":"everything ok"}'
+	#curl -s -k -X POST $(SERVER_PUBLIC_URL)/watchdog/status -H "content-type: application/json" -d '{"name":"backup-daemon","message":"all data backuped"}'
+	#curl -s -k -X POST $(SERVER_PUBLIC_URL)/watchdog/status -H "content-type: application/json" -d '{"name":"home-light-1","message":"everything ok"}'
 
 call-interop:
 	@echo Calling 'interop' DIRECT mode, result is processed in the C code that calls Rust code

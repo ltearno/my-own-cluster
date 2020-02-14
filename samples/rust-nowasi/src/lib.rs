@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::str;
 
 mod moc;
 use moc::*;
@@ -41,10 +42,20 @@ fn message_response(message: &str) {
 
 #[no_mangle]
 pub extern fn getStatus() -> u32 {
-    let status = &WatchdogStatus{
+    let status = &mut WatchdogStatus{
         description: "everything ok".to_string(),
         services: HashMap::new(),
     };
+
+    let entries = persistence_get_subset("/watchdog-v1/status/services/");
+    for (k, v) in entries.iter() {
+        if k.ends_with("/timestamp") {
+            let service_name = k.trim_start_matches("/watchdog-v1/status/services/").trim_end_matches("/timestamp").to_string();
+
+            print_debug(&format!(" => service_name:{}", service_name));
+            status.services.insert(service_name, WatchdogServiceStatus{ timestamp: v.parse().unwrap() });
+        }
+    }
 
     let serialized = serde_json::to_string(&status).unwrap();
 
@@ -60,9 +71,8 @@ pub extern fn postStatus() -> u32 {
     let status = serde_json::from_str::<WatchdogServicePostStatus>(&body);
     match status {
         Ok(status) => {
-            // TODO
-            // get timestamp
-            // set key value for service in serverless database
+            persistence_set(&format!("/watchdog-v1/status/services/{}/timestamp", status.name), &format!("{}", get_time()/1000));
+
             message_response(&format!("status for '{}' saved for timestamp {}, thanks", status.name, get_time()/1000));
             200 as u32
         },

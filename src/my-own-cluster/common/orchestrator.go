@@ -7,7 +7,10 @@ import (
 	"sync/atomic"
 
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
+
+var persistencePrefix = []byte("/persistence")
 
 type RegisterFunction struct {
 	TechId    string
@@ -30,6 +33,53 @@ func NewOrchestrator(db *leveldb.DB) *Orchestrator {
 		exchangeBuffers:      make(map[int]*ExchangeBuffer),
 		db:                   db,
 	}
+}
+
+func (o *Orchestrator) PersistenceSet(key []byte, value []byte) bool {
+	key = append(persistencePrefix, key...)
+
+	o.db.Put(key, value, nil)
+
+	return true
+}
+
+func (o *Orchestrator) PersistenceGet(key []byte) ([]byte, bool) {
+	key = append(persistencePrefix, key...)
+
+	value, err := o.db.Get(key, nil)
+	if err != nil {
+		return nil, false
+	}
+
+	return value, true
+}
+
+func dup(b []byte) []byte {
+	r := make([]byte, len(b))
+	copy(r, b)
+	return r
+}
+
+func (o *Orchestrator) PersistenceGetSubset(keyPrefix []byte) ([][]byte, error) {
+	keyPrefix = append(persistencePrefix, keyPrefix...)
+
+	r := make([][]byte, 0)
+
+	iter := o.db.NewIterator(util.BytesPrefix(keyPrefix), nil)
+	for iter.Next() {
+		key := iter.Key()[len(persistencePrefix):]
+		value := iter.Value()
+
+		r = append(r, dup(key), dup(value))
+	}
+	iter.Release()
+
+	err := iter.Error()
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
 }
 
 /**
