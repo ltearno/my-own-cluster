@@ -31,6 +31,14 @@ func NewOrchestrator(db *leveldb.DB) *Orchestrator {
 	}
 }
 
+/**
+ * TODO
+ *
+ * We should be able to accept wildcards and named parameters in plugged path.
+ *
+ * The named parameters should then be injected as headers in the called input exchange buffer
+ */
+
 func (o *Orchestrator) PlugFunction(path string, name string, startFunction string) bool {
 	o.db.Put([]byte(fmt.Sprintf("/function_plugs/bypath/%s/name", path)), []byte(name), nil)
 	o.db.Put([]byte(fmt.Sprintf("/function_plugs/bypath/%s/start_function", path)), []byte(startFunction), nil)
