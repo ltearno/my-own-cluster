@@ -158,23 +158,37 @@ func (o *Orchestrator) findPlug(method string, path string) {
 
 	iter := o.db.NewIterator(nil, nil)
 	defer iter.Release()
-	for ok := iter.Seek(prefix); ok; ok = iter.Next() {
+
+	// seek the beginning of the plug entries
+	ok := iter.Seek(prefix)
+
+	for ok {
 		pluggedPath := string(iter.Key())
 
 		// finished
 		if !strings.HasPrefix(pluggedPath, string(prefix)) {
+			fmt.Println("finished")
 			break
 		}
 
-		fmt.Printf("(%s) [%s] %s\n", method, path, string(iter.Key()[len(prefix):]))
-
 		pluggedPath = string(iter.Key()[len(prefix):])
 
-		// /! case
+		askedPathPart := path
+		nextPartIndex := 1 + strings.Index(askedPathPart[1:], "/")
+		if nextPartIndex > 0 {
+			askedPathPart = askedPathPart[:nextPartIndex]
+		}
+
+		fmt.Printf("(%s) [%s] %s %s\n", method, path, pluggedPath, askedPathPart)
+
+		// first element can be a '/!' to grab the path part, otherwise, we need to make an exact match
 		if strings.HasPrefix(pluggedPath, "/!") {
-		} else if pluggedPath == path {
-			fmt.Printf(" exact match !\n")
-			break
+			// je consomme le premier element, je le place en parametre et j'avance
+			ok = iter.Next()
+		} else {
+			// je consomme le premier element, je vérifie qu'il existe bien en base, j'avance
+			prefix = append(prefix, []byte(askedPathPart)...)
+			ok = iter.Seek(prefix)
 		}
 	}
 }
