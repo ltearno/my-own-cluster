@@ -103,6 +103,7 @@ call-rust:
 	@echo
 	@echo Calling multiply function implemented in Rust without wasi, result of the multiplication is found in the result field
 	../my-own-cluster call rust-multiply -start_function rustMultiply 4 3 | jq
+	curl -k $(SERVER_PUBLIC_URL)/watchdog/mon-service/update
 	curl -k $(SERVER_PUBLIC_URL)/watchdog/
 	#my-own-cluster call watchdog-backend -start_function getStatus | jq -r '.output' | base64 -d | jq
 	curl -s -k $(SERVER_PUBLIC_URL)/watchdog/status | jq

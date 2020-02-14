@@ -123,8 +123,7 @@ func main() {
 		}
 		defer db.Close()
 
-		db.Put([]byte("/files/byid/!toto"), []byte("lkjh"), nil)
-		db.Put([]byte("/files/byid/.toto"), []byte("lkjh"), nil)
+		db.Put([]byte("/plugs/byspec/get//watchdog/!service/update"), []byte("lkjh"), nil)
 
 		dumpDB(db)
 

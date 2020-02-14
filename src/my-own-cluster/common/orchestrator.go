@@ -153,8 +153,36 @@ func (o *Orchestrator) PlugFile(method string, path string, contentType string, 
 	return techID
 }
 
+func (o *Orchestrator) findPlug(method string, path string) {
+	prefix := []byte(fmt.Sprintf("/plugs/byspec/%s/", method))
+
+	iter := o.db.NewIterator(nil, nil)
+	defer iter.Release()
+	for ok := iter.Seek(prefix); ok; ok = iter.Next() {
+		pluggedPath := string(iter.Key())
+
+		// finished
+		if !strings.HasPrefix(pluggedPath, string(prefix)) {
+			break
+		}
+
+		fmt.Printf("(%s) [%s] %s\n", method, path, string(iter.Key()[len(prefix):]))
+
+		pluggedPath = string(iter.Key()[len(prefix):])
+
+		// /! case
+		if strings.HasPrefix(pluggedPath, "/!") {
+		} else if pluggedPath == path {
+			fmt.Printf(" exact match !\n")
+			break
+		}
+	}
+}
+
 func (o *Orchestrator) GetPlugFromPath(method string, path string) (bool, string, interface{}) {
 	method = strings.ToLower(method)
+
+	o.findPlug(method, path)
 
 	dataJSON, err := o.db.Get([]byte(fmt.Sprintf("/plugs/byspec/%s/%s", method, path)), nil)
 	if err != nil {
