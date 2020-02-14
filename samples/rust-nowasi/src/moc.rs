@@ -10,6 +10,7 @@ pub mod raw {
     extern {
         pub fn test() -> u32;
         pub fn print_debug(buffer: *const u8, length: u32) -> u32;
+        pub fn get_time(timestamp: *mut i64) -> u32;
         pub fn register_buffer(buffer: *const u8, length: u32) -> u32;
         pub fn get_buffer_size(buffer_id: u32) -> u32;
         pub fn get_buffer(buffer_id: u32, buffer: *const u8, length: u32) -> u32;
@@ -35,13 +36,20 @@ pub fn get_output_buffer_id() -> u32 {
 }
 
 pub fn print_debug(s: &str) {
-    unsafe {
-        let bytes = s.as_bytes();
-        
-        unsafe {
-            raw::print_debug(bytes.as_ptr(), bytes.len() as u32);
-        }
+    let bytes = s.as_bytes();
+    unsafe {        
+        raw::print_debug(bytes.as_ptr(), bytes.len() as u32);
     }
+}
+
+pub fn get_time() -> i64 {
+    let mut timestamp : i64 = 0;
+
+    unsafe {
+        raw::get_time(&mut timestamp);
+    }
+
+    timestamp
 }
 
 pub fn read_buffer(buffer_id: u32) -> Vec<u8> {

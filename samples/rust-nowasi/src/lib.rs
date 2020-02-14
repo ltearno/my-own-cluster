@@ -63,7 +63,7 @@ pub extern fn postStatus() -> u32 {
             // TODO
             // get timestamp
             // set key value for service in serverless database
-            message_response(&format!("status for '{}' saved, thanks", status.name));
+            message_response(&format!("status for '{}' saved for timestamp {}, thanks", status.name, get_time()/1000));
             200 as u32
         },
         Err(err) =>{

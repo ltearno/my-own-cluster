@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 	"unsafe"
 
 	"github.com/ltearno/go-wasm3"
@@ -38,6 +39,15 @@ func (p *MyOwnClusterAPIPlugin) Bind(wctx *WasmProcessContext) {
 		fmt.Printf("\n[my-own-cluster api, ctx %s, print_debug]: %s\n", wctx.Name, string(buffer))
 
 		return uint32(len(buffer)), nil
+	})
+
+	// params : time addr (should be wide enough for the 64 bit timestamp)
+	wctx.BindAPIFunction("my-own-cluster", "get_time", "i(i)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
+		timestampPtr := cs.GetParamPointer(0)
+
+		*(*int64)(timestampPtr) = time.Now().UnixNano()
+
+		return uint32(0), nil
 	})
 
 	// params : buffer addr, buffer length
