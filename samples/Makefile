@@ -1,4 +1,5 @@
 SERVER_BASE_URL ?= https://localhost:8443
+MYOWNCLUSTER_SERVER_BASE_URL ?= https://localhost:8443
 
 all: uppercase.wasm wasi-write.wasm hello-go.wasm http-request.wasm api-demo-c.wasm
 
@@ -101,9 +102,9 @@ call-rust:
 	@echo
 	@echo Calling multiply function implemented in Rust without wasi, result of the multiplication is found in the result field
 	../my-own-cluster call rust-multiply -start_function rustMultiply 4 3 | jq
-	#curl -k $$MYOWNCLUSTER_SERVER_BASE_URL/watchdog
-	#my-own-cluster call watchdog-backend -start_function getStatus | jq -r '.output' | base64 -d | jq
-	#curl -v -k $$MYOWNCLUSTER_SERVER_BASE_URL/watchdog/status
+	curl -k $(MYOWNCLUSTER_SERVER_BASE_URL)/watchdog
+	my-own-cluster call watchdog-backend -start_function getStatus | jq -r '.output' | base64 -d | jq
+	curl -v -k $(MYOWNCLUSTER_SERVER_BASE_URL)/watchdog/status
 
 call-interop:
 	@echo Calling 'interop' DIRECT mode, result is processed in the C code that calls Rust code
