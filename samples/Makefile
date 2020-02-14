@@ -89,7 +89,7 @@ register-rust: wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm rust-
 	@echo Registering rust sample
 	@../my-own-cluster push wasm-rust-demo wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm
 	@../my-own-cluster push rust-multiply rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm
-	
+
 	@../my-own-cluster upload /watchdog/ rust-nowasi/index.html
 	@../my-own-cluster push watchdog-backend rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm
 	@../my-own-cluster plug /watchdog/status watchdog-backend getStatus
@@ -107,6 +107,7 @@ call-rust:
 	#my-own-cluster call watchdog-backend -start_function getStatus | jq -r '.output' | base64 -d | jq
 	curl -s -k $(SERVER_PUBLIC_URL)/watchdog/status | jq
 	curl -s -k -X POST $(SERVER_PUBLIC_URL)/watchdog/status -H "content-type: application/json" -d '{"name":"backup-daemon","message":"all data backuped"}'
+	sleep 1
 	curl -s -k -X POST $(SERVER_PUBLIC_URL)/watchdog/status -H "content-type: application/json" -d '{"name":"home-light-1","message":"everything ok"}'
 
 call-interop:

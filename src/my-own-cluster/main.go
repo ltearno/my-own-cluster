@@ -123,6 +123,9 @@ func main() {
 		}
 		defer db.Close()
 
+		db.Put([]byte("/files/byid/!toto"), []byte("lkjh"), nil)
+		db.Put([]byte("/files/byid/.toto"), []byte("lkjh"), nil)
+
 		dumpDB(db)
 
 		orchestrator := common.NewOrchestrator(db)

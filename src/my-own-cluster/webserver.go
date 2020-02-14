@@ -85,31 +85,19 @@ func extractBodyAsJSON(r *http.Request, v interface{}) error {
 	return json.Unmarshal(body, v)
 }
 
-/*-----------------------------------------------------------------------------
-
-Register File
-
------------------------------------------------------------------------------*/
-
-type RegisterFileRequest struct {
-	Path        string `json:"path"`
-	ContentType string `json:"content_type"`
-	Bytes       string `json:"bytes"`
-}
-
-type RegisterFileResponse struct {
-	Status      bool   `json:"status"`
-	TechID      string `json:"tech_id"`
-	Path        string `json:"path"`
-	ContentType string `json:"content_type"`
-	BytesSize   int    `json:"bytes_size"`
-}
-
 func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Params, server *WebServer) {
 	path := p.ByName("path")
 
-	pluggedFunction, present := server.orchestrator.GetPluggedFunctionFromPath(r.Method, path)
-	if present {
+	found, plugType, plug := server.orchestrator.GetPlugFromPath(r.Method, path)
+	if !found {
+		errorResponse(w, 404, fmt.Sprintf("sorry, unbound resource '%s', method:%s", path, r.Method))
+		return
+	}
+
+	switch plugType {
+	case "function":
+		pluggedFunction := plug.(*common.PluggedFunction)
+
 		wasmBytes, ok := server.orchestrator.GetFunctionBytesByFunctionName(pluggedFunction.Name)
 		if !ok {
 			errorResponse(w, 400, fmt.Sprintf("can't find plugged function bytes (%s)\n", pluggedFunction.Name))
@@ -181,34 +169,57 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 		// copy output exchange buffer content to response body
 		w.Write(outputExchangeBuffer.GetBuffer())
 		return
-	}
 
-	techID, present := server.orchestrator.GetFileTechIDFromPath(path)
-	if !present {
-		errorResponse(w, 404, fmt.Sprintf("sorry, unbound resource '%s', method:%s", path, r.Method))
+	case "file":
+		pluggedFile := plug.(*common.PluggedFile)
+
+		contentType, present := server.orchestrator.GetFileContentType(pluggedFile.TechID)
+		if !present {
+			errorResponse(w, 404, "sorry, file content type not found")
+			return
+		}
+
+		fileBytes, present := server.orchestrator.GetFileBytes(pluggedFile.TechID)
+		if !present {
+			errorResponse(w, 404, "sorry, file bytes not found")
+			return
+		}
+
+		// TODO add the ETag header corresponding to the sha
+		w.Header().Set("Content-Type", contentType)
+		w.WriteHeader(200)
+		w.Write(fileBytes)
 		return
 	}
 
-	contentType, present := server.orchestrator.GetFileContentType(techID)
-	if !present {
-		errorResponse(w, 404, "sorry, file content type not found")
-		return
-	}
-
-	fileBytes, present := server.orchestrator.GetFileBytes(techID)
-	if !present {
-		errorResponse(w, 404, "sorry, file bytes not found")
-		return
-	}
-
-	// TODO add the ETag header corresponding to the sha
-	w.Header().Set("Content-Type", contentType)
-	w.WriteHeader(200)
-	w.Write(fileBytes)
+	errorResponse(w, 404, "sorry, nothing found")
+	return
 }
 
-func handlerRegisterFile(w http.ResponseWriter, r *http.Request, p httprouter.Params, server *WebServer) {
-	bodyReq := RegisterFileRequest{}
+/*-----------------------------------------------------------------------------
+
+Plug file
+
+-----------------------------------------------------------------------------*/
+
+type PlugFileRequest struct {
+	Method      string `json:"method"`
+	Path        string `json:"path"`
+	ContentType string `json:"content_type"`
+	Bytes       string `json:"bytes"`
+}
+
+type PlugFileResponse struct {
+	Status      bool   `json:"status"`
+	TechID      string `json:"tech_id"`
+	Method      string `json:"method"`
+	Path        string `json:"path"`
+	ContentType string `json:"content_type"`
+	BytesSize   int    `json:"bytes_size"`
+}
+
+func handlerPlugFile(w http.ResponseWriter, r *http.Request, p httprouter.Params, server *WebServer) {
+	bodyReq := PlugFileRequest{}
 	err := extractBodyAsJSON(r, &bodyReq)
 	if err != nil {
 		fmt.Println(err)
@@ -221,11 +232,12 @@ func handlerRegisterFile(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 		panic(err)
 	}
 
-	techID := server.orchestrator.RegisterFile(bodyReq.Path, bodyReq.ContentType, bytes)
+	techID := server.orchestrator.PlugFile(bodyReq.Method, bodyReq.Path, bodyReq.ContentType, bytes)
 
-	response := RegisterFileResponse{
+	response := PlugFileResponse{
 		Status:      true,
 		TechID:      techID,
+		Method:      bodyReq.Method,
 		Path:        bodyReq.Path,
 		ContentType: bodyReq.ContentType,
 		BytesSize:   len(bytes),
@@ -444,7 +456,7 @@ func initControlRouting(server *WebServer) {
 	 */
 
 	// associate an url to a file
-	server.controlRouter.POST("/api/file/register", server.makeHandler(handlerRegisterFile))
+	server.controlRouter.POST("/api/file/register", server.makeHandler(handlerPlugFile))
 	// associate an url to a function call
 	server.controlRouter.POST("/api/function/plug", server.makeHandler(handlerPlugFunction))
 	// associate a name with a function code
@@ -454,17 +466,6 @@ func initControlRouting(server *WebServer) {
 }
 
 func initRouting(server *WebServer) {
-	fmt.Println("files:")
-	for path, techID := range server.orchestrator.GetUploadedFiles() {
-		fmt.Printf(" %s => %s\n", path, techID)
-	}
-
-	fmt.Println("functions:")
-	for spec, pluggedFunction := range server.orchestrator.GetPluggedFunctions() {
-		fmt.Printf(" %s => %s::%s\n", spec, pluggedFunction.Name, pluggedFunction.StartFunction)
-	}
-
-	// replies to non-api requests
 	server.router.GET("/*path", server.makeHandler(handlerGetGeneric))
 	server.router.POST("/*path", server.makeHandler(handlerGetGeneric))
 }

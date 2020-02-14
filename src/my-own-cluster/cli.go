@@ -177,6 +177,7 @@ func getBaseUrl(verb Verb) string {
 
 func CliUploadDir(verbs []Verb) {
 	baseUrl := getBaseUrl(verbs[0])
+	method := verbs[0].GetOptionOr("method", "get")
 	verbs = verbs[1:]
 
 	pathPrefix := verbs[0].Name
@@ -195,7 +196,7 @@ func CliUploadDir(verbs []Verb) {
 		urlPath := filepath.Join(pathPrefix, path[len(directoryName):])
 		if !info.IsDir() {
 			fmt.Printf("%s  =>  %s\n", path, urlPath)
-			resp, err := uploadFile(baseUrl, urlPath, detectContentTypeFromFileName(path), path)
+			resp, err := uploadFile(baseUrl, method, urlPath, detectContentTypeFromFileName(path), path)
 			if err != nil || !resp.Status {
 				countError++
 			}
@@ -261,6 +262,7 @@ func CliPlugFunction(verbs []Verb) {
 
 func CliUploadFile(verbs []Verb) {
 	baseUrl := getBaseUrl(verbs[0])
+	method := verbs[0].GetOptionOr("method", "get")
 	verbs = verbs[1:]
 
 	path := verbs[0].Name
@@ -272,7 +274,7 @@ func CliUploadFile(verbs []Verb) {
 		contentType = detectContentTypeFromFileName(fileName)
 	}
 
-	response, err := uploadFile(baseUrl, path, contentType, fileName)
+	response, err := uploadFile(baseUrl, method, path, contentType, fileName)
 	if err != nil {
 		fmt.Printf("error while doing things, %v\n", err)
 		return
@@ -285,7 +287,7 @@ func CliUploadFile(verbs []Verb) {
 	}
 }
 
-func uploadFile(serverBaseUrl string, path string, contentType string, fileName string) (*RegisterFileResponse, error) {
+func uploadFile(serverBaseUrl string, method string, path string, contentType string, fileName string) (*PlugFileResponse, error) {
 	fileBytes, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		fmt.Printf("cannot read file '%s'\n", fileName)
@@ -294,7 +296,8 @@ func uploadFile(serverBaseUrl string, path string, contentType string, fileName 
 
 	encodedBytes := base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(fileBytes)
 
-	reqBody := &RegisterFileRequest{
+	reqBody := &PlugFileRequest{
+		Method:      method,
 		Path:        path,
 		ContentType: contentType,
 		Bytes:       encodedBytes,
@@ -322,7 +325,7 @@ func uploadFile(serverBaseUrl string, path string, contentType string, fileName 
 
 	bytes, _ := ioutil.ReadAll(resp.Body)
 
-	response := &RegisterFileResponse{}
+	response := &PlugFileResponse{}
 	if json.Unmarshal(bytes, response) != nil {
 		fmt.Printf("cannot unmarshall server response : %s\n", string(bytes))
 		return nil, err

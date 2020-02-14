@@ -91,10 +91,26 @@ func (o *Orchestrator) PersistenceGetSubset(keyPrefix []byte) ([][]byte, error) 
  * The named parameters should then be injected as headers in the called input exchange buffer
  */
 
+type Plug struct {
+	Type string `json:"type"`
+}
+
+type PluggedFile struct {
+	Type   string `json:"type"`
+	TechID string `json:"tech_id"`
+}
+
+type PluggedFunction struct {
+	Type          string `json:"type"`
+	Name          string `json:"name"`
+	StartFunction string `json:"start_function"`
+}
+
 func (o *Orchestrator) PlugFunction(method string, path string, name string, startFunction string) bool {
 	method = strings.ToLower(method)
 
 	data := &PluggedFunction{
+		Type:          "function",
 		Name:          name,
 		StartFunction: startFunction,
 	}
@@ -104,102 +120,72 @@ func (o *Orchestrator) PlugFunction(method string, path string, name string, sta
 		return false
 	}
 
-	o.db.Put([]byte(fmt.Sprintf("/function_plugs/byspec/%s/%s", method, path)), dataJSON, nil)
+	o.db.Put([]byte(fmt.Sprintf("/plugs/byspec/%s/%s", method, path)), dataJSON, nil)
 
 	fmt.Printf("plugged_function on method:%s, path:'%s', name:%s, start_function:%s\n", method, path, name, startFunction)
 
 	return true
 }
 
-type PluggedFunction struct {
-	Name          string `json:"name"`
-	StartFunction string `json:"start_function"`
-}
-
-func (o *Orchestrator) GetPluggedFunctions() map[string]*PluggedFunction {
-	r := make(map[string]*PluggedFunction)
-
-	prefix := []byte("/function_plugs/byspec/")
-
-	iter := o.db.NewIterator(util.BytesPrefix(prefix), nil)
-	for iter.Next() {
-		spec := string(dup(iter.Key()[len(prefix):]))
-		dataJSON := iter.Value()
-
-		data := &PluggedFunction{}
-		err := json.Unmarshal(dataJSON, data)
-		if err != nil {
-			continue
-		}
-
-		r[spec] = data
-	}
-	iter.Release()
-
-	return r
-}
-
-func (o *Orchestrator) GetPluggedFunctionFromPath(method string, path string) (*PluggedFunction, bool) {
+func (o *Orchestrator) PlugFile(method string, path string, contentType string, bytes []byte) string {
 	method = strings.ToLower(method)
 
-	dataJSON, err := o.db.Get([]byte(fmt.Sprintf("/function_plugs/byspec/%s/%s", method, path)), nil)
-	if err != nil {
-		return nil, false
-	}
-
-	data := &PluggedFunction{}
-	err = json.Unmarshal(dataJSON, data)
-	if err != nil {
-		return nil, false
-	}
-
-	return data, true
-}
-
-func (o *Orchestrator) RegisterFile(path string, contentType string, bytes []byte) string {
+	// register content
 	techID := Sha256Sum(bytes)
-
-	alreadyTechID, present := o.GetFileTechIDFromPath(path)
-	if present && alreadyTechID == techID {
-		return techID
-	}
-
 	o.db.Put([]byte(fmt.Sprintf("/files/byid/%s/content-type", techID)), []byte(contentType), nil)
 	o.db.Put([]byte(fmt.Sprintf("/files/byid/%s/bytes", techID)), bytes, nil)
 
-	o.db.Put([]byte(fmt.Sprintf("/files/bypath/%s", path)), []byte(techID), nil)
+	// register plug
+	data := &PluggedFile{
+		Type:   "file",
+		TechID: techID,
+	}
+
+	dataJSON, err := json.Marshal(data)
+	if err != nil {
+		return ""
+	}
+
+	o.db.Put([]byte(fmt.Sprintf("/plugs/byspec/%s/%s", method, path)), dataJSON, nil)
 
 	fmt.Printf("registered_file '%s', size:%d, techID:%s\n", path, len(bytes), techID)
 
 	return techID
 }
 
-var uploadedFilesPrefix = []byte("/files/bypath/")
+func (o *Orchestrator) GetPlugFromPath(method string, path string) (bool, string, interface{}) {
+	method = strings.ToLower(method)
 
-func (o *Orchestrator) GetUploadedFiles() map[string]string {
-	r := make(map[string]string)
-
-	iter := o.db.NewIterator(util.BytesPrefix(uploadedFilesPrefix), nil)
-	for iter.Next() {
-		path := string(dup(iter.Key()[len(uploadedFilesPrefix):]))
-		techID := string(dup(iter.Value()))
-
-		r[path] = techID
-	}
-	iter.Release()
-
-	return r
-}
-
-func (o *Orchestrator) GetFileTechIDFromPath(path string) (string, bool) {
-	techIDBytes, err := o.db.Get([]byte(fmt.Sprintf("/files/bypath/%s", path)), nil)
+	dataJSON, err := o.db.Get([]byte(fmt.Sprintf("/plugs/byspec/%s/%s", method, path)), nil)
 	if err != nil {
-		return "", false
+		return false, "", nil
 	}
 
-	techID := string(techIDBytes)
+	data := &Plug{}
+	err = json.Unmarshal(dataJSON, data)
+	if err != nil {
+		return false, "", nil
+	}
 
-	return techID, true
+	switch data.Type {
+	case "function":
+		data := &PluggedFunction{}
+		err = json.Unmarshal(dataJSON, data)
+		if err != nil {
+			return false, "", nil
+		}
+		return true, "function", data
+
+	case "file":
+		data := &PluggedFile{}
+		err = json.Unmarshal(dataJSON, data)
+		if err != nil {
+			return false, "", nil
+		}
+		return true, "file", data
+	}
+
+	return false, "", nil
 }
 
 func (o *Orchestrator) GetFileContentType(techID string) (string, bool) {
