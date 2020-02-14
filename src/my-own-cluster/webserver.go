@@ -108,11 +108,11 @@ type RegisterFileResponse struct {
 func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Params, server *WebServer) {
 	path := p.ByName("path")
 
-	name, startFunction, present := server.orchestrator.GetPluggedFunctionFromPath(r.Method, path)
+	pluggedFunction, present := server.orchestrator.GetPluggedFunctionFromPath(r.Method, path)
 	if present {
-		wasmBytes, ok := server.orchestrator.GetFunctionBytesByFunctionName(name)
+		wasmBytes, ok := server.orchestrator.GetFunctionBytesByFunctionName(pluggedFunction.Name)
 		if !ok {
-			errorResponse(w, 400, fmt.Sprintf("can't find plugged function bytes (%s)\n", name))
+			errorResponse(w, 400, fmt.Sprintf("can't find plugged function bytes (%s)\n", pluggedFunction.Name))
 			return
 		}
 
@@ -146,8 +146,8 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 		wctx, err := wasm.PorcelainPrepareWasm(
 			server.orchestrator,
 			"direct",
-			name,
-			startFunction,
+			pluggedFunction.Name,
+			pluggedFunction.StartFunction,
 			wasmBytes,
 			inputExchangeBufferID,
 			outputExchangeBufferID,
@@ -436,7 +436,7 @@ func (server *WebServer) makeHandler(handler func(http.ResponseWriter, *http.Req
 	}
 }
 
-func initControlRouting(server *WebServer, router *httprouter.Router) {
+func initControlRouting(server *WebServer) {
 	/**
 	 * The web server should be split into two :
 	 * - one that receives commands (push, upload, call, ...)
@@ -444,35 +444,41 @@ func initControlRouting(server *WebServer, router *httprouter.Router) {
 	 */
 
 	// associate an url to a file
-	router.POST("/api/file/register", server.makeHandler(handlerRegisterFile))
+	server.controlRouter.POST("/api/file/register", server.makeHandler(handlerRegisterFile))
 	// associate an url to a function call
-	router.POST("/api/function/plug", server.makeHandler(handlerPlugFunction))
+	server.controlRouter.POST("/api/function/plug", server.makeHandler(handlerPlugFunction))
 	// associate a name with a function code
-	router.POST("/api/function/register", server.makeHandler(handlerRegisterFunction))
+	server.controlRouter.POST("/api/function/register", server.makeHandler(handlerRegisterFunction))
 	// calls a named function
-	router.POST("/api/function/call", server.makeHandler(handlerCallFunction))
+	server.controlRouter.POST("/api/function/call", server.makeHandler(handlerCallFunction))
 }
 
-func initRouting(server *WebServer, router *httprouter.Router) {
+func initRouting(server *WebServer) {
+	for path, techID := range server.orchestrator.GetUploadedFiles() {
+		server.router.GET(path, server.makeHandler(handlerGetGeneric))
+	}
+
+	for spec, pluggedFunction := range server.orchestrator.GetPluggedFunctions() {
+		if strings.HasPrefix(spec, "get/") {
+		} else if strings.HasPrefix(spec, "post/") {
+		}
+	}
+
 	// replies to non-api requests
-	router.GET("/*path", server.makeHandler(handlerGetGeneric))
-	router.POST("/*path", server.makeHandler(handlerGetGeneric))
+	server.router.GET("/*path", server.makeHandler(handlerGetGeneric))
+	server.router.POST("/*path", server.makeHandler(handlerGetGeneric))
 }
 
 type WebServer struct {
-	name         string
-	orchestrator *common.Orchestrator
-	trace        bool
+	name          string
+	orchestrator  *common.Orchestrator
+	trace         bool
+	router        *httprouter.Router
+	controlRouter *httprouter.Router
 }
 
 // Start runs a webserver hosting the application
 func StartWebServer(port int, controlPort int, workingDir string, orchestrator *common.Orchestrator, trace bool) {
-	server := &WebServer{
-		name:         "my-own-cluster",
-		orchestrator: orchestrator,
-		trace:        trace,
-	}
-
 	router := httprouter.New()
 	if router == nil {
 		fmt.Printf("Failed to instantiate the router, exit\n")
@@ -483,8 +489,18 @@ func StartWebServer(port int, controlPort int, workingDir string, orchestrator *
 		fmt.Printf("Failed to instantiate the control-router, exit\n")
 	}
 
-	initControlRouting(server, controlRouter)
-	initRouting(server, router)
+	server := &WebServer{
+		name:          "my-own-cluster",
+		orchestrator:  orchestrator,
+		trace:         trace,
+		router:        router,
+		controlRouter: controlRouter,
+	}
+
+	initControlRouting(server)
+
+	// for each plugged function and uploaded file, add a handler
+	initRouting(server)
 
 	endSignal := make(chan bool, 1)
 

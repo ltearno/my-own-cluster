@@ -1,6 +1,7 @@
 package common
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -93,28 +94,66 @@ func (o *Orchestrator) PersistenceGetSubset(keyPrefix []byte) ([][]byte, error) 
 func (o *Orchestrator) PlugFunction(method string, path string, name string, startFunction string) bool {
 	method = strings.ToLower(method)
 
-	o.db.Put([]byte(fmt.Sprintf("/function_plugs/bymethod/%s/bypath/%s/name", method, path)), []byte(name), nil)
-	o.db.Put([]byte(fmt.Sprintf("/function_plugs/bymethod/%s/bypath/%s/start_function", method, path)), []byte(startFunction), nil)
+	data := &PluggedFunction{
+		Name:          name,
+		StartFunction: startFunction,
+	}
+
+	dataJSON, err := json.Marshal(data)
+	if err != nil {
+		return false
+	}
+
+	o.db.Put([]byte(fmt.Sprintf("/function_plugs/byspec/%s/%s", method, path)), dataJSON, nil)
 
 	fmt.Printf("plugged_function on method:%s, path:'%s', name:%s, start_function:%s\n", method, path, name, startFunction)
 
 	return true
 }
 
-func (o *Orchestrator) GetPluggedFunctionFromPath(method string, path string) (string, string, bool) {
+type PluggedFunction struct {
+	Name          string `json:"name"`
+	StartFunction string `json:"start_function"`
+}
+
+func (o *Orchestrator) GetPluggedFunctions() map[string]*PluggedFunction {
+	r := make(map[string]*PluggedFunction)
+
+	prefix := []byte("/function_plugs/byspec/")
+
+	iter := o.db.NewIterator(util.BytesPrefix(prefix), nil)
+	for iter.Next() {
+		spec := string(dup(iter.Key()[len(prefix):]))
+		dataJSON := iter.Value()
+
+		data := &PluggedFunction{}
+		err := json.Unmarshal(dataJSON, data)
+		if err != nil {
+			continue
+		}
+
+		r[spec] = data
+	}
+	iter.Release()
+
+	return r
+}
+
+func (o *Orchestrator) GetPluggedFunctionFromPath(method string, path string) (*PluggedFunction, bool) {
 	method = strings.ToLower(method)
 
-	name, err := o.db.Get([]byte(fmt.Sprintf("/function_plugs/bymethod/%s/bypath/%s/name", method, path)), nil)
+	dataJSON, err := o.db.Get([]byte(fmt.Sprintf("/function_plugs/byspec/%s/%s", method, path)), nil)
 	if err != nil {
-		return "", "", false
+		return nil, false
 	}
 
-	startFunction, err := o.db.Get([]byte(fmt.Sprintf("/function_plugs/bymethod/%s/bypath/%s/start_function", method, path)), nil)
+	data := &PluggedFunction{}
+	err = json.Unmarshal(dataJSON, data)
 	if err != nil {
-		return "", "", false
+		return nil, false
 	}
 
-	return string(name), string(startFunction), true
+	return data, true
 }
 
 func (o *Orchestrator) RegisterFile(path string, contentType string, bytes []byte) string {
@@ -127,11 +166,29 @@ func (o *Orchestrator) RegisterFile(path string, contentType string, bytes []byt
 
 	o.db.Put([]byte(fmt.Sprintf("/files/byid/%s/content-type", techID)), []byte(contentType), nil)
 	o.db.Put([]byte(fmt.Sprintf("/files/byid/%s/bytes", techID)), bytes, nil)
+
 	o.db.Put([]byte(fmt.Sprintf("/files/bypath/%s", path)), []byte(techID), nil)
 
 	fmt.Printf("registered_file '%s', size:%d, techID:%s\n", path, len(bytes), techID)
 
 	return techID
+}
+
+var uploadedFilesPrefix = []byte("/files/bypath/")
+
+func (o *Orchestrator) GetUploadedFiles() map[string]string {
+	r := make(map[string]string)
+
+	iter := o.db.NewIterator(util.BytesPrefix(uploadedFilesPrefix), nil)
+	for iter.Next() {
+		path := string(dup(iter.Key()[len(uploadedFilesPrefix):]))
+		techID := string(dup(iter.Value()))
+
+		r[path] = techID
+	}
+	iter.Release()
+
+	return r
 }
 
 func (o *Orchestrator) GetFileTechIDFromPath(path string) (string, bool) {

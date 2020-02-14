@@ -89,7 +89,7 @@ register-rust: wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm rust-
 	@echo Registering rust sample
 	@../my-own-cluster push wasm-rust-demo wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm
 	@../my-own-cluster push rust-multiply rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm
-	@../my-own-cluster upload /watchdog rust-nowasi/index.html
+	
 	@../my-own-cluster upload /watchdog/ rust-nowasi/index.html
 	@../my-own-cluster push watchdog-backend rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm
 	@../my-own-cluster plug /watchdog/status watchdog-backend getStatus
