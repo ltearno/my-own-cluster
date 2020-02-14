@@ -43,7 +43,7 @@ wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm: wasm-rust-demo/src/
 	@echo Compiling rust program to webassembly with wasi
 	@cd wasm-rust-demo && rustup target add wasm32-wasi && cargo build --target wasm32-wasi
 
-rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm: rust-nowasi/src/lib.rs
+rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm: rust-nowasi/src/lib.rs rust-nowasi/src/moc.rs
 	@echo Building rust program without wasi
 	@cd rust-nowasi && rustup target add wasm32-unknown-unknown && cargo build --target=wasm32-unknown-unknown
 
