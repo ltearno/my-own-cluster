@@ -194,7 +194,7 @@ func (w *walker) Seek(key string) bool {
 	return strings.HasPrefix(string(w.it.Key()), key)
 }
 
-func (o *Orchestrator) findPlug(method string, path string) {
+func (o *Orchestrator) findPlug(method string, path string) (bool, string, interface{}, map[string]string) {
 	walker := &walker{
 		db:         o.db,
 		it:         o.db.NewIterator(nil, nil),
@@ -203,13 +203,15 @@ func (o *Orchestrator) findPlug(method string, path string) {
 
 	originalPath := path
 
+	boundParameters := make(map[string]string)
+
 	prefix := ""
 
 	defer walker.it.Release()
 
 	if !walker.Seek("") {
 		fmt.Printf("no plugs registered (%s)\n", walker.Key())
-		return
+		return false, "", nil, nil
 	}
 
 	// seek the beginning of the plug entries
@@ -239,7 +241,7 @@ func (o *Orchestrator) findPlug(method string, path string) {
 			partValue := askedPathPart[1:]
 			if len(partValue) == 0 {
 				fmt.Printf("CANNOT HAVE AN EMPTY PATH PART VALUE\n")
-				return
+				return false, "", nil, nil
 			}
 
 			prefix = nextPrefix
@@ -247,6 +249,7 @@ func (o *Orchestrator) findPlug(method string, path string) {
 
 			// we have a plug that consumes the path part
 			fmt.Printf(" we have '%s' = '%s'\n", partName, partValue)
+			boundParameters[partName] = partValue
 		} else {
 			prefix = prefix + askedPathPart
 			path = path[len(askedPathPart):]
@@ -254,55 +257,52 @@ func (o *Orchestrator) findPlug(method string, path string) {
 			ok := walker.Seek(prefix)
 			if !ok {
 				fmt.Printf("PLUG NOT FOUND (prefix:%s)\n", prefix)
-				return
+				return false, "", nil, nil
 			}
 		}
 	}
 
 	fmt.Printf("(%s) [%s] '%s' '%s' '%s'\n", method, path, walker.Key(), prefix, path)
 
-	if prefix == walker.Key() {
-		fmt.Printf("PATH FULLY MATCHED, WE HAVE A PLUG for path '%s' mathed to '%s'\n", originalPath, walker.Key())
-	} else {
-		fmt.Printf("PATH NOT MATCHING RESIDUAL KEY\n")
-	}
-}
-
-func (o *Orchestrator) GetPlugFromPath(method string, path string) (bool, string, interface{}) {
-	method = strings.ToLower(method)
-
-	o.findPlug(method, path)
-
-	dataJSON, err := o.db.Get([]byte(fmt.Sprintf("/plugs/byspec/%s/%s", method, path)), nil)
-	if err != nil {
-		return false, "", nil
+	if prefix != walker.Key() {
+		fmt.Printf("PATH NOT MATCHING RESIDUAL KEY '%s'/'%s'\n", prefix, walker.Key())
+		return false, "", nil, nil
 	}
 
+	fmt.Printf("PATH FULLY MATCHED, WE HAVE A PLUG for path '%s' mathed to '%s'\n", originalPath, walker.Key())
 	data := &Plug{}
-	err = json.Unmarshal(dataJSON, data)
+	err := json.Unmarshal(walker.it.Value(), data)
 	if err != nil {
-		return false, "", nil
+		return false, "", nil, nil
 	}
 
 	switch data.Type {
 	case "function":
 		data := &PluggedFunction{}
-		err = json.Unmarshal(dataJSON, data)
+		err = json.Unmarshal(walker.it.Value(), data)
 		if err != nil {
-			return false, "", nil
+			return false, "", nil, nil
 		}
-		return true, "function", data
+		return true, "function", data, boundParameters
 
 	case "file":
 		data := &PluggedFile{}
-		err = json.Unmarshal(dataJSON, data)
+		err = json.Unmarshal(walker.it.Value(), data)
 		if err != nil {
-			return false, "", nil
+			return false, "", nil, nil
 		}
-		return true, "file", data
+		return true, "file", data, boundParameters
 	}
 
-	return false, "", nil
+	return false, "", nil, nil
+}
+
+func (o *Orchestrator) GetPlugFromPath(method string, path string) (bool, string, interface{}, map[string]string) {
+	method = strings.ToLower(method)
+
+	ok, plugType, plug, boundParameters := o.findPlug(method, path)
+
+	return ok, plugType, plug, boundParameters
 }
 
 func (o *Orchestrator) GetFileContentType(techID string) (string, bool) {

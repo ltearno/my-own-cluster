@@ -66,6 +66,16 @@ pub extern fn getStatus() -> u32 {
 }
 
 #[no_mangle]
+pub extern fn addStatus() -> u32 {
+    let service_name = "TEST".to_string();
+
+    persistence_set(&format!("/watchdog-v1/status/services/{}/timestamp", service_name), &format!("{}", get_time()/1000));
+
+    message_response(&format!("status for '{}' saved for timestamp {}, thanks", service_name, get_time()/1000));
+    200 as u32
+}
+
+#[no_mangle]
 pub extern fn postStatus() -> u32 {
     let body = read_buffer_as_string(get_input_buffer_id());
     let status = serde_json::from_str::<WatchdogServicePostStatus>(&body);

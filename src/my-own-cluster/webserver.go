@@ -88,7 +88,7 @@ func extractBodyAsJSON(r *http.Request, v interface{}) error {
 func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Params, server *WebServer) {
 	path := p.ByName("path")
 
-	found, plugType, plug := server.orchestrator.GetPlugFromPath(r.Method, path)
+	found, plugType, plug, boundParameters := server.orchestrator.GetPlugFromPath(r.Method, path)
 	if !found {
 		errorResponse(w, 404, fmt.Sprintf("sorry, unbound resource '%s', method:%s", path, r.Method))
 		return
@@ -128,8 +128,9 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 		inputExchangeBuffer.SetHeader("x-moc-request-uri", r.RequestURI)
 		inputExchangeBuffer.SetHeader("x-moc-url-path", r.URL.Path)
 
-		// TODO add special headers, like :
-		// - x-moc-PATH_COMPONENT_NAME => parsed path components...
+		for k, v := range boundParameters {
+			inputExchangeBuffer.SetHeader(fmt.Sprintf("x-moc-path-param-%s", k), v)
+		}
 
 		wctx, err := wasm.PorcelainPrepareWasm(
 			server.orchestrator,
