@@ -16,8 +16,8 @@
             let status = await (await fetch('status')).json()
 
             log(`<h2>Status</h2>`)
-            for (let serviceName of Object.keys(status)) {
-                let timestamp = new Date(status[serviceName].timestamp)
+            for (let serviceName of Object.keys(status.services)) {
+                let timestamp = new Date(status.services[serviceName].timestamp / 1000)
                 let evtOld = ((new Date().getTime() - timestamp.getTime()) / (60 * 1000)).toFixed(0)
                 log(`${serviceName}: il y a <b style='${evtOld>120?'color:red;':''}'>${evtOld} minutes</b> à ${timestamp.toLocaleTimeString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`)
             }
