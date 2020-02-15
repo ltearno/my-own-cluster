@@ -94,7 +94,7 @@ register-rust: wasm-rust-demo/target/wasm32-wasi/debug/wasm-rust-demo.wasm rust-
 	@../my-own-cluster push watchdog-backend rust-nowasi/target/wasm32-unknown-unknown/debug/rust_nowasi.wasm
 	@../my-own-cluster plug /watchdog/status watchdog-backend getStatus
 	@../my-own-cluster plug /watchdog/update/!service watchdog-backend addStatus
-	#@../my-own-cluster plug -method post /watchdog/status watchdog-backend postStatus
+	@../my-own-cluster plug -method post /watchdog/status watchdog-backend postStatus
 
 call-rust:
 	@echo Calling 'wasm-rust-demo', a little demo program written in Rust and built for the wasm32-wasi platform
@@ -110,8 +110,8 @@ call-rust:
 	#my-own-cluster call watchdog-backend -start_function getStatus | jq -r '.output' | base64 -d | jq
 	curl -s -k $(SERVER_PUBLIC_URL)/watchdog/status | jq
 	curl -s -k $(SERVER_PUBLIC_URL)/watchdog/update/backup-daemon
-	#sleep 1
-	#curl -s -k -X POST $(SERVER_PUBLIC_URL)/watchdog/status -H "content-type: application/json" -d '{"name":"home-light-1","message":"everything ok"}'
+	sleep 1
+	curl -s -k -X POST $(SERVER_PUBLIC_URL)/watchdog/status -H "content-type: application/json" -d '{"name":"home-light-1","message":"everything ok"}'
 
 call-interop:
 	@echo Calling 'interop' DIRECT mode, result is processed in the C code that calls Rust code

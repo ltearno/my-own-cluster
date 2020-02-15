@@ -67,7 +67,8 @@ pub extern fn getStatus() -> u32 {
 
 #[no_mangle]
 pub extern fn addStatus() -> u32 {
-    let service_name = "TEST".to_string();
+    let headers = get_buffer_headers(get_input_buffer_id());
+    let service_name = &headers["x-moc-path-param-service"];
 
     persistence_set(&format!("/watchdog-v1/status/services/{}/timestamp", service_name), &format!("{}", get_time()/1000));
 
