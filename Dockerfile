@@ -1,6 +1,6 @@
 FROM golang:1.13-alpine
 
-RUN apk add bash make git gcc g++ cmake
+RUN apk add bash make git gcc g++ cmake linux-headers
 
 RUN mkdir /.cache && chmod ugo+rw /.cache
 
