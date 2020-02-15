@@ -48,6 +48,7 @@ run-server:
 	docker run --name $(APP_NAME) -d --restart always \
 		-u $(shell id -u) \
 		-p 9870:8443 \
+		-p 9871:8444 \
 		-v $(HOME)/$(APP_NAME)-data:/data/my-own-cluster-database-provisional \
 	    $(IMAGE)
 
