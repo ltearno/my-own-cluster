@@ -171,7 +171,7 @@ type walker struct {
 
 func (w *walker) Key() string {
 	if w.it.Key() == nil {
-		return "-"
+		return ""
 	}
 
 	return string(w.it.Key()[len(w.basePrefix):])
@@ -179,11 +179,18 @@ func (w *walker) Key() string {
 
 func (w *walker) Seek(key string) bool {
 	key = w.basePrefix + key
-	if strings.HasPrefix(string(w.it.Key()), key) {
-		return true
+
+	if w.it.Key() != nil {
+		// check that maybe we are already on it
+		if strings.HasPrefix(string(w.it.Key()), key) {
+			return true
+		}
 	}
 
 	w.it.Seek([]byte(key))
+
+	//fmt.Printf("current key: '%s'\n", string(w.it.Key()))
+
 	return strings.HasPrefix(string(w.it.Key()), key)
 }
 
@@ -193,6 +200,8 @@ func (o *Orchestrator) findPlug(method string, path string) {
 		it:         o.db.NewIterator(nil, nil),
 		basePrefix: fmt.Sprintf("/plugs/byspec/%s/", method),
 	}
+
+	originalPath := path
 
 	prefix := ""
 
@@ -204,71 +213,59 @@ func (o *Orchestrator) findPlug(method string, path string) {
 	}
 
 	// seek the beginning of the plug entries
-	for {
-		if path == "" {
-			fmt.Printf("WE HAVE A MATCH !\n")
-			return
+	for len(path) > 0 {
+		// path part that can be consummed (basically, everything until a '/')
+		askedPathPart := path
+		nextPartIndex := 1 + strings.Index(askedPathPart[1:], "/")
+		if nextPartIndex > 0 {
+			askedPathPart = askedPathPart[:nextPartIndex]
 		}
 
-		fmt.Printf("(%s) [%s] '%s' '%s' '%s'\n", method, path, prefix, walker.Key(), path)
+		//fmt.Printf("(%s) [%s] '%s' '%s' '%s', currently_matching:'%s'\n", method, path, walker.Key(), prefix, path, askedPathPart)
 
 		starKey := prefix + "/!"
-		ok := walker.Seek(starKey)
-		if ok {
+		if strings.HasPrefix(string(walker.Key()), starKey) {
+			//ok := walker.Seek(starKey)
+			//if ok {
+			currentKey := walker.Key()
+			partName := currentKey[len(prefix)+2:]
+			nextPrefix := currentKey
+			nextPartInKey := strings.Index(currentKey[len(prefix)+1:], "/")
+			if nextPartInKey >= 0 {
+				nextPrefix = currentKey[:nextPartInKey]
+				partName = currentKey[len(prefix)+2 : nextPartInKey]
+			}
+
+			partValue := askedPathPart[1:]
+			if len(partValue) == 0 {
+				fmt.Printf("CANNOT HAVE AN EMPTY PATH PART VALUE\n")
+				return
+			}
+
+			prefix = nextPrefix
+			path = path[len(askedPathPart):]
+
 			// we have a plug that consumes the path part
-			fmt.Println("YEAAAH NEXT EPISODE")
-			break
+			fmt.Printf(" we have '%s' = '%s'\n", partName, partValue)
+		} else {
+			prefix = prefix + askedPathPart
+			path = path[len(askedPathPart):]
+
+			ok := walker.Seek(prefix)
+			if !ok {
+				fmt.Printf("PLUG NOT FOUND (prefix:%s)\n", prefix)
+				return
+			}
 		}
-
-		// we must seek to the path part and have a match
-		askedPathPart := path
-		nextPartIndex := 1 + strings.Index(askedPathPart[1:], "/")
-		if nextPartIndex > 0 {
-			askedPathPart = askedPathPart[:nextPartIndex]
-		}
-
-		prefix = prefix + askedPathPart
-		ok = walker.Seek(prefix)
-		if !ok {
-			fmt.Printf("finished on cannot seek 2 %s\n", prefix)
-			break
-		}
-
-		path = path[nextPartIndex:]
-
-		continue
 	}
 
-	/*for ok {
-		pluggedPath := string(iter.Key())
+	fmt.Printf("(%s) [%s] '%s' '%s' '%s'\n", method, path, walker.Key(), prefix, path)
 
-		// finished
-		if !strings.HasPrefix(pluggedPath, string(prefix)) {
-			fmt.Printf("finished on %s\n", pluggedPath)
-			break
-		}
-
-		pluggedPath = string(iter.Key()[len(prefix):])
-
-		askedPathPart := path
-		nextPartIndex := 1 + strings.Index(askedPathPart[1:], "/")
-		if nextPartIndex > 0 {
-			askedPathPart = askedPathPart[:nextPartIndex]
-		}
-
-		fmt.Printf("(%s) [%s] %s %s\n", method, path, pluggedPath, askedPathPart)
-
-		// first element can be a '/!' to grab the path part, otherwise, we need to make an exact match
-		if strings.HasPrefix(pluggedPath, "/!") {
-			// je consomme le premier element, je le place en parametre et j'avance
-			ok = iter.Next()
-		} else {
-			// je consomme le premier element, je vérifie qu'il existe bien en base, j'avance
-			path = path[nextPartIndex:]
-			prefix = append(prefix, []byte(askedPathPart)...)
-			ok = iter.Seek(prefix)
-		}
-	}*/
+	if prefix == walker.Key() {
+		fmt.Printf("PATH FULLY MATCHED, WE HAVE A PLUG for path '%s' mathed to '%s'\n", originalPath, walker.Key())
+	} else {
+		fmt.Printf("PATH NOT MATCHING RESIDUAL KEY\n")
+	}
 }
 
 func (o *Orchestrator) GetPlugFromPath(method string, path string) (bool, string, interface{}) {
