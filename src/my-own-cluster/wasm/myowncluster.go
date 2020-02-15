@@ -92,6 +92,38 @@ func (p *MyOwnClusterAPIPlugin) Bind(wctx *WasmProcessContext) {
 		return uint32(bufferID), nil
 	})
 
+	// pub fn get_buffer_headers(buffer_id: u32) -> u32;
+	wctx.BindAPIFunction("my-own-cluster", "get_buffer_headers", "i(i)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
+		exchangeBufferID := cs.GetParamUINT32(0)
+
+		exchangeBuffer := wctx.Orchestrator.GetExchangeBuffer(int(exchangeBufferID))
+		if exchangeBuffer == nil {
+			return uint32(0xffff), nil
+		}
+
+		var b bytes.Buffer
+		bs := make([]byte, 4)
+
+		binary.LittleEndian.PutUint32(bs, uint32(2*exchangeBuffer.GetHeadersCount()))
+		b.Write(bs)
+
+		exchangeBuffer.GetHeaders(func(name string, value string) {
+			binary.LittleEndian.PutUint32(bs, uint32(len([]byte(name))))
+			b.Write(bs)
+			b.Write([]byte(name))
+
+			binary.LittleEndian.PutUint32(bs, uint32(len([]byte(value))))
+			b.Write(bs)
+			b.Write([]byte(value))
+		})
+
+		bufferID := wctx.Orchestrator.CreateExchangeBuffer()
+		buffer := wctx.Orchestrator.GetExchangeBuffer(bufferID)
+		buffer.Write(b.Bytes())
+
+		return uint32(bufferID), nil
+	})
+
 	// params : buffer id, buffer addr, buffer length
 	wctx.BindAPIFunction("my-own-cluster", "print_debug", "i(ii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
 		buffer := cs.GetParamByteBuffer(0, 1)

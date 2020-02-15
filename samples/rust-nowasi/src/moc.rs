@@ -18,6 +18,8 @@ pub mod raw {
         pub fn register_buffer(buffer: *const u8, length: u32) -> u32;
         pub fn get_buffer_size(buffer_id: u32) -> u32;
         pub fn get_buffer(buffer_id: u32, buffer: *const u8, length: u32) -> u32;
+        // returns the exchange buffer id where headers have been copied or 0xffff if error
+        pub fn get_buffer_headers(buffer_id: u32) -> u32;
         pub fn write_buffer(buffer_id: u32, buffer: *const u8, length: u32) -> u32;
         pub fn write_buffer_header(buffer_id: u32, name: *const u8, name_length: u32, value: *const u8, value_length: u32) -> u32;
         pub fn free_buffer(buffer_id: u32) -> i32;
@@ -57,6 +59,43 @@ pub fn persistence_get(key : &str) -> Option<String> {
     }
 }
 
+pub fn get_buffer_headers(buffer_id: u32) -> HashMap<String,String> {
+    let mut result = HashMap::new();
+    
+    let buffer_id = unsafe { raw::get_buffer_headers(buffer_id) };
+    if buffer_id == 0xffff {
+        return result;
+    }
+
+    let b = read_buffer(buffer_id);
+    let buffer = b.as_slice();
+    free_buffer(buffer_id);
+
+    let mut rdr = Cursor::new(buffer);
+
+    let mut current_key : String = "".to_string();
+
+    let mut nb_buffers = rdr.read_u32::<LittleEndian>().unwrap();
+    while nb_buffers > 0 {
+        let buffer_size = rdr.read_u32::<LittleEndian>().unwrap();
+
+        let mut buffer = Vec::with_capacity(buffer_size as usize);
+        unsafe { buffer.set_len(buffer_size as usize); }
+        rdr.read(&mut buffer);
+        let s = String::from_utf8(buffer.to_vec()).unwrap();
+
+        if nb_buffers % 2 == 0 {
+            current_key = s;
+        } else {
+            result.insert(current_key.clone(), s);
+        }
+
+        nb_buffers = nb_buffers - 1;        
+    }
+
+    result
+}
+
 pub fn persistence_get_subset(prefix : &str) -> HashMap<String,String> {
     let mut result = HashMap::new();
 
@@ -71,26 +110,18 @@ pub fn persistence_get_subset(prefix : &str) -> HashMap<String,String> {
     let buffer = b.as_slice();
     free_buffer(buffer_id);
 
-    //print_debug(&format!("RECIEVED BUFFER {:?}", buffer));
-
     let mut rdr = Cursor::new(buffer);
 
     let mut current_key : String = "".to_string();
 
     let mut nb_buffers = rdr.read_u32::<LittleEndian>().unwrap();
-    //print_debug(&format!("we have {} buffers", nb_buffers));
     while nb_buffers > 0 {
-        //print_debug(&format!(" @{}", rdr.position()));
         let buffer_size = rdr.read_u32::<LittleEndian>().unwrap();
-        //print_debug(&format!("- buffer of size {}", buffer_size));
 
         let mut buffer = Vec::with_capacity(buffer_size as usize);
         unsafe { buffer.set_len(buffer_size as usize); }
         rdr.read(&mut buffer);
-        //print_debug(&format!(" @{} {:?}", rdr.position(), buffer));
         let s = String::from_utf8(buffer.to_vec()).unwrap();
-        
-        //print_debug(&format!(" => {}", s));
 
         if nb_buffers % 2 == 0 {
             current_key = s;
@@ -100,8 +131,6 @@ pub fn persistence_get_subset(prefix : &str) -> HashMap<String,String> {
 
         nb_buffers = nb_buffers - 1;        
     }
-
-    //print_debug(&format!(" at the end @{}", rdr.position()));
 
     result
 }

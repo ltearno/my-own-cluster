@@ -30,6 +30,10 @@ func (p *ExchangeBuffer) SetHeader(name string, value string) {
 	p.headers[name] = value
 }
 
+func (p *ExchangeBuffer) GetHeadersCount() int {
+	return len(p.headers)
+}
+
 func (p *ExchangeBuffer) GetHeaders(cb func(name string, value string)) {
 	for name, value := range p.headers {
 		cb(name, value)
