@@ -163,6 +163,10 @@ func detectContentTypeFromFileName(name string) string {
 		return "application/octet-stream"
 	}
 
+	if strings.HasPrefix(mimeType, "text/") {
+		mimeType = mimeType + "; charset=utf-8"
+	}
+
 	return mimeType
 }
 
