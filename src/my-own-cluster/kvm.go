@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 
 	"golang.org/x/sys/unix"
@@ -67,6 +66,7 @@ func CreateVM() (int, error) {
 	return vmFd, nil
 }
 
+/*
 //CreateNewCell makes a new vCPU and memory band in a VM and packs it all tightly
 func CreateNewCell(vmFd int, memFile string, memSize int) (*Cell, error) {
 	//Handle memory
@@ -114,6 +114,7 @@ func CreateNewCell(vmFd int, memFile string, memSize int) (*Cell, error) {
 	return newCell, nil
 }
 
+
 //Apparently you require a file in go for memory allocation
 func allocateMemory(vmFd int, memFile string, memSize int) (int, C.__u64, error) {
 	//Open the file
@@ -147,6 +148,8 @@ func allocateMemory(vmFd int, memFile string, memSize int) (int, C.__u64, error)
 	}
 	return memoryFd, memory, nil
 }
+
+*/
 
 func TestKVM() {
 	vm, err := CreateVM()
