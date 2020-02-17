@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"my-own-cluster/assetsgen"
 	"my-own-cluster/common"
 	"os"
 	"os/signal"
@@ -126,6 +127,18 @@ func main() {
 		dumpDB(db)
 
 		orchestrator := common.NewOrchestrator(db)
+
+		// init core-api
+		coreApiLibrary, err := assetsgen.Asset("assets/core-api.js")
+		if err == nil {
+			orchestrator.RegisterFunction("core-api", "js", coreApiLibrary)
+			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/register", "core-api", "registerFunction")
+			orchestrator.PlugFunction("POST", "/my-own-cluster/api/file/register", "core-api", "plugFile")
+			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/plug", "core-api", "plugFunction")
+			fmt.Printf("core-api loaded and bound\n")
+		} else {
+			fmt.Printf("[ERROR] cannot load core-api.js, things will go bad quickly...\n")
+		}
 
 		port := 8443
 		if portOption, ok := verbs[0].Options["port"]; ok {

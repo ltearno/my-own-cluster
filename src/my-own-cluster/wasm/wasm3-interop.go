@@ -53,28 +53,18 @@ func setWasiStat(fd int, fdStatAddr unsafe.Pointer) {
 
 // WasmProcessContext represents a running WASM context
 type WasmProcessContext struct {
-	Orchestrator *common.Orchestrator
+	Fctx *common.FunctionExecutionContext
 
-	Name string
-	Mode string
-
-	WasmBytes     []byte
-	StartFunction string
-
-	HasFinishedRunning     bool
-	Result                 int
-	InputExchangeBufferID  int
-	OutputExchangeBufferID int
+	Mode      string
+	WasmBytes []byte
 
 	Runtime *wasm3.Runtime
 	Module  *wasm3.Module
 
-	APIPlugins []APIPlugin
-
-	Trace bool
+	APIPlugins []WASMAPIPlugin
 }
 
-type APIPlugin interface {
+type WASMAPIPlugin interface {
 	Bind(wctx *WasmProcessContext)
 }
 
@@ -84,16 +74,12 @@ type VirtualFile interface {
 	Close() int
 }
 
-func CreateWasmContext(o *common.Orchestrator, mode string, functionName string, startFunction string, wasmBytes []byte, inputExchangeBufferID int, outputExchangeBufferID int) *WasmProcessContext {
+func CreateWasmContext(fctx *common.FunctionExecutionContext, mode string, wasmBytes []byte) *WasmProcessContext {
 	wctx := &WasmProcessContext{
-		Orchestrator:           o,
-		Name:                   functionName,
-		Mode:                   mode,
-		WasmBytes:              wasmBytes,
-		InputExchangeBufferID:  inputExchangeBufferID,
-		OutputExchangeBufferID: outputExchangeBufferID,
-		StartFunction:          startFunction,
-		APIPlugins:             []APIPlugin{},
+		Fctx:       fctx,
+		Mode:       mode,
+		WasmBytes:  wasmBytes,
+		APIPlugins: []WASMAPIPlugin{},
 	}
 
 	return wctx
@@ -154,7 +140,7 @@ func CreateInputVirtualFile(wctx *WasmProcessContext) VirtualFile {
 }
 
 func (vf *InputAccessState) Read(buffer []byte) int {
-	inputBuffer := vf.Wctx.Orchestrator.GetExchangeBuffer(vf.Wctx.InputExchangeBufferID)
+	inputBuffer := vf.Wctx.Fctx.Orchestrator.GetExchangeBuffer(vf.Wctx.Fctx.InputExchangeBufferID)
 
 	l := common.Min(len(buffer), len(inputBuffer.GetBuffer())-vf.ReadPos)
 	copy(buffer, (inputBuffer.GetBuffer())[vf.ReadPos:][:l])
@@ -190,7 +176,7 @@ func (vf *OutputAccessState) Read(buffer []byte) int {
 }
 
 func (vf *OutputAccessState) Write(buffer []byte) int {
-	exchangeBuffer := vf.Wctx.Orchestrator.GetExchangeBuffer(vf.Wctx.OutputExchangeBufferID)
+	exchangeBuffer := vf.Wctx.Fctx.Orchestrator.GetExchangeBuffer(vf.Wctx.Fctx.OutputExchangeBufferID)
 	written := exchangeBuffer.Write(buffer)
 	vf.WritePos += written
 
@@ -198,7 +184,7 @@ func (vf *OutputAccessState) Write(buffer []byte) int {
 }
 
 func (vf *OutputAccessState) Close() int {
-	exchangeBuffer := vf.Wctx.Orchestrator.GetExchangeBuffer(vf.Wctx.OutputExchangeBufferID)
+	exchangeBuffer := vf.Wctx.Fctx.Orchestrator.GetExchangeBuffer(vf.Wctx.Fctx.OutputExchangeBufferID)
 	exchangeBuffer.Close()
 	return 0
 }
@@ -287,31 +273,29 @@ func (wctx *WasmProcessContext) PrintImportedModules() {
 	}
 }
 
-func (wctx *WasmProcessContext) AddAPIPlugin(plugin APIPlugin) {
+func (wctx *WasmProcessContext) AddAPIPlugin(plugin WASMAPIPlugin) {
 	wctx.APIPlugins = append(wctx.APIPlugins, plugin)
 }
 
-func PorcelainPrepareWasm(o *common.Orchestrator, mode string, functionName string, startFunction string, wasmBytes []byte, inputExchangeBufferID int, outputExchangeBufferID int, trace bool) (*WasmProcessContext, error) {
-	wctx := CreateWasmContext(o, mode, functionName, startFunction, wasmBytes, inputExchangeBufferID, outputExchangeBufferID)
+func PorcelainPrepareWasm(fctx *common.FunctionExecutionContext, mode string, wasmBytes []byte) (*WasmProcessContext, error) {
+	wctx := CreateWasmContext(fctx, mode, wasmBytes)
 	if wctx == nil {
 		return nil, errors.New("cannot create wasm context")
 	}
 
-	wctx.Trace = trace
-
-	wctx.AddAPIPlugin(NewMyOwnClusterAPIPlugin())
-	wctx.AddAPIPlugin(NewTinyGoAPIPlugin())
-	wctx.AddAPIPlugin(NewAutoLinkAPIPlugin())
+	wctx.AddAPIPlugin(NewMyOwnClusterWASMAPIPlugin())
+	wctx.AddAPIPlugin(NewTinyGoWASMAPIPlugin())
+	wctx.AddAPIPlugin(NewAutoLinkWASMAPIPlugin())
 
 	return wctx, nil
 }
 
 func PorcelainAddWASIPlugin(wctx *WasmProcessContext, wasiFileName string, arguments []string) {
-	inputBuffer := wctx.Orchestrator.GetExchangeBuffer(wctx.InputExchangeBufferID)
+	inputBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(wctx.Fctx.InputExchangeBufferID)
 
 	wctx.AddAPIPlugin(NewWASIHostPlugin(wasiFileName, arguments, map[int]VirtualFile{
 		0: CreateStdInVirtualFile(wctx, inputBuffer.GetBuffer()),
-		1: wctx.Orchestrator.GetExchangeBuffer(wctx.OutputExchangeBufferID), // CreateStdOutVirtualFile(wctx)
+		1: wctx.Fctx.Orchestrator.GetExchangeBuffer(wctx.Fctx.OutputExchangeBufferID), // CreateStdOutVirtualFile(wctx)
 		2: CreateStdErrVirtualFile(wctx),
 	}))
 }
@@ -340,7 +324,7 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 		return -2, err
 	}
 
-	if wctx.Trace {
+	if wctx.Fctx.Trace {
 		wctx.PrintImportedModules()
 	}
 
@@ -352,8 +336,8 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 	// auto import and dynamically link functions together
 	// TODO watch for updates on https://webassembly.org/docs/dynamic-linking/
 	for m := range wctx.GetImportedModules() {
-		if moduleFunctionTechID, ok := wctx.Orchestrator.GetFunctionTechIDFromName(m); ok {
-			if wctx.Trace {
+		if moduleFunctionTechID, ok := wctx.Fctx.Orchestrator.GetFunctionTechIDFromName(m); ok {
+			if wctx.Fctx.Trace {
 				fmt.Printf("emulating %s imported module with function %s techID:%s...\n", m, m, moduleFunctionTechID)
 			}
 
@@ -367,10 +351,10 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 				iField := f.GetImportField()
 				iSignature := f.GetSignature()
 				if iModule != nil && *iModule == m && iField != nil {
-					if wctx.Trace {
+					if wctx.Fctx.Trace {
 						fmt.Printf("- imports func %s '%s' from module %s\n", *iField, iSignature, *iModule)
 					}
-					wasmBytes, ok := wctx.Orchestrator.GetFunctionBytesByFunctionName(m)
+					wasmBytes, ok := wctx.Fctx.Orchestrator.GetFunctionBytesByFunctionName(m)
 					if !ok {
 						fmt.Printf("error: can't find sub function bytes (%s)\n", m)
 						continue
@@ -384,18 +368,23 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 							parameters[i] = int(cs.GetParamUINT32(i))
 						}
 
-						outputExchangeBufferID := wctx.Orchestrator.CreateExchangeBuffer()
-						inputExchangeBufferID := wctx.Orchestrator.CreateExchangeBuffer()
+						outputExchangeBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
+						inputExchangeBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
+
+						subFctx := &common.FunctionExecutionContext{
+							Name:                   m,
+							StartFunction:          *iField,
+							HasFinishedRunning:     false,
+							InputExchangeBufferID:  inputExchangeBufferID,
+							OutputExchangeBufferID: outputExchangeBufferID,
+							Orchestrator:           wctx.Fctx.Orchestrator,
+							Result:                 0,
+						}
 
 						subWctx, err := PorcelainPrepareWasm(
-							wctx.Orchestrator,
+							subFctx,
 							"direct",
-							m,
-							*iField,
 							wasmBytes,
-							inputExchangeBufferID,
-							outputExchangeBufferID,
-							wctx.Trace,
 						)
 						if err != nil {
 							return 0xffff, err
@@ -403,7 +392,7 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 
 						subWctx.Run(parameters)
 
-						return uint32(subWctx.Result), nil
+						return uint32(subWctx.Fctx.Result), nil
 					})
 				}
 			}
@@ -412,28 +401,26 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 	}
 
 	// WITHOUT CALLING THIS, THE fn.Call() call fails ! need to investigate
-	wctx.Runtime.FindFunction(wctx.StartFunction)
+	wctx.Runtime.FindFunction(wctx.Fctx.StartFunction)
 
-	fn, err := wctx.Module.GetFunctionByName(wctx.StartFunction)
+	fn, err := wctx.Module.GetFunctionByName(wctx.Fctx.StartFunction)
 	if err != nil {
-		log.Printf("not found '%s' function (using module.GetFunctionByName)", wctx.StartFunction)
+		log.Printf("not found '%s' function (using module.GetFunctionByName)", wctx.Fctx.StartFunction)
 		return -3, err
 	}
 
-	fmt.Printf("calling function_name:\"%s\" start_function:\"%s\" mode:%s ...", wctx.Name, wctx.StartFunction, wctx.Mode)
+	fmt.Printf("calling function_name:\"%s\" start_function:\"%s\" mode:%s ...\n", wctx.Fctx.Name, wctx.Fctx.StartFunction, wctx.Mode)
 
-	wctx.Result = 0
+	wctx.Fctx.Result = 0
 	result, err := fn.Call2(arguments)
 	if wctx.Mode != "posix" {
-		wctx.Result = result
+		wctx.Fctx.Result = result
 	}
 
-	fmt.Printf(" result:%d, err:%+v\n", wctx.Result, err)
+	wctx.Fctx.HasFinishedRunning = true
+	wctx.Fctx.Result = result
 
-	wctx.HasFinishedRunning = true
-	wctx.Result = result
-
-	return wctx.Result, err
+	return wctx.Fctx.Result, err
 }
 
 // WasmCallHandler is the type of functions called back by wasm3 runtime

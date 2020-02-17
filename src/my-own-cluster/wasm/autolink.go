@@ -1,10 +1,10 @@
 package wasm
 
-type AutoLinkAPIPlugin struct{}
+type AutoLinkWASMAPIPlugin struct{}
 
-func NewAutoLinkAPIPlugin() APIPlugin {
-	return &AutoLinkAPIPlugin{}
+func NewAutoLinkWASMAPIPlugin() WASMAPIPlugin {
+	return &AutoLinkWASMAPIPlugin{}
 }
 
-func (p *AutoLinkAPIPlugin) Bind(wctx *WasmProcessContext) {
+func (p *AutoLinkWASMAPIPlugin) Bind(wctx *WasmProcessContext) {
 }

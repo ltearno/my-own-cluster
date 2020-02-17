@@ -5,7 +5,7 @@
 bin/
 pkg/
 src/github.com/
-
+src/gopkg.in/
 src/github.com/ltearno/my-own-cluster/assetsgen/
 
 my-own-cluster-database-provisional/

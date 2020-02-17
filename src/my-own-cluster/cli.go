@@ -23,6 +23,16 @@ func CliPushFunction(verbs []Verb) {
 	functionName := verbs[0].Name
 	wasmFileName := verbs[1].Name
 
+	var codeType string
+	if strings.HasSuffix(wasmFileName, ".wasm") {
+		codeType = "wasm"
+	} else if strings.HasSuffix(wasmFileName, ".js") {
+		codeType = "js"
+	} else {
+		fmt.Printf("unknown code type for file '%s', only .wasm and .js are legal\n", wasmFileName)
+		return
+	}
+
 	wasmBytes, err := ioutil.ReadFile(wasmFileName)
 	if err != nil {
 		fmt.Printf("cannot read file '%s'\n", wasmFileName)
@@ -32,6 +42,7 @@ func CliPushFunction(verbs []Verb) {
 	encodedWasmBytes := base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(wasmBytes)
 
 	reqBody := &RegisterFunctionRequest{
+		Type:      codeType,
 		Name:      functionName,
 		WasmBytes: encodedWasmBytes,
 	}

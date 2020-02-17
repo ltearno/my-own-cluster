@@ -7,12 +7,14 @@ import (
 	"io/ioutil"
 	"log"
 	"my-own-cluster/common"
+	coreapi "my-own-cluster/core-api"
 	"my-own-cluster/wasm"
 	"net/http"
 	"path/filepath"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
+	"gopkg.in/olebedev/go-duktape.v3"
 )
 
 type ErrorResponse struct {
@@ -24,6 +26,7 @@ type MessageResponse struct {
 }
 
 type RegisterFunctionRequest struct {
+	Type      string `json:"type"`
 	Name      string `json:"name"`
 	WasmBytes string `json:"wasm_bytes"`
 }
@@ -31,6 +34,7 @@ type RegisterFunctionRequest struct {
 type RegisterFunctionResponse struct {
 	Status        bool   `json:"status"`
 	TechID        string `json:"tech_id"`
+	Type          string `json:"type"`
 	Name          string `json:"name"`
 	WasmBytesSize int    `json:"wasm_bytes_size"`
 }
@@ -98,6 +102,18 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 	case "function":
 		pluggedFunction := plug.(*common.PluggedFunction)
 
+		pluggedFunctionTechID, ok := server.orchestrator.GetFunctionTechIDFromName(pluggedFunction.Name)
+		if !ok {
+			errorResponse(w, 400, fmt.Sprintf("can't find plugged function (%s)\n", pluggedFunction.Name))
+			return
+		}
+
+		pluggedFunctionType, ok := server.orchestrator.GetFunctionType(pluggedFunctionTechID)
+		if !ok {
+			errorResponse(w, 400, fmt.Sprintf("can't find plugged function type (%s)\n", pluggedFunction.Name))
+			return
+		}
+
 		wasmBytes, ok := server.orchestrator.GetFunctionBytesByFunctionName(pluggedFunction.Name)
 		if !ok {
 			errorResponse(w, 400, fmt.Sprintf("can't find plugged function bytes (%s)\n", pluggedFunction.Name))
@@ -105,48 +121,210 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 		}
 
 		outputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
-
 		inputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
 		inputExchangeBuffer := server.orchestrator.GetExchangeBuffer(inputExchangeBufferID)
-
 		body, err := ioutil.ReadAll(r.Body)
 		if err == nil {
 			inputExchangeBuffer.Write(body)
 		} else {
 			fmt.Printf("CANNOT READ BODY\n")
 		}
-
 		for k, v := range r.Header {
 			// TODO why not support multiple values ?
 			inputExchangeBuffer.SetHeader(k, v[0])
 		}
-
 		inputExchangeBuffer.SetHeader("x-moc-host", r.Host)
 		inputExchangeBuffer.SetHeader("x-moc-method", r.Method)
 		inputExchangeBuffer.SetHeader("x-moc-proto", r.Proto)
 		inputExchangeBuffer.SetHeader("x-moc-remote-addr", r.RemoteAddr)
 		inputExchangeBuffer.SetHeader("x-moc-request-uri", r.RequestURI)
 		inputExchangeBuffer.SetHeader("x-moc-url-path", r.URL.Path)
-
 		for k, v := range boundParameters {
 			inputExchangeBuffer.SetHeader(fmt.Sprintf("x-moc-path-param-%s", k), v)
 		}
 
-		wctx, err := wasm.PorcelainPrepareWasm(
-			server.orchestrator,
-			"direct",
-			pluggedFunction.Name,
-			pluggedFunction.StartFunction,
-			wasmBytes,
-			inputExchangeBufferID,
-			outputExchangeBufferID,
-			server.trace)
-		if err != nil {
-			errorResponse(w, 404, fmt.Sprintf("cannot create function: %v", err))
+		fctx := &common.FunctionExecutionContext{
+			Orchestrator:  server.orchestrator,
+			Name:          pluggedFunction.Name,
+			StartFunction: pluggedFunction.StartFunction,
+			Trace:         server.trace,
+
+			HasFinishedRunning:     false,
+			InputExchangeBufferID:  inputExchangeBufferID,
+			OutputExchangeBufferID: outputExchangeBufferID,
+			Result:                 -1,
+		}
+
+		switch pluggedFunctionType {
+		case "wasm":
+			wctx, err := wasm.PorcelainPrepareWasm(fctx, "direct", wasmBytes)
+			if err != nil {
+				errorResponse(w, 404, fmt.Sprintf("cannot create function: %v", err))
+				return
+			}
+			wctx.Run([]int{})
+			break
+
+		case "js":
+			ctx := duktape.New()
+
+			ctx.PushGlobalObject()
+			ctx.PushObject()
+
+			ctx.PushGoFunction(func(c *duktape.Context) int {
+				res, err := coreapi.GetInputBufferID(fctx)
+				if err != nil {
+					c.PushInt(-1)
+				} else {
+					c.PushInt(res)
+				}
+
+				return 1
+			})
+			ctx.PutPropString(-2, "getInputBufferId")
+
+			ctx.PushGoFunction(func(c *duktape.Context) int {
+				res, err := coreapi.GetOutputBufferID(fctx)
+				if err != nil {
+					c.PushInt(-1)
+				} else {
+					c.PushInt(res)
+				}
+
+				return 1
+			})
+			ctx.PutPropString(-2, "getOutputBufferId")
+
+			ctx.PushGoFunction(func(c *duktape.Context) int {
+				bufferID := int(c.GetNumber(-1))
+
+				buffer := fctx.Orchestrator.GetExchangeBuffer(bufferID)
+				if buffer == nil {
+					fmt.Printf("buffer %d not found for reading\n", bufferID)
+					return 0
+				}
+
+				c.PushString(string(buffer.GetBuffer()))
+
+				return 1
+			})
+			ctx.PutPropString(-2, "readExchangeBufferAsString")
+
+			ctx.PushGoFunction(func(c *duktape.Context) int {
+				bufferID := int(c.GetNumber(-2))
+
+				var contentBytes []byte
+				switch c.GetType(-1) {
+				case duktape.TypeString:
+					contentBytes = []byte(c.SafeToString(-1))
+					break
+				default:
+					fmt.Printf("cannot guess content type when writing on buffer %d\n", bufferID)
+					return 0
+				}
+
+				buffer := fctx.Orchestrator.GetExchangeBuffer(bufferID)
+				if buffer == nil {
+					fmt.Printf("buffer %d not found for writing\n", bufferID)
+					return 0
+				}
+
+				buffer.Write(contentBytes)
+
+				c.PushInt(len(contentBytes))
+				return 1
+			})
+			ctx.PutPropString(-2, "writeExchangeBufferFromString")
+
+			ctx.PushGoFunction(func(c *duktape.Context) int {
+				encoded := c.SafeToString(-1)
+				decoded, err := coreapi.Base64Decode(fctx, encoded)
+				if err != nil {
+					fmt.Printf("cannot decode base64\n")
+					return 0
+				}
+
+				dest := (*[1 << 30]byte)(c.PushBuffer(len(decoded), false))[:len(decoded):len(decoded)]
+
+				copy(dest, decoded)
+
+				return 1
+			})
+			ctx.PutPropString(-2, "base64Decode")
+
+			ctx.PushGoFunction(func(c *duktape.Context) int {
+				codeBytesPtr, codeBytesLength := c.GetBuffer(-1)
+				codeBytes := (*[1 << 30]byte)(codeBytesPtr)[:codeBytesLength:codeBytesLength]
+				codeType := c.SafeToString(-2)
+				name := c.SafeToString(-3)
+
+				techID, err := coreapi.RegisterFunction(fctx, name, codeType, codeBytes)
+				if err != nil {
+					fmt.Printf("[ERROR] registerFunction failed\n")
+					return 0
+				}
+
+				c.PushString(techID)
+				return 1
+			})
+			ctx.PutPropString(-2, "registerFunction")
+
+			ctx.PushGoFunction(func(c *duktape.Context) int {
+				startFunction := c.SafeToString(-1)
+				name := c.SafeToString(-2)
+				path := c.SafeToString(-3)
+				method := c.SafeToString(-4)
+
+				techID, err := coreapi.PlugFunction(fctx, method, path, name, startFunction)
+				if err != nil {
+					fmt.Printf("[ERROR] plugFunction failed\n")
+					return 0
+				}
+
+				c.PushString(techID)
+				return 1
+			})
+			ctx.PutPropString(-2, "plugFunction")
+
+			ctx.PushGoFunction(func(c *duktape.Context) int {
+				fileBytesPtr, fileBytesLength := c.GetBuffer(-1)
+				fileBytes := (*[1 << 30]byte)(fileBytesPtr)[:fileBytesLength:fileBytesLength]
+				contentType := c.SafeToString(-2)
+				path := c.SafeToString(-3)
+				method := c.SafeToString(-4)
+
+				techID, err := coreapi.PlugFile(fctx, method, path, contentType, fileBytes)
+				if err != nil {
+					fmt.Printf("[ERROR] plugFile failed\n")
+					return 0
+				}
+
+				c.PushString(techID)
+				return 1
+			})
+			ctx.PutPropString(-2, "plugFile")
+
+			ctx.PutPropString(-2, "moc")
+			ctx.Pop()
+
+			ctx.PushString(string(wasmBytes))
+			ctx.Eval()
+			ctx.Pop()
+			ctx.PushGlobalObject()
+			ctx.GetPropString(-1, pluggedFunction.StartFunction)
+			ctx.Call(0)
+
+			fctx.Result = ctx.GetInt(-1)
+
+			ctx.DestroyHeap()
+			break
+
+		default:
+			errorResponse(w, 400, fmt.Sprintf("unknown function type '%s'\n", pluggedFunctionType))
 			return
 		}
 
-		wctx.Run([]int{})
+		fmt.Printf(" -> result:%d\n", fctx.Result)
 
 		/*
 			Instead of waiting for the end of the call, we should count references to the exchange buffer
@@ -159,7 +337,7 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 		// all components before returning the http response. If the buffer is not touched, we will respond
 		// with some user well known 5xx code.
 		// That's a kind of distributed GC for buffers...
-		outputExchangeBuffer := wctx.Orchestrator.GetExchangeBuffer(wctx.OutputExchangeBufferID)
+		outputExchangeBuffer := server.orchestrator.GetExchangeBuffer(outputExchangeBufferID)
 
 		// copy output exchange buffer headers to the response headers
 		outputExchangeBuffer.GetHeaders(func(name string, value string) {
@@ -306,11 +484,12 @@ func handlerRegisterFunction(w http.ResponseWriter, r *http.Request, p httproute
 		panic(err)
 	}
 
-	techID := server.orchestrator.RegisterFunction(bodyReq.Name, wasmBytes)
+	techID := server.orchestrator.RegisterFunction(bodyReq.Name, bodyReq.Type, wasmBytes)
 
 	response := RegisterFunctionResponse{
 		Status:        true,
 		TechID:        techID,
+		Type:          bodyReq.Type,
 		Name:          bodyReq.Name,
 		WasmBytesSize: len(wasmBytes),
 	}
@@ -405,15 +584,17 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 	inputExchangeBuffer := server.orchestrator.GetExchangeBuffer(inputExchangeBufferID)
 	inputExchangeBuffer.Write(input)
 
-	wctx, err := wasm.PorcelainPrepareWasm(
-		server.orchestrator,
-		mode,
-		baseReq.Name,
-		startFunction,
-		wasmBytes,
-		inputExchangeBufferID,
-		outputExchangeBufferID,
-		server.trace)
+	fctx := &common.FunctionExecutionContext{
+		Orchestrator:           server.orchestrator,
+		Name:                   baseReq.Name,
+		StartFunction:          startFunction,
+		HasFinishedRunning:     false,
+		InputExchangeBufferID:  inputExchangeBufferID,
+		OutputExchangeBufferID: outputExchangeBufferID,
+		Result:                 0,
+	}
+
+	wctx, err := wasm.PorcelainPrepareWasm(fctx, mode, wasmBytes)
 	if err != nil {
 		errorResponse(w, 404, fmt.Sprintf("cannot create function: %v", err))
 		return
@@ -435,10 +616,10 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 	// all components before returning the http response. If the buffer is not touched, we will respond
 	// with some user well known 5xx code.
 	// That's a kind of distributed GC for buffers...
-	outputExchangeBuffer := wctx.Orchestrator.GetExchangeBuffer(wctx.OutputExchangeBufferID).GetBuffer()
+	outputExchangeBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(wctx.Fctx.OutputExchangeBufferID).GetBuffer()
 
 	jsonResponse(w, 200, CallFunctionResponse{
-		Result: wctx.Result,
+		Result: wctx.Fctx.Result,
 		Output: base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(outputExchangeBuffer),
 		Error:  false,
 	})

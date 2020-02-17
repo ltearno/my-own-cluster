@@ -14,6 +14,18 @@ import (
 
 var persistencePrefix = []byte("/persistence")
 
+type FunctionExecutionContext struct {
+	Orchestrator  *Orchestrator
+	Name          string
+	StartFunction string
+	Trace         bool
+
+	HasFinishedRunning     bool
+	InputExchangeBufferID  int
+	OutputExchangeBufferID int
+	Result                 int
+}
+
 type RegisterFunction struct {
 	TechId    string
 	Name      string
@@ -325,7 +337,7 @@ func (o *Orchestrator) GetFileBytes(techID string) ([]byte, bool) {
 	return fileBytes, true
 }
 
-func (o *Orchestrator) RegisterFunction(name string, wasmBytes []byte) string {
+func (o *Orchestrator) RegisterFunction(name string, codeType string, wasmBytes []byte) string {
 	techID := Sha256Sum(wasmBytes)
 
 	alreadyTechID, present := o.GetFunctionTechIDFromName(name)
@@ -334,9 +346,10 @@ func (o *Orchestrator) RegisterFunction(name string, wasmBytes []byte) string {
 	}
 
 	o.db.Put([]byte(fmt.Sprintf("/functions/byid/%s/bytes", techID)), wasmBytes, nil)
+	o.db.Put([]byte(fmt.Sprintf("/functions/byid/%s/type", techID)), []byte(codeType), nil)
 	o.db.Put([]byte(fmt.Sprintf("/functions/byname/%s", name)), []byte(techID), nil)
 
-	fmt.Printf("registered_function '%s', size:%d, techID:%s\n", name, len(wasmBytes), techID)
+	fmt.Printf("registered_function '%s', type:%s, size:%d, techID:%s\n", name, codeType, len(wasmBytes), techID)
 
 	return techID
 }
@@ -359,6 +372,16 @@ func (o *Orchestrator) GetFunctionBytes(techID string) ([]byte, bool) {
 	}
 
 	return wasmBytes, true
+}
+
+func (o *Orchestrator) GetFunctionType(techID string) (string, bool) {
+	codeType, err := o.db.Get([]byte(fmt.Sprintf("/functions/byid/%s/type", techID)), nil)
+	if err != nil {
+		// default value, to support old deployments
+		return "wasm", true
+	}
+
+	return string(codeType), true
 }
 
 func (o *Orchestrator) GetFunctionBytesByFunctionName(functionName string) ([]byte, bool) {

@@ -31,7 +31,7 @@ type state struct {
 	WasiExitValue uint32
 }
 
-func NewWASIHostPlugin(wasiFileName string, arguments []string, preopenedFiles map[int]VirtualFile) APIPlugin {
+func NewWASIHostPlugin(wasiFileName string, arguments []string, preopenedFiles map[int]VirtualFile) WASMAPIPlugin {
 	s := &state{
 		Arguments:            arguments,
 		OpenedVirtualFiles:   make(map[int]VirtualFile),
@@ -80,7 +80,7 @@ func (s *state) Bind(wctx *WasmProcessContext) {
 		return
 	}
 
-	if wctx.Trace {
+	if wctx.Fctx.Trace {
 		fmt.Println("preparing WASI host", s.WasiFilename, s.Arguments, "...")
 	}
 
@@ -156,7 +156,7 @@ func WASIPathOpen(state *state, cs *CallSite) (uint32, int) {
 	flags := cs.GetParamUINT32(7)
 	fd := cs.GetParamUINT32Ptr(8)
 
-	if state.wctx.Trace {
+	if state.wctx.Fctx.Trace {
 		fmt.Printf("called path_open dirFd %d lookupFlags %x oFlags %x rightsBase %x rightsInheriting %x flags %x fdAddr %x  '%s'\n",
 			dirFd,
 			lookupFlags,
@@ -193,12 +193,12 @@ func WASIPathOpen(state *state, cs *CallSite) (uint32, int) {
 func WASIProcExit(state *state, cs *CallSite) (uint32, int) {
 	exitValue := cs.GetParamUINT32(0)
 
-	if state.wctx.Trace {
+	if state.wctx.Fctx.Trace {
 		fmt.Printf("called proc_exit with value %d\n", exitValue)
 	}
 
 	state.WasiExitValue = exitValue
-	state.wctx.Result = int(exitValue)
+	state.wctx.Fctx.Result = int(exitValue)
 
 	return WASI_ESUCCESS, 1
 }
@@ -210,7 +210,7 @@ func WASIFdReadDir(state *state, cs *CallSite) (uint32, int) {
 	cookie := cs.GetParamUINT32(3)
 	bufusedAddr := cs.GetParamPointer(4)
 
-	if state.wctx.Trace {
+	if state.wctx.Fctx.Trace {
 		fmt.Printf("called fd_readdir fd %d bufAddr %x cookie %d bufusedAddr %x\n", fd, &buffer, cookie, bufusedAddr)
 	}
 
@@ -224,7 +224,7 @@ func WASIArgsSizesGet(state *state, cs *CallSite) (uint32, int) {
 	argc := cs.GetParamUINT32Ptr(0)
 	argvBufSize := cs.GetParamUINT32Ptr(1)
 
-	if state.wctx.Trace {
+	if state.wctx.Fctx.Trace {
 		fmt.Printf("called args_sizes_get %x %x\n", argc, argvBufSize)
 	}
 
@@ -242,7 +242,7 @@ func WASIArgsGet(state *state, cs *CallSite) (uint32, int) {
 	argv := (*[1 << 30]uint32)(cs.GetParamPointer(0))[:state.CmdLineNbArgs:state.CmdLineNbArgs]
 	argvBuf := (*[1 << 30]byte)(cs.GetParamPointer(1))[:state.CmdLineArgsSize:state.CmdLineArgsSize]
 
-	if state.wctx.Trace {
+	if state.wctx.Fctx.Trace {
 		fmt.Printf("called args_get argv:%08x argvBuf:%08x p0:%x p1:%x\n", argv, argvBuf, p0, p1)
 	}
 
@@ -264,7 +264,7 @@ func WASIFdPrestatGet(state *state, cs *CallSite) (uint32, int) {
 	fd := cs.GetParamUINT32(0)
 	buf := cs.GetParamPointer(1)
 
-	if state.wctx.Trace {
+	if state.wctx.Fctx.Trace {
 		fmt.Printf("called fd_prestat_get: fd %d buf %08x\n", fd, buf)
 	}
 
@@ -284,7 +284,7 @@ func WASIFdPrestatDirName(state *state, cs *CallSite) (uint32, int) {
 	buf := cs.GetParamPointer(1)
 	length := cs.GetParamUINT32(2)
 
-	if state.wctx.Trace {
+	if state.wctx.Fctx.Trace {
 		fmt.Printf("called fd_prestat_dir_name: fd %d buf %x lenght %d\n", fd, buf, length)
 	}
 
@@ -303,7 +303,7 @@ func WASIFdFdStatGet(state *state, cs *CallSite) (uint32, int) {
 	fd := cs.GetParamUINT32(0)
 	fdStatAddr := cs.GetParamPointer(1)
 
-	if state.wctx.Trace {
+	if state.wctx.Fctx.Trace {
 		fmt.Printf("called fd_fdstat_get: fd %d fdStatAddr %x\n", fd, fdStatAddr)
 	}
 
@@ -319,7 +319,7 @@ func WASIPathFilestatGet(state *state, cs *CallSite) (uint32, int) {
 	pathSlice := cs.GetParamByteBuffer(2, 3)
 	fileStatAddr := (*C.__wasi_filestat_t)(cs.GetParamPointer(4))
 
-	if state.wctx.Trace {
+	if state.wctx.Fctx.Trace {
 		fmt.Printf("called path_filestat_get: fd %d lookupFlags %x path %s\n", fd, lookupFlags, string(pathSlice))
 	}
 
@@ -335,7 +335,7 @@ func WASIFdWrite(state *state, cs *CallSite) (uint32, int) {
 	iovsLen := cs.GetParamUINT32(2)
 	nwritten := cs.GetParamPointer(3)
 
-	if state.wctx.Trace {
+	if state.wctx.Fctx.Trace {
 		fmt.Printf("called fd_write on fd %d: iovs: %x iovsLen: %d\n", fd, uintptr(wasiIovs), iovsLen)
 	}
 
@@ -347,7 +347,7 @@ func WASIFdWrite(state *state, cs *CallSite) (uint32, int) {
 
 		buffer := (*[1 << 30]byte)(unsafe.Pointer(addr))[:length:length]
 
-		if fd == 1 && state.wctx.Trace {
+		if fd == 1 && state.wctx.Fctx.Trace {
 			fmt.Printf(" [received iov:] '%s'\n", string(buffer))
 		}
 
@@ -369,7 +369,7 @@ func WASIFdRead(state *state, cs *CallSite) (uint32, int) {
 	iovsLen := cs.GetParamUINT32(2)
 	nRead := cs.GetParamPointer(3)
 
-	if state.wctx.Trace {
+	if state.wctx.Fctx.Trace {
 		fmt.Printf("called fd_read on fd %d: iovs: %x iovsLen: %d\n", fd, uintptr(wasiIovs), iovsLen)
 	}
 
@@ -402,7 +402,7 @@ func WASIFdSeek(state *state, cs *CallSite) (uint32, int) {
 	whence := cs.GetParamUINT32(2)
 	resultAddr := cs.GetParamPointer(3)
 
-	if state.wctx.Trace {
+	if state.wctx.Fctx.Trace {
 		fmt.Printf("called fd_seek fd %d offset %d whence %d resultAddr %x\n", fd, offset, whence, resultAddr)
 	}
 
@@ -424,7 +424,7 @@ func WASIEnvironSizesGet(state *state, cs *CallSite) (uint32, int) {
 	envCount := cs.GetParamUINT32Ptr(0)
 	envBufSize := cs.GetParamUINT32Ptr(1)
 
-	if state.wctx.Trace {
+	if state.wctx.Fctx.Trace {
 		fmt.Printf("called environ_sizes_get with %x %x\n", envCount, envBufSize)
 	}
 
@@ -435,7 +435,7 @@ func WASIEnvironSizesGet(state *state, cs *CallSite) (uint32, int) {
 }
 
 func WASIEnvironGet(state *state, cs *CallSite) (uint32, int) {
-	if state.wctx.Trace {
+	if state.wctx.Fctx.Trace {
 		fmt.Printf("called environ_get\n")
 	}
 	/*m3ApiReturnType  (uint32_t)

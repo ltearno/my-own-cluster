@@ -7,13 +7,13 @@ import (
 	"github.com/ltearno/go-wasm3"
 )
 
-type TinyGoAPIPlugin struct{}
+type TinyGoWASMAPIPlugin struct{}
 
-func NewTinyGoAPIPlugin() APIPlugin {
-	return &TinyGoAPIPlugin{}
+func NewTinyGoWASMAPIPlugin() WASMAPIPlugin {
+	return &TinyGoWASMAPIPlugin{}
 }
 
-func (p *TinyGoAPIPlugin) Bind(wctx *WasmProcessContext) {
+func (p *TinyGoWASMAPIPlugin) Bind(wctx *WasmProcessContext) {
 	importedModules := wctx.GetImportedModules()
 	if _, ok := importedModules["env"]; !ok {
 		return
@@ -24,7 +24,7 @@ func (p *TinyGoAPIPlugin) Bind(wctx *WasmProcessContext) {
 	//}
 
 	wctx.Runtime.AttachFunction("env", "io_get_stdout", "i()", func(runtime wasm3.RuntimeT, sp unsafe.Pointer, mem unsafe.Pointer) int {
-		if wctx.Trace {
+		if wctx.Fctx.Trace {
 			fmt.Printf("TinyGo talks to us !!!!\n")
 		}
 
@@ -37,7 +37,7 @@ func (p *TinyGoAPIPlugin) Bind(wctx *WasmProcessContext) {
 		fd := cs.GetParamUINT32(0)
 		buffer := cs.GetParamByteBuffer(1, 2)
 
-		if wctx.Trace {
+		if wctx.Fctx.Trace {
 			fmt.Printf("TinyGo on fd %d says '%s'\n", fd, string(buffer))
 		}
 
