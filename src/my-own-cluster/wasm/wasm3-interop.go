@@ -320,9 +320,11 @@ func PorcelainAddWASIPlugin(wctx *WasmProcessContext, wasiFileName string, argum
 func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 	wctx.Runtime = wasm3.NewRuntime(&wasm3.Config{
 		Environment: wasm3.NewEnvironment(),
-		StackSize:   64 * 1024,
+		StackSize:   64 * 1024, // original 64ko
 		EnableWASI:  false,
 	})
+
+	//wctx.Runtime.PrintRuntimeInfo()
 
 	{
 		module, err := wctx.Runtime.ParseModule(wctx.WasmBytes)

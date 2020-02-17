@@ -230,7 +230,9 @@ func handlerPlugFile(w http.ResponseWriter, r *http.Request, p httprouter.Params
 
 	bytes, err := base64.StdEncoding.WithPadding(base64.StdPadding).DecodeString(bodyReq.Bytes)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		errorResponse(w, 500, "cannot base64 decode your body 'bytes'")
+		return
 	}
 
 	techID := server.orchestrator.PlugFile(bodyReq.Method, bodyReq.Path, bodyReq.ContentType, bytes)
@@ -457,13 +459,13 @@ func initControlRouting(server *WebServer) {
 	 */
 
 	// associate an url to a file
-	server.controlRouter.POST("/api/file/register", server.makeHandler(handlerPlugFile))
+	server.controlRouter.POST("/my-own-cluster/api/file/register", server.makeHandler(handlerPlugFile))
 	// associate an url to a function call
-	server.controlRouter.POST("/api/function/plug", server.makeHandler(handlerPlugFunction))
+	server.controlRouter.POST("/my-own-cluster/api/function/plug", server.makeHandler(handlerPlugFunction))
 	// associate a name with a function code
-	server.controlRouter.POST("/api/function/register", server.makeHandler(handlerRegisterFunction))
+	server.controlRouter.POST("/my-own-cluster/api/function/register", server.makeHandler(handlerRegisterFunction))
 	// calls a named function
-	server.controlRouter.POST("/api/function/call", server.makeHandler(handlerCallFunction))
+	server.controlRouter.POST("/my-own-cluster/api/function/call", server.makeHandler(handlerCallFunction))
 }
 
 func initRouting(server *WebServer) {

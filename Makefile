@@ -52,5 +52,9 @@ run-server:
 		-v $(HOME)/$(APP_NAME)-data:/data/my-own-cluster-database-provisional \
 	    $(IMAGE)
 
+.PHONY: core-api
+core-api:
+	@cd core-api && make all
+
 clean-db:
 	rm -rf my-own-cluster-database-provisional/

@@ -17,7 +17,7 @@ import (
 
 func CliPushFunction(verbs []Verb) {
 	// skip the verb that triggered us, it is given to us in case it contains options
-	baseUrl := getBaseUrl(verbs[0])
+	baseUrl := getAPIBaseURL(verbs[0])
 	verbs = verbs[1:]
 
 	functionName := verbs[0].Name
@@ -72,7 +72,7 @@ func CliPushFunction(verbs []Verb) {
 
 func CliCallFunction(verbs []Verb) {
 	// skip the verb that triggered us, it is given to us in case it contains options
-	baseUrl := getBaseUrl(verbs[0])
+	baseUrl := getAPIBaseURL(verbs[0])
 	verbs = verbs[1:]
 
 	functionName := verbs[0].Name
@@ -179,8 +179,14 @@ func getBaseUrl(verb Verb) string {
 	return verb.GetOptionOr("baseUrl", defaultUrl)
 }
 
+func getAPIBaseURL(verb Verb) string {
+	baseURL := getBaseUrl(verb)
+
+	return baseURL + "/my-own-cluster"
+}
+
 func CliUploadDir(verbs []Verb) {
-	baseUrl := getBaseUrl(verbs[0])
+	baseUrl := getAPIBaseURL(verbs[0])
 	method := verbs[0].GetOptionOr("method", "get")
 	verbs = verbs[1:]
 
@@ -213,7 +219,7 @@ func CliUploadDir(verbs []Verb) {
 }
 
 func CliPlugFunction(verbs []Verb) {
-	serverBaseUrl := getBaseUrl(verbs[0])
+	serverBaseUrl := getAPIBaseURL(verbs[0])
 	method := verbs[0].GetOptionOr("method", "get")
 	verbs = verbs[1:]
 
@@ -265,7 +271,7 @@ func CliPlugFunction(verbs []Verb) {
 }
 
 func CliUploadFile(verbs []Verb) {
-	baseUrl := getBaseUrl(verbs[0])
+	baseUrl := getAPIBaseURL(verbs[0])
 	method := verbs[0].GetOptionOr("method", "get")
 	verbs = verbs[1:]
 

@@ -2,6 +2,7 @@ package wasm
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -32,6 +33,38 @@ func (p *MyOwnClusterAPIPlugin) Bind(wctx *WasmProcessContext) {
 	wctx.Runtime.AttachFunction("my-own-cluster", "test", "i()", func(runtime wasm3.RuntimeT, sp unsafe.Pointer, mem unsafe.Pointer) int {
 		*(*uint32)(sp) = 0
 		return 0
+	})
+
+	wctx.BindAPIFunction("my-own-cluster", "base64_decode", "i(ii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
+		encoded := cs.GetParamString(0, 1)
+
+		decoded, err := base64.StdEncoding.WithPadding(base64.StdPadding).DecodeString(encoded)
+		if err != nil {
+			fmt.Println(err)
+			return uint32(0xffff), nil
+		}
+
+		bufferID := wctx.Orchestrator.CreateExchangeBuffer()
+		buffer := wctx.Orchestrator.GetExchangeBuffer(bufferID)
+		buffer.Write(decoded)
+
+		return uint32(bufferID), nil
+	})
+
+	// pub fn plug_file(method_buffer: *const u8, method_length: u32, path_buffer: *const u8, path_length: u32, content_type_buffer: *const u8, content_type_length: u32, bytes_buffer: *const u8, bytes_length: u32) -> u32;
+	wctx.BindAPIFunction("my-own-cluster", "plug_file", "i(iiiiiiii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
+		method := cs.GetParamString(0, 1)
+		path := cs.GetParamString(2, 3)
+		contentType := cs.GetParamString(4, 5)
+		bytes := cs.GetParamByteBuffer(6, 7)
+
+		techID := wctx.Orchestrator.PlugFile(method, path, contentType, bytes)
+
+		bufferID := wctx.Orchestrator.CreateExchangeBuffer()
+		buffer := wctx.Orchestrator.GetExchangeBuffer(bufferID)
+		buffer.Write([]byte(techID))
+
+		return uint32(bufferID), nil
 	})
 
 	// params : key addr, key length, value addr, value length

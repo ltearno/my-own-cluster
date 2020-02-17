@@ -262,14 +262,14 @@ func (o *Orchestrator) findPlug(method string, path string) (bool, string, inter
 		}
 	}
 
-	fmt.Printf("(%s) [%s] '%s' '%s' '%s'\n", method, path, walker.Key(), prefix, path)
+	//fmt.Printf("(%s) [%s] '%s' '%s' '%s'\n", method, path, walker.Key(), prefix, path)
 
 	if prefix != walker.Key() {
 		fmt.Printf("PATH NOT MATCHING RESIDUAL KEY '%s'/'%s'\n", prefix, walker.Key())
 		return false, "", nil, nil
 	}
 
-	fmt.Printf("PATH FULLY MATCHED, WE HAVE A PLUG for path '%s' mathed to '%s'\n", originalPath, walker.Key())
+	fmt.Printf("plugged path '%s' matched with '%s'\n", walker.Key(), originalPath)
 	data := &Plug{}
 	err := json.Unmarshal(walker.it.Value(), data)
 	if err != nil {
