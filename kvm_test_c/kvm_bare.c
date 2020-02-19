@@ -35,10 +35,47 @@
 
 // sudo setfacl -m u:${USER}:rw /dev/kvm
 
+/*void ffprintfBinary(int v) {
+    char buf[65];
+    itoa(v, buf, 2);
+    printf("%s\n", buf);
+}*/
+
+void printfBinary(int v)
+{
+    unsigned int mask=1<<((sizeof(int)<<3)-1);
+    while(mask) {
+        printf("%d", (v&mask ? 1 : 0));
+        mask >>= 1;
+    }
+    printf("\n");
+}
+
+void dumpRegisters(int vcpufd) {
+    struct kvm_regs regs;
+    struct kvm_sregs sregs;
+    int ret;
+
+    ret = ioctl(vcpufd, KVM_GET_REGS, &regs);
+    if (ret == -1)
+        err(1, "KVM_GET_REGS");
+
+    ret = ioctl(vcpufd, KVM_GET_SREGS, &sregs);
+    if (ret == -1)
+        err(1, "KVM_GET_SREGS");
+
+    printf("regs: rax:%08llx, rip:%08llx\n", regs.rax, regs.rip);
+    printf("sregs: cr0:%08llx, cr2:%08llx, cr3:%08llx, cr4:%08llx, cr8:%08llx\n", sregs.cr0, sregs.cr2, sregs.cr3, sregs.cr4, sregs.cr8);
+    printf("cr0: ");
+    printfBinary(sregs.cr0);
+    printf("cr4: ");
+    printfBinary(sregs.cr4);
+}
+
 int main(void)
 {
     int kvm, vmfd, vcpufd, ret;
-    const uint8_t code[] = {
+    const uint8_t codeOld[] = {
         0xba, 0xf8, 0x03, /* mov $0x3f8, %dx */
         0x00, 0xd8,       /* add %bl, %al */
         0x04, '0',        /* add $'0', %al */
@@ -47,6 +84,23 @@ int main(void)
         0xee,             /* out %al, (%dx) */
         0xf4,             /* hlt */
     };
+
+    const uint8_t code64[] = {
+        0x8b, 0x04, 0x25, 0x00, 0x10, 0x00, 0x00, /* mov    0x1000,%eax   */
+        0x67, 0xc7, 0x00, 0x2a, 0x00, 0x00, 0x00  /* movl   $0x2a,(%eax)  */
+    };
+
+    const uint8_t code[] = {
+        0xb8, 0x10, 0x00, 0x00, 0x00, /* mov    $0x10,%eax */
+        0xf4,
+        0x66, 0xc7, 0x00, 0x2a, 0x00,  /* movw   $0x2a,(%eax) */
+
+        0x66, 0xa1, 0x10, 0x00, 0x00, 0x00,
+        0x66, 0xc7, 0x00, 0x2b, 0x00,
+
+        0xf4
+    };
+
     uint8_t *mem;
     struct kvm_sregs sregs;
     size_t mmap_size;
@@ -55,6 +109,7 @@ int main(void)
     kvm = open("/dev/kvm", O_RDWR | O_CLOEXEC);
     if (kvm == -1)
         err(1, "/dev/kvm (you can run : sudo setfacl -m u:${USER}:rw /dev/kvm)");
+    printf("kvm opened, fd=%d\n", kvm);
 
     /* Make sure we have the stable version of the API */
     ret = ioctl(kvm, KVM_GET_API_VERSION, NULL);
@@ -122,12 +177,18 @@ int main(void)
     if (ret == -1)
         err(1, "KVM_SET_REGS");
 
+    dumpRegisters(vcpufd);
+
     /* Repeatedly run code and handle VM exits. */
     while (1) {
         ret = ioctl(vcpufd, KVM_RUN, NULL);
         if (ret == -1)
             err(1, "KVM_RUN");
+        dumpRegisters(vcpufd);
         switch (run->exit_reason) {
+        case KVM_EXIT_MMIO:
+            printf("MMIO : is_write:%d, phys_addr:%llx, len:%d, data:%08x\n", (int)(run->mmio.is_write), run->mmio.phys_addr, run->mmio.len, *(int*)(&run->mmio.data[0]));
+            break;
         case KVM_EXIT_HLT:
             ioctl(vcpufd, KVM_GET_REGS, &regs);
             puts("KVM_EXIT_HLT");
