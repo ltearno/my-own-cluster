@@ -139,7 +139,7 @@ int main(int argc, char* argv[]) {
 		printf("can't get regs");
 	}*/
 	vcpu_regs.rip = memory;
-	vcpu_regs.rax = 0;
+	vcpu_regs.rax = 3;
 	vcpu_regs.rbx = 0;
 	vcpu_regs.rflags = 0x2;
 	int set_regs_sc = ioctl(vcpu_fd, KVM_SET_REGS, &vcpu_regs);
@@ -188,6 +188,10 @@ int main(int argc, char* argv[]) {
 	
 	printf("Reading register RAX:\n");
        	printf("%lld\n", vcpu_regs.rax);
+	
+	//more info on the KVM_EXIT_FAIL_ENTRY can be found in this struct
+	//apparently 80000021 is invalid guest state
+	printf("Failure entry: %x\n", kvm_run_parameters->fail_entry.hardware_entry_failure_reason);
 
 	//Dispose of borrowed memory
 	//TODO: P sure we forgot shit
