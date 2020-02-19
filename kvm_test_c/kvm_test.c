@@ -1,4 +1,5 @@
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <linux/kvm.h>
 #include <stdint.h>
@@ -21,6 +22,11 @@
  **/
 
 int main(int argc, char* argv[]) {
+
+	const uint8_t code[] = {
+		0xb8, 0x2a, 0x00, 0x00, 0x00,
+		0xf4,
+	};	
 
 	//func to read file size, thanks stackoverflow
 	off_t fsize(const char *filename) {
@@ -50,14 +56,14 @@ int main(int argc, char* argv[]) {
 	// create vm, see doc section 4.2 KVM_CREATE_VM
 	int vm_fd = ioctl(devkvm_fd, KVM_CREATE_VM, 0);
 	if(vm_fd == -1) {
-		printf("error");
+		printf("error create vm");
 		return 1;
 	}
 
 	// create vcpu, see doc section 4.7 KVM_CREATE_VCPU
 	int vcpu_fd = ioctl(vm_fd, KVM_CREATE_VCPU, 0);
 	if(vm_fd == -1) {
-		printf("error");
+		printf("error create vcpu");
 		return 1;
 	}
 
@@ -71,7 +77,7 @@ int main(int argc, char* argv[]) {
 
 	//memory allocation
 	//from file
-	int mem_fd;
+	/*int mem_fd;
 	mem_fd = open("hw", O_RDWR);
 	//File size
 	size_t mem_size = 0x8000; 
@@ -85,11 +91,13 @@ int main(int argc, char* argv[]) {
 		close(vcpu_fd);
 		close(devkvm_fd);
 		return 1;
-	}
+	}*/
 
 	//test: from scratch
 	//works
-	//__u64 *memory = mmap(NULL, 4096, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+	size_t mem_size = 4096;
+	__u64 *memory = mmap(NULL, mem_size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+	memcpy(memory, code, sizeof(code));
 
 	//Tell kvm about this memory space
 	struct kvm_userspace_memory_region region = {
@@ -110,7 +118,7 @@ int main(int argc, char* argv[]) {
 	// Now, we have to set BOTH RIP and CS to the beginning of the previous segment (i.e. they have to take the value of "memory" or 0, not sure)
 
 	//Set code segment (CS)
-	//TODO: understand wtf: why set to 0, what is segment, etc
+	//Code segment orchestrates jumps, set to 0 to start at beginning of guest memory
 	struct kvm_sregs vcpu_sregs;
 	int get_sregs_sc = ioctl(vcpu_fd, KVM_GET_SREGS, &vcpu_sregs);
 	if(get_sregs_sc == -1) {
@@ -123,32 +131,63 @@ int main(int argc, char* argv[]) {
 		printf("can't set sregs");
 	}
 
-	//set instruction pointer (RIP) to "memory" variable
-	//TODO: understand why set to "memory" and no 0
+	//set instruction pointer (RIP) to "memory" variable, where guest memory begins
 	struct kvm_regs vcpu_regs;
 	//pass pointer to created object. if you make a pointer to struct, enjoy your segfault (out of experience)
-	int get_regs_sc = ioctl(vcpu_fd, KVM_GET_REGS, &vcpu_regs);
+	/*int get_regs_sc = ioctl(vcpu_fd, KVM_GET_REGS, &vcpu_regs);
 	if(get_regs_sc == -1) {
 		printf("can't get regs");
-	}
+	}*/
 	vcpu_regs.rip = memory;
-	int set_regs_sc = ioctl(vcpu_fd, KVM_SET_REGS, vcpu_regs);
+	vcpu_regs.rax = 0;
+	vcpu_regs.rbx = 0;
+	vcpu_regs.rflags = 0x2;
+	int set_regs_sc = ioctl(vcpu_fd, KVM_SET_REGS, &vcpu_regs);
 	if(set_regs_sc == -1) {
 		printf("can't set regs");
 	}
 
 
-	// get KVM_RUN implicit parameter block for the lulz (this is documented in doc section 4.10 KVM_RUN)
-	int mmap_size = ioctl(vcpu_fd, KVM_GET_VCPU_MMAP_SIZE, NULL);
-	struct kvm_run *kvm_run_parameters = mmap(NULL, mmap_size, PROT_READ, MAP_PRIVATE, vcpu_fd, 0);
-
-	// Pick a god and pray, see doc section 4.10 KVM_RUN
-	//TODO: if no errors, real code.
-	int time_to_run = ioctl(vcpu_fd, KVM_RUN, NULL);
-	printf("%d\n", time_to_run);
-
+	// get KVM_RUN implicit parameter block for interrupt handling (this is documented in doc section 4.10 KVM_RUN)
+	// CAUTION! Contrary to all that might seem logical, this is a SYSTEM (/dev/kvm/ fd) ioctl and not a VCPU one
+	int mmap_size = ioctl(devkvm_fd, KVM_GET_VCPU_MMAP_SIZE, NULL);
+	printf("KVM_VCPU_MMAP_SIZE = %d\n", mmap_size);
+	//Size problem: -1
+	struct kvm_run *kvm_run_parameters = mmap(NULL, mmap_size, PROT_READ | PROT_WRITE, MAP_SHARED, vcpu_fd, 0);
+	if (kvm_run_parameters<0) {
+		printf("%u\n", errno);
+	}
+	printf("ready to run\n");
+	//See doc section 4.10 KVM_RUN
+	//Apparently, code has to run in a loop
+	int run_ret;
+	int run_flag = 1;
+	while (run_flag) {
+		run_ret = ioctl(vcpu_fd, KVM_RUN, NULL);
+		if(run_ret == -1) {
+			err(1, "KVM_RUN");
+			break;
+		}
+		switch (kvm_run_parameters->exit_reason) {
+			case KVM_EXIT_HLT:
+				printf("Exit: hlt\n");
+				puts("KVM_EXIT_HLT");
+				run_flag = 0;
+				break;
+			default:
+				//Exit reason 9 is "KVM_EXIT_FAIL_ENTRY"
+				printf("oh shit exit reason = %x\n", kvm_run_parameters->exit_reason);
+				run_flag = 0;
+				break;
+		}
+	}
 	//Read memory
-	ssize_t s = write(STDOUT_FILENO, memory, mem_size);
+	//ssize_t s = write(STDOUT_FILENO, memory, mem_size);
+	printf("get regs\n");
+	int get_regs_sc = ioctl(vcpu_fd, KVM_GET_REGS, &vcpu_regs);	
+	
+	printf("Reading register RAX:\n");
+       	printf("%lld\n", vcpu_regs.rax);
 
 	//Dispose of borrowed memory
 	//TODO: P sure we forgot shit
