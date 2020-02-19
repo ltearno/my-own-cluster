@@ -54,14 +54,15 @@ int main(void)
 
     kvm = open("/dev/kvm", O_RDWR | O_CLOEXEC);
     if (kvm == -1)
-        err(1, "/dev/kvm");
+        err(1, "/dev/kvm (you can run : sudo setfacl -m u:${USER}:rw /dev/kvm)");
 
     /* Make sure we have the stable version of the API */
     ret = ioctl(kvm, KVM_GET_API_VERSION, NULL);
     if (ret == -1)
         err(1, "KVM_GET_API_VERSION");
-    if (ret != 12)
-        errx(1, "KVM_GET_API_VERSION %d, expected 12", ret);
+    if (ret != KVM_API_VERSION)
+        errx(1, "KVM_GET_API_VERSION %d, expected %d because this program was compiled against this version", ret, KVM_API_VERSION);
+    printf("KVM version: %d\n", ret);
 
     vmfd = ioctl(kvm, KVM_CREATE_VM, (unsigned long)0);
     if (vmfd == -1)
