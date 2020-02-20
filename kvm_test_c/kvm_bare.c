@@ -187,6 +187,31 @@ struct kvm_run* getKvmCpuRunData(int kvm, int vcpufd) {
     return run;
 }
 
+void* createMemoryRegion(int vmfd, int slot, __u64 guestPhysicalAddress, int size) {
+    // align mmapped size to 4kB page size
+    int mmapSize = size;
+    if(mmapSize % 0x1000)
+        mmapSize = mmapSize - (mmapSize % 0x1000) + 0x1000;
+
+    printf("mmap size: %d\n", mmapSize);
+    uint8_t *mem = mmap(NULL, mmapSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (!mem)
+        err(1, "allocating guest memory");
+
+    struct kvm_userspace_memory_region region = {
+        .slot = slot,
+        .guest_phys_addr = guestPhysicalAddress,
+        .memory_size = mmapSize,
+        .userspace_addr = (uint64_t)mem,
+    };
+
+    int ret = ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &region);
+    if (ret == -1)
+        err(1, "KVM_SET_USER_MEMORY_REGION");
+
+    return mem;
+}
+
 int main(int argc, char **argv)
 {
     int kvm, vmfd, vcpufd, ret;
@@ -230,25 +255,8 @@ int main(int argc, char **argv)
     if (vmfd == -1)
         err(1, "KVM_CREATE_VM");
 
-    /* Allocate one aligned page of guest memory to hold the code. */
-    int codeMMapSize = codeSize;
-    if(codeMMapSize % 0x1000)
-        codeMMapSize = codeMMapSize - (codeMMapSize % 0x1000) + 0x1000;
-    printf("code mmap size: %d\n", codeMMapSize);
-    uint8_t *mem = mmap(NULL, codeMMapSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    if (!mem)
-        err(1, "allocating guest memory");
+    uint8_t* mem = createMemoryRegion(vmfd, 0, CODE_GUEST_ADDRESS, codeSize);
     memcpy(mem, code, codeSize);
-
-    struct kvm_userspace_memory_region region = {
-        .slot = 0,
-        .guest_phys_addr = CODE_GUEST_ADDRESS,
-        .memory_size = codeMMapSize,
-        .userspace_addr = (uint64_t)mem,
-    };
-    ret = ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &region);
-    if (ret == -1)
-        err(1, "KVM_SET_USER_MEMORY_REGION");
 
     vcpufd = ioctl(vmfd, KVM_CREATE_VCPU, (unsigned long)0);
     if (vcpufd == -1)
