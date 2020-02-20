@@ -173,6 +173,20 @@ char* loadBinary(char *fileName, int *bufferSize) {
     return buffer;
 }
 
+struct kvm_run* getKvmCpuRunData(int kvm, int vcpufd) {
+    int mmap_size = ioctl(kvm, KVM_GET_VCPU_MMAP_SIZE, NULL);
+    if (mmap_size == -1)
+        err(1, "KVM_GET_VCPU_MMAP_SIZE");
+    if (mmap_size < sizeof(struct kvm_run))
+        errx(1, "KVM_GET_VCPU_MMAP_SIZE unexpectedly small");
+
+    struct kvm_run *run = mmap(NULL, mmap_size, PROT_READ | PROT_WRITE, MAP_SHARED, vcpufd, 0);
+    if (!run)
+        err(1, "mmap vcpu");
+    
+    return run;
+}
+
 int main(int argc, char **argv)
 {
     int kvm, vmfd, vcpufd, ret;
@@ -221,16 +235,19 @@ int main(int argc, char **argv)
         err(1, "KVM_CREATE_VM");
 
     /* Allocate one aligned page of guest memory to hold the code. */
-    mem = mmap(NULL, codeSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    int codeMMapSize = codeSize;
+    if(codeMMapSize % 0x1000)
+        codeMMapSize = codeMMapSize - (codeMMapSize % 0x1000) + 0x1000;
+    printf("code mmap size: %d\n", codeMMapSize);
+    mem = mmap(NULL, codeMMapSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (!mem)
         err(1, "allocating guest memory");
     memcpy(mem, code, codeSize);
 
-    /* Map it to the second page frame (to avoid the real-mode IDT at 0). */
     struct kvm_userspace_memory_region region = {
         .slot = 0,
         .guest_phys_addr = CODE_GUEST_ADDRESS,
-        .memory_size = 0x1000,
+        .memory_size = codeMMapSize,
         .userspace_addr = (uint64_t)mem,
     };
     ret = ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &region);
@@ -241,16 +258,7 @@ int main(int argc, char **argv)
     if (vcpufd == -1)
         err(1, "KVM_CREATE_VCPU");
 
-    /* Map the shared kvm_run structure and following data. */
-    ret = ioctl(kvm, KVM_GET_VCPU_MMAP_SIZE, NULL);
-    if (ret == -1)
-        err(1, "KVM_GET_VCPU_MMAP_SIZE");
-    mmap_size = ret;
-    if (mmap_size < sizeof(*run))
-        errx(1, "KVM_GET_VCPU_MMAP_SIZE unexpectedly small");
-    run = mmap(NULL, mmap_size, PROT_READ | PROT_WRITE, MAP_SHARED, vcpufd, 0);
-    if (!run)
-        err(1, "mmap vcpu");
+    run = getKvmCpuRunData(kvm, vcpufd);
 
     /* Initialize CS to point at 0, via a read-modify-write of sregs. */
     ret = ioctl(vcpufd, KVM_GET_SREGS, &sregs);
@@ -262,8 +270,6 @@ int main(int argc, char **argv)
     if (ret == -1)
         err(1, "KVM_SET_SREGS");
 
-    /* Initialize registers: instruction pointer for our code, addends, and
-     * initial flags required by x86 architecture. */
     struct kvm_regs regs = {
         .rip = CODE_GUEST_ADDRESS,
     };
@@ -275,9 +281,7 @@ int main(int argc, char **argv)
 
     printf("\nstart kvm run loop\n");
 
-    /* Repeatedly run code and handle VM exits. */
-    int n = 10;
-    while (n--) {
+    while (1) {
         printf("\nKVM_RUN => ");
         ret = ioctl(vcpufd, KVM_RUN, NULL);
         if (ret == -1)
