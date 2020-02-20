@@ -208,7 +208,7 @@ int main(void)
         err(1, "KVM_GET_API_VERSION");
     if (ret != KVM_API_VERSION)
         errx(1, "KVM_GET_API_VERSION %d, expected %d because this program was compiled against this version", ret, KVM_API_VERSION);
-    printf("KVM version: %d\n", ret);
+    printf("kvm version ok: %d\n", ret);
 
     vmfd = ioctl(kvm, KVM_CREATE_VM, (unsigned long)0);
     if (vmfd == -1)
@@ -282,7 +282,7 @@ int main(void)
 
         switch (run->exit_reason) {
             case KVM_EXIT_MMIO:
-                printf("KVM_EXIT_MMIO : the vcpu is %s %d bytes at address %016llx\n", run->mmio.is_write ? "writing" : "reading", run->mmio.len, run->mmio.phys_addr);
+                printf("KVM_EXIT_MMIO : the vcpu is %s %d byte(s) at address %016llx\n", run->mmio.is_write ? "writing" : "reading", run->mmio.len, run->mmio.phys_addr);
                 if( run ->mmio.is_write) {
                     printf("the written data is : %016llx\n", *(unsigned long long*)(&run->mmio.data[0]));
                 }
