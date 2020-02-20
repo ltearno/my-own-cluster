@@ -75,10 +75,12 @@ void dumpRegisters(int vcpufd) {
     printf(" rsp:%016llx\n", regs.rsp);
     printf(" cr0:%016llx, cr2:%016llx, cr3:%016llx, cr4:%016llx, cr8:%016llx\n", sregs.cr0, sregs.cr2, sregs.cr3, sregs.cr4, sregs.cr8);
     printf(" es: %016llx\n", sregs.es.base);
-    printf(" cr0:");
+    printf(" cr0:   ");
     printfBinary(sregs.cr0);
-    printf(" cr4:");
+    printf(" cr4:   ");
     printfBinary(sregs.cr4);
+    printf(" rflags:");
+    printfBinary(regs.rflags);
 }
 
 // loads a binary file, allocate and return the file content
@@ -162,7 +164,7 @@ void* createMemoryRegion(int vmfd, int slot, __u64 guestPhysicalAddress, int siz
 }
 
 /**
- * Builds an very simple identity memory mapped paging tables.
+ * Builds a very simple identity memory mapped paging tables.
  * 
  * it does not use huge pages, and only the level 1 pages have multiple entries
  * this means that only addresses from 0x0000000000000000 to 0x00000000001FF000 are mapped
@@ -335,6 +337,7 @@ int main(int argc, char **argv)
     struct kvm_run *run = getKvmCpuRunData(kvm, vcpufd);
 
     // TODO : disable irqs (why ?)
+    //See below at KVM_GET_REGS
 
     struct kvm_sregs sregs;
     int ret = ioctl(vcpufd, KVM_GET_SREGS, &sregs);
