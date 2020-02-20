@@ -1,26 +1,3 @@
-/* Sample code for /dev/kvm API
- *
- * Copyright (c) 2015 Intel Corporation
- * Author: Josh Triplett <josh@joshtriplett.org>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to
- * deal in the Software without restriction, including without limitation the
- * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
- * sell copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
- */
 #include <err.h>
 #include <fcntl.h>
 #include <linux/kvm.h>
@@ -34,9 +11,6 @@
 #include <sys/types.h>
 #include <asm/types.h>
 #include <linux/const.h>
-
-// https://wiki.osdev.org/Global_Descriptor_Table
-
 
 /**
  * GUEST MEMORY LAYOUT
@@ -56,11 +30,12 @@
  * Few useful definitions
  */
 
-#define EFER_LMA 0x400
-#define EFER_LME 0x100
-#define X86_CR0_PE 0x1
-#define X86_CR0_PG 0x80000000
-#define X86_CR4_PAE 0x20
+#define EFER_LMA            0x400
+#define EFER_LME            0x100
+#define X86_CR0_PE          0x1
+#define X86_CR0_PG          0x80000000
+#define X86_CR4_PAE         0x20
+#define RFLAGS_IF_BIT       (1 << 9)
 
 // from Linux kernel source code
 #define GDT_ENTRY(flags, base, limit)               \
@@ -71,8 +46,7 @@
      (((limit) & _AC(0x0000ffff,ULL))))
 
 // print a value in binary format
-void printfBinary(int v)
-{
+void printfBinary(int v) {
     unsigned int mask=1<<((sizeof(int)<<3)-1);
     while(mask) {
         printf("%d", (v&mask ? 1 : 0));
@@ -341,6 +315,7 @@ int main(int argc, char **argv)
     buildMmuTables(mmuTable, MMU_TABLES_ADDRESS);
 
     // create and init the GDT memory region
+    // https://wiki.osdev.org/Global_Descriptor_Table
     const int GDT_SIZE = 8 * 4;
     uint64_t* gdt = createMemoryRegion(vmfd, 2, GDT_ADDRESS, GDT_SIZE);
     gdt[0] = GDT_ENTRY(0x0000, 0, 0x0000);  // NULL
@@ -380,7 +355,7 @@ int main(int argc, char **argv)
     kvm_segment_from_gdt(gdt[2], 2, &sregs.gs);
     kvm_segment_from_gdt(gdt[2], 2, &sregs.ss);
     kvm_segment_from_gdt(gdt[3], 3, &sregs.tr);    
-    // 64-bit protected mode with pagination and PAE, 
+    // 64-bit protected mode with pagination and PAE,
     // you should know why you put those flags !
     // go here for details on each bit : https://wiki.osdev.org/Global_Descriptor_Table
     sregs.efer |= EFER_LMA | EFER_LME;
@@ -397,6 +372,7 @@ int main(int argc, char **argv)
     struct kvm_regs regs = {
         .rip = CODE_GUEST_ADDRESS + startAddress,
         .rsp = STACK_ADDRESS + STACK_SIZE,
+        .rflags = RFLAGS_IF_BIT,
     };
     ret = ioctl(vcpufd, KVM_SET_REGS, &regs);
     if (ret == -1)
