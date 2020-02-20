@@ -22,5 +22,5 @@ disasm: helloworld-gas-16bit.bin
 	hexdump -C helloworld-gas-16bit.bin
 
 .PHONY: run-kvm_bare
-run-kvm_bare: kvm_bare disasm
-	./kvm_bare
+run-kvm_bare: kvm_bare disasm helloworld-gas-16bit.bin
+	./kvm_bare helloworld-gas-16bit.bin

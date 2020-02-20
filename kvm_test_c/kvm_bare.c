@@ -146,8 +146,8 @@ void dumpRegisters(int vcpufd) {
     printfBinary(sregs.cr4);
 }
 
-char* loadBinary(int *bufferSize) {
-    int fd = open("helloworld-gas-16bit.bin", O_RDONLY);
+char* loadBinary(char *fileName, int *bufferSize) {
+    int fd = open(fileName, O_RDONLY);
     if (fd < 0)
         err(1, "can not open binary file\n");
 
@@ -171,12 +171,16 @@ char* loadBinary(int *bufferSize) {
     return buffer;
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
     int kvm, vmfd, vcpufd, ret;
 
+    if(argc != 2)
+        err(1, "you should give the program one argument : the binary executable code file name");
+
+    printf("reading binary executable code file '%s'\n", argv[1]);
     int codeSize = 0;
-    char *code = loadBinary(&codeSize);
+    char *code = loadBinary(argv[1], &codeSize);
     if( ! codeSize ){
         err(1, "empty code");
     }
