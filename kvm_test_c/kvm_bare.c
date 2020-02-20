@@ -333,8 +333,6 @@ int main(int argc, char **argv)
     // create and init the code memory region
     uint8_t* mem = createMemoryRegion(vmfd, 0, CODE_GUEST_ADDRESS, codeSize);
     memcpy(mem, code, codeSize);
-    
-    //Prevent memory leak
     free(code);
 
     // create and init the MMU paging tables memory region
