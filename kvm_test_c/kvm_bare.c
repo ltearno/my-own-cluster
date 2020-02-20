@@ -212,11 +212,7 @@ int main(int argc, char **argv)
     7) Do a "far jump" to some 64 bit code
     */
 
-    uint8_t *mem;
-    struct kvm_sregs sregs;
-    size_t mmap_size;
-    struct kvm_run *run;
-
+    
     kvm = open("/dev/kvm", O_RDWR | O_CLOEXEC);
     if (kvm == -1)
         err(1, "/dev/kvm (you can run : sudo setfacl -m u:${USER}:rw /dev/kvm)");
@@ -239,7 +235,7 @@ int main(int argc, char **argv)
     if(codeMMapSize % 0x1000)
         codeMMapSize = codeMMapSize - (codeMMapSize % 0x1000) + 0x1000;
     printf("code mmap size: %d\n", codeMMapSize);
-    mem = mmap(NULL, codeMMapSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    uint8_t *mem = mmap(NULL, codeMMapSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (!mem)
         err(1, "allocating guest memory");
     memcpy(mem, code, codeSize);
@@ -258,9 +254,10 @@ int main(int argc, char **argv)
     if (vcpufd == -1)
         err(1, "KVM_CREATE_VCPU");
 
-    run = getKvmCpuRunData(kvm, vcpufd);
+    struct kvm_run *run = getKvmCpuRunData(kvm, vcpufd);
 
     /* Initialize CS to point at 0, via a read-modify-write of sregs. */
+    struct kvm_sregs sregs;
     ret = ioctl(vcpufd, KVM_GET_SREGS, &sregs);
     if (ret == -1)
         err(1, "KVM_GET_SREGS");
