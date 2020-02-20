@@ -15,8 +15,9 @@
         .global _start
 
         .text
-        .code32
+        .code16
 _start:
         # write(1, message, 13)
-        mov    $0x10, %eax                # system call 1 is write
+        mov $0x3f8, %dx # should output 0xba, 0xf8, 0x03
+        movw    $0x10, (%eax)                # system call 1 is write
         movw    $42, (%eax)

@@ -32,8 +32,81 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <asm/types.h>
+#include <linux/const.h>
 
 // sudo setfacl -m u:${USER}:rw /dev/kvm
+
+
+
+// Our expected segment selectors.
+#define __BOOT_CS 2
+#define __BOOT_DS 3
+#define __BOOT_TR1 4
+#define __BOOT_TR2 5
+const int BootCsSelector = __BOOT_CS * sizeof(__u64);
+const int BootDsSelector = __BOOT_DS * sizeof(__u64);
+const int BootTrSelector = __BOOT_TR1 * sizeof(__u64);
+
+#define GDT_ENTRY(flags, base, limit)               \
+    ((((base)  & _AC(0xff000000,ULL)) << (56-24)) | \
+     (((flags) & _AC(0x0000f0ff,ULL)) << 40) |      \
+     (((limit) & _AC(0x000f0000,ULL)) << (48-16)) | \
+     (((base)  & _AC(0x00ffffff,ULL)) << 16) |      \
+     (((limit) & _AC(0x0000ffff,ULL))))
+
+// Our boot GDT table.
+static inline void build_64bit_gdt(void* page) {
+    __u64* entry = (__u64*)page;
+    entry[__BOOT_CS] = GDT_ENTRY(0xa09a, 0, 0xfffff);
+    entry[__BOOT_DS] = GDT_ENTRY(0xc092, 0, 0xfffff);
+    entry[__BOOT_TR1] = GDT_ENTRY(0x808b, 0, 0xfffff);
+    entry[__BOOT_TR2] = GDT_ENTRY(0x0000, 0, 0);
+}
+
+
+// Our page table builders.
+static inline void build_pml4(
+    void* page,
+    __u64 pgd_addr,
+    int size) {
+
+    // We will only build a single entry.
+    // Thus, we will only be able to address 512GB from within
+    // the linux startup routines. I think we'll be okay.
+    __u64* entry = (__u64*)page;
+
+    // Encodes: present, writable
+    *entry = (pgd_addr & 0x000ffffffffff000) | 0x3;
+}
+static inline void build_pgd(
+    void* page,
+    __u64 pde_addr,
+    int size) {
+
+    // Wait! Here we only build a single entry.
+    // Uh-oh, that means our startup routine is now further
+    // limited -- to only 1GB! We'll probably still be okay.
+    __u64* entry = (__u64*)page;
+
+    // Encodes: present, writable
+    *entry = (pde_addr & 0x000ffffffffff000) | 0x3;
+}
+static inline void build_pde(
+    void* page,
+    int size) {
+
+    // Here we build an entry for every possible
+    // index. Each entry represents 2MB addressable.
+    __u64* entry = (__u64*)page;
+    int i = 0, max = size / sizeof(*entry);
+    for (i = 0; i < max; i += 1) {
+        // Encodes: PSE (2mb), present, writable
+        entry[i] = ((((__u64)i) << 21) & 0x000fffffffe00000) | 0x83;
+    }
+}
+
+
 
 /*void ffprintfBinary(int v) {
     char buf[65];
@@ -64,7 +137,7 @@ void dumpRegisters(int vcpufd) {
     if (ret == -1)
         err(1, "KVM_GET_SREGS");
 
-    printf("regs: rax:%08llx, rip:%08llx\n", regs.rax, regs.rip);
+    printf("regs: rax:%08llx, rdx:%llx, rip:%08llx\n", regs.rax, regs.rdx, regs.rip);
     printf("sregs: cr0:%08llx, cr2:%08llx, cr3:%08llx, cr4:%08llx, cr8:%08llx\n", sregs.cr0, sregs.cr2, sregs.cr3, sregs.cr4, sregs.cr8);
     printf("cr0: ");
     printfBinary(sregs.cr0);
@@ -91,15 +164,21 @@ int main(void)
     };
 
     const uint8_t code[] = {
-        0xb8, 0x10, 0x00, 0x00, 0x00, /* mov    $0x10,%eax */
+        0xba, 0xf8, 0x03,                /* mov    $0x3f8,%dx */
+        0xc7, 0x00, 0x10, 0x01, /* mov    $0x10,(%eax) */
         0xf4,
-        0x66, 0xc7, 0x00, 0x2a, 0x00,  /* movw   $0x2a,(%eax) */
-
-        0x66, 0xa1, 0x10, 0x00, 0x00, 0x00,
-        0x66, 0xc7, 0x00, 0x2b, 0x00,
-
-        0xf4
     };
+
+    // jumping to 64bit long mode directly :
+    /*
+    1) Build paging structures (PML4, PDPT, PD and PTs)
+    2) Enable PAE in CR4
+    3) Set CR3 so it points to the PML4
+    4) Enable long mode in the EFER MSR
+    5) Enable paging and protected mode at the same time (activate long mode)
+    6) Load a GDT
+    7) Do a "far jump" to some 64 bit code
+    */
 
     uint8_t *mem;
     struct kvm_sregs sregs;
@@ -132,7 +211,7 @@ int main(void)
     /* Map it to the second page frame (to avoid the real-mode IDT at 0). */
     struct kvm_userspace_memory_region region = {
         .slot = 0,
-        .guest_phys_addr = 0x1000,
+        .guest_phys_addr = 0x2000,
         .memory_size = 0x1000,
         .userspace_addr = (uint64_t)mem,
     };
@@ -168,10 +247,10 @@ int main(void)
     /* Initialize registers: instruction pointer for our code, addends, and
      * initial flags required by x86 architecture. */
     struct kvm_regs regs = {
-        .rip = 0x1000,
-        .rax = 2,
-        .rbx = 2,
-        .rflags = 0x2,
+        .rip = 0x2000,
+        .rax = 0x0,
+        .rbx = 128,
+        .rflags = 0x0,
     };
     ret = ioctl(vcpufd, KVM_SET_REGS, &regs);
     if (ret == -1)
@@ -180,14 +259,16 @@ int main(void)
     dumpRegisters(vcpufd);
 
     /* Repeatedly run code and handle VM exits. */
-    while (1) {
+    int n = 10;
+    while (n--) {
+        printf("Go!!!\n");
         ret = ioctl(vcpufd, KVM_RUN, NULL);
         if (ret == -1)
             err(1, "KVM_RUN");
         dumpRegisters(vcpufd);
         switch (run->exit_reason) {
         case KVM_EXIT_MMIO:
-            printf("MMIO : is_write:%d, phys_addr:%llx, len:%d, data:%08x\n", (int)(run->mmio.is_write), run->mmio.phys_addr, run->mmio.len, *(int*)(&run->mmio.data[0]));
+            printf("MMIO : is_write:%d, phys_addr:%016llx, len:%d, data:%08x\n", (int)(run->mmio.is_write), run->mmio.phys_addr, run->mmio.len, *(int*)(&run->mmio.data[0]));
             break;
         case KVM_EXIT_HLT:
             ioctl(vcpufd, KVM_GET_REGS, &regs);
