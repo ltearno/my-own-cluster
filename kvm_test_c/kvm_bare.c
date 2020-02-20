@@ -35,18 +35,11 @@
 #include <asm/types.h>
 #include <linux/const.h>
 
-// sudo setfacl -m u:${USER}:rw /dev/kvm
+// https://wiki.osdev.org/Global_Descriptor_Table
 
-#define CODE_GUEST_ADDRESS 0x8000
-
-// Our expected segment selectors.
-#define __BOOT_CS 2
-#define __BOOT_DS 3
-#define __BOOT_TR1 4
-#define __BOOT_TR2 5
-const int BootCsSelector = __BOOT_CS * sizeof(__u64);
-const int BootDsSelector = __BOOT_DS * sizeof(__u64);
-const int BootTrSelector = __BOOT_TR1 * sizeof(__u64);
+#define MMU_TABLES_ADDRESS  0x1000
+#define GDT_ADDRESS         0x5000
+#define CODE_GUEST_ADDRESS  0x8000
 
 #define GDT_ENTRY(flags, base, limit)               \
     ((((base)  & _AC(0xff000000,ULL)) << (56-24)) | \
@@ -54,65 +47,6 @@ const int BootTrSelector = __BOOT_TR1 * sizeof(__u64);
      (((limit) & _AC(0x000f0000,ULL)) << (48-16)) | \
      (((base)  & _AC(0x00ffffff,ULL)) << 16) |      \
      (((limit) & _AC(0x0000ffff,ULL))))
-
-// Our boot GDT table.
-static inline void build_64bit_gdt(void* page) {
-    __u64* entry = (__u64*)page;
-    entry[__BOOT_CS] = GDT_ENTRY(0xa09a, 0, 0xfffff);
-    entry[__BOOT_DS] = GDT_ENTRY(0xc092, 0, 0xfffff);
-    entry[__BOOT_TR1] = GDT_ENTRY(0x808b, 0, 0xfffff);
-    entry[__BOOT_TR2] = GDT_ENTRY(0x0000, 0, 0);
-}
-
-
-// Our page table builders.
-static inline void build_pml4(
-    void* page,
-    __u64 pgd_addr,
-    int size) {
-
-    // We will only build a single entry.
-    // Thus, we will only be able to address 512GB from within
-    // the linux startup routines. I think we'll be okay.
-    __u64* entry = (__u64*)page;
-
-    // Encodes: present, writable
-    *entry = (pgd_addr & 0x000ffffffffff000) | 0x3;
-}
-static inline void build_pgd(
-    void* page,
-    __u64 pde_addr,
-    int size) {
-
-    // Wait! Here we only build a single entry.
-    // Uh-oh, that means our startup routine is now further
-    // limited -- to only 1GB! We'll probably still be okay.
-    __u64* entry = (__u64*)page;
-
-    // Encodes: present, writable
-    *entry = (pde_addr & 0x000ffffffffff000) | 0x3;
-}
-static inline void build_pde(
-    void* page,
-    int size) {
-
-    // Here we build an entry for every possible
-    // index. Each entry represents 2MB addressable.
-    __u64* entry = (__u64*)page;
-    int i = 0, max = size / sizeof(*entry);
-    for (i = 0; i < max; i += 1) {
-        // Encodes: PSE (2mb), present, writable
-        entry[i] = ((((__u64)i) << 21) & 0x000fffffffe00000) | 0x83;
-    }
-}
-
-
-
-/*void ffprintfBinary(int v) {
-    char buf[65];
-    itoa(v, buf, 2);
-    printf("%s\n", buf);
-}*/
 
 void printfBinary(int v)
 {
@@ -212,6 +146,95 @@ void* createMemoryRegion(int vmfd, int slot, __u64 guestPhysicalAddress, int siz
     return mem;
 }
 
+// build a very simple one page (4kB) mmu identity map
+// it does not use huge pages, and only one page is mapped
+// mmuTablePhysicalAddress and physicalPointedPageAddress should be 0x1000 aligned
+// after a call to that:
+// - cr3 should be set to mmuTablePhysicalAddress
+// - access to address 0x0000000000000000 will be mapped to physical address physicalPointedPageAddress
+// - this is valid only for the first 0x1000 bytes, then memory is undefined
+void buildMmuTables(uint8_t* mmuTable, __u64 mmuTablePhysicalAddress) {
+    *(__u64*)&mmuTable[0x0000] = ((mmuTablePhysicalAddress + 0x1000) & 0x000ffffffffff000) | 0x3;
+    *(__u64*)&mmuTable[0x1000] = ((mmuTablePhysicalAddress + 0x2000) & 0x000ffffffffff000) | 0x3;
+    *(__u64*)&mmuTable[0x2000] = ((mmuTablePhysicalAddress + 0x3000) & 0x000ffffffffff000) | 0x3;
+
+    // level 1 table begins at 0x3000 and takes 0x1000 bytes
+    __u64* l1table = (__u64*)&mmuTable[0x3000];
+    for(int i=0; i<0x1000/sizeof(__u64); i++)
+        l1table[i] = ((i << 12) & 0x000ffffffffff000) | 0x3;
+}
+
+
+
+
+/*
+
+GDT functions, from firecracker (and most probably rust-vmm)
+
+*/
+
+__u64 gdt_get_base(__u64 entry) {
+    return ((((entry) & 0xFF00000000000000) >> 32)
+        | (((entry) & 0x000000FF00000000) >> 16)
+        | (((entry) & 0x00000000FFFF0000) >> 16));
+}
+
+__u32 gdt_get_limit(__u64 entry) {
+    return (__u32) ((((entry) & 0x000F000000000000) >> 32) | ((entry) & 0x000000000000FFFF));
+}
+
+unsigned char gdt_get_g(__u64 entry) {
+    return (unsigned char)((entry & 0x0080000000000000) >> 55);
+}
+
+unsigned char gdt_get_db(__u64 entry) {
+    return (unsigned char)((entry & 0x0040000000000000) >> 54);
+}
+
+unsigned char gdt_get_l(__u64 entry) {
+    return (unsigned char)((entry & 0x0020000000000000) >> 53);
+}
+
+unsigned char gdt_get_avl(__u64 entry) {
+    return (unsigned char)((entry & 0x0010000000000000) >> 52);
+}
+
+unsigned char gdt_get_p(__u64 entry) {
+    return (unsigned char)((entry & 0x0000800000000000) >> 47);
+}
+
+unsigned char gdt_get_dpl(__u64 entry) {
+    return (unsigned char)((entry & 0x0000600000000000) >> 45);
+}
+
+unsigned char gdt_get_s(__u64 entry) {
+    return (unsigned char)((entry & 0x0000100000000000) >> 44);
+}
+
+unsigned char gdt_get_type(__u64 entry) {
+    return (unsigned char)((entry & 0x00000F0000000000) >> 40);
+}
+
+void kvm_segment_from_gdt(__u64 entry, int table_index, struct kvm_segment *segment) {
+    segment->base = gdt_get_base(entry);
+    segment->limit = gdt_get_limit(entry);
+    segment->selector = table_index * 8;
+    segment->type = gdt_get_type(entry);
+    segment->present = gdt_get_p(entry);
+    segment->dpl = gdt_get_dpl(entry);
+    segment->db = gdt_get_db(entry);
+    segment->s = gdt_get_s(entry);
+    segment->l = gdt_get_l(entry);
+    segment->g = gdt_get_g(entry);
+    segment->avl = gdt_get_avl(entry);
+    segment->padding = 0;
+    segment->unusable = gdt_get_p(entry) == 0 ? 1 : 0;
+}
+
+
+
+
+
 int main(int argc, char **argv)
 {
     int kvm, vmfd, vcpufd, ret;
@@ -258,19 +281,75 @@ int main(int argc, char **argv)
     uint8_t* mem = createMemoryRegion(vmfd, 0, CODE_GUEST_ADDRESS, codeSize);
     memcpy(mem, code, codeSize);
 
+    uint8_t* mmuTable = createMemoryRegion(vmfd, 1, MMU_TABLES_ADDRESS, 0x4000);
+    memset(mmuTable, 0, 0x4000);
+    buildMmuTables(mmuTable, MMU_TABLES_ADDRESS);
+
+    const int GDT_SIZE = 8 * 4;
+    uint64_t* gdt = createMemoryRegion(vmfd, 2, GDT_ADDRESS, GDT_SIZE);
+    gdt[0] = GDT_ENTRY(0x0000, 0, 0x0000);  // NULL
+    gdt[1] = GDT_ENTRY(0xa09b, 0, 0xfffff); // CODE segment
+    gdt[2] = GDT_ENTRY(0xc093, 0, 0xfffff); // DATA segment
+    gdt[3] = GDT_ENTRY(0x808b, 0, 0xfffff); // TaskState segment (might be useless for us...)
+
     vcpufd = ioctl(vmfd, KVM_CREATE_VCPU, (unsigned long)0);
     if (vcpufd == -1)
         err(1, "KVM_CREATE_VCPU");
 
     struct kvm_run *run = getKvmCpuRunData(kvm, vcpufd);
 
-    /* Initialize CS to point at 0, via a read-modify-write of sregs. */
+    // disable irqs...
+    // lidt [IDT]                        ; Load a zero length IDT so that any NMI causes a triple fault.
+    // cr4 to 10100000b (Set the PAE and PGE bit.)
+    // cr3 to MMU_TABLES_ADDRESS
+    //    mov ecx, 0xC0000080               ; Read from the EFER MSR. 
+    //    rdmsr
+    //    or eax, 0x00000100                ; Set the LME bit.
+    //    wrmsr
+    // cr0 |= 0x80000001 activate long mode by enabling paging and protection simultaneously.
+    // lgdt [GDT.Pointer]                ; Load GDT.Pointer defined below.
+
+    /*
+    FROM FIRECRACKER
+
+    const EFER_LMA: u64 = 0x400;
+    const EFER_LME: u64 = 0x100;
+
+    const X86_CR0_PE: u64 = 0x1;
+    const X86_CR0_PG: u64 = 0x8000_0000;
+    const X86_CR4_PAE: u64 = 0x20;
+    */
+
+    #define EFER_LMA 0x400
+    #define EFER_LME 0x100
+    #define X86_CR0_PE 0x1
+    #define X86_CR0_PG 0x80000000
+    #define X86_CR4_PAE 0x20
+
     struct kvm_sregs sregs;
     ret = ioctl(vcpufd, KVM_GET_SREGS, &sregs);
     if (ret == -1)
         err(1, "KVM_GET_SREGS");
-    sregs.cs.base = 0;
-    sregs.cs.selector = 0;
+    
+    // load a zero length IDT so that any NMI causes a triple fault.
+    sregs.idt.base = 0;
+    sregs.idt.limit = 0;
+    // populates the GDT
+    sregs.gdt.base = GDT_ADDRESS;
+    sregs.gdt.limit = GDT_SIZE - 1;
+    kvm_segment_from_gdt(gdt[1], 1, &sregs.cs);
+    kvm_segment_from_gdt(gdt[2], 2, &sregs.ds);
+    kvm_segment_from_gdt(gdt[2], 2, &sregs.es);
+    kvm_segment_from_gdt(gdt[2], 2, &sregs.fs);
+    kvm_segment_from_gdt(gdt[2], 2, &sregs.gs);
+    kvm_segment_from_gdt(gdt[2], 2, &sregs.ss);
+    kvm_segment_from_gdt(gdt[3], 3, &sregs.tr);    
+    // 64-bit protected mode with pagination and PAE
+    sregs.efer |= EFER_LMA | EFER_LME;
+    sregs.cr0 |= X86_CR0_PG | X86_CR0_PE;
+    sregs.cr3 = MMU_TABLES_ADDRESS;
+    sregs.cr4 |= X86_CR4_PAE;
+
     ret = ioctl(vcpufd, KVM_SET_SREGS, &sregs);
     if (ret == -1)
         err(1, "KVM_SET_SREGS");
@@ -305,8 +384,8 @@ int main(int argc, char **argv)
                 break;
 
             case KVM_EXIT_HLT:
-                ioctl(vcpufd, KVM_GET_REGS, &regs);
                 printf("KVM_EXIT_HLT, the vcpu has exited, finished\n");
+                dumpRegisters(vcpufd);
                 return 0;
 
             case KVM_EXIT_IO:
