@@ -37,8 +37,6 @@
 
 // sudo setfacl -m u:${USER}:rw /dev/kvm
 
-
-
 // Our expected segment selectors.
 #define __BOOT_CS 2
 #define __BOOT_DS 3
@@ -129,6 +127,8 @@ void dumpRegisters(int vcpufd) {
     struct kvm_sregs sregs;
     int ret;
 
+    printf("registers:\n");
+
     ret = ioctl(vcpufd, KVM_GET_REGS, &regs);
     if (ret == -1)
         err(1, "KVM_GET_REGS");
@@ -137,37 +137,49 @@ void dumpRegisters(int vcpufd) {
     if (ret == -1)
         err(1, "KVM_GET_SREGS");
 
-    printf("regs: rax:%08llx, rdx:%llx, rip:%08llx\n", regs.rax, regs.rdx, regs.rip);
-    printf("sregs: cr0:%08llx, cr2:%08llx, cr3:%08llx, cr4:%08llx, cr8:%08llx\n", sregs.cr0, sregs.cr2, sregs.cr3, sregs.cr4, sregs.cr8);
-    printf("cr0: ");
+    printf(" rax:%08llx, rdx:%08llx, rip:%08llx\n", regs.rax, regs.rdx, regs.rip);
+    printf(" cr0:%08llx, cr2:%08llx, cr3:%08llx, cr4:%08llx, cr8:%08llx\n", sregs.cr0, sregs.cr2, sregs.cr3, sregs.cr4, sregs.cr8);
+    printf(" es: %08llx\n", sregs.es.base);
+    printf(" cr0:");
     printfBinary(sregs.cr0);
-    printf("cr4: ");
+    printf(" cr4:");
     printfBinary(sregs.cr4);
+}
+
+char* loadBinary(int *bufferSize) {
+    int fd = open("helloworld-gas-16bit.bin", O_RDONLY);
+    if (fd < 0)
+        err(1, "can not open binary file\n");
+
+    struct stat stat;
+    fstat(fd, &stat);
+
+    *bufferSize = stat.st_size;
+    unsigned char* buffer = malloc(stat.st_size);
+
+    int readden = read(fd, buffer, stat.st_size);
+    printf("read size: %d\n", readden);
+
+    printf("code bytes:\n");
+    for(int i=0;i<stat.st_size; i++ ){
+        printf(" %02x", buffer[i]);
+        if(i%16==15)
+            printf("\n");
+    }
+    printf( "\n");
+
+    return buffer;
 }
 
 int main(void)
 {
     int kvm, vmfd, vcpufd, ret;
-    const uint8_t codeOld[] = {
-        0xba, 0xf8, 0x03, /* mov $0x3f8, %dx */
-        0x00, 0xd8,       /* add %bl, %al */
-        0x04, '0',        /* add $'0', %al */
-        0xee,             /* out %al, (%dx) */
-        0xb0, '\n',       /* mov $'\n', %al */
-        0xee,             /* out %al, (%dx) */
-        0xf4,             /* hlt */
-    };
 
-    const uint8_t code64[] = {
-        0x8b, 0x04, 0x25, 0x00, 0x10, 0x00, 0x00, /* mov    0x1000,%eax   */
-        0x67, 0xc7, 0x00, 0x2a, 0x00, 0x00, 0x00  /* movl   $0x2a,(%eax)  */
-    };
-
-    const uint8_t code[] = {
-        0xba, 0xf8, 0x03,                /* mov    $0x3f8,%dx */
-        0xc7, 0x00, 0x10, 0x01, /* mov    $0x10,(%eax) */
-        0xf4,
-    };
+    int codeSize = 0;
+    char *code = loadBinary(&codeSize);
+    if( ! codeSize ){
+        err(1, "empty code");
+    }
 
     // jumping to 64bit long mode directly :
     /*
@@ -206,7 +218,7 @@ int main(void)
     mem = mmap(NULL, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (!mem)
         err(1, "allocating guest memory");
-    memcpy(mem, code, sizeof(code));
+    memcpy(mem, code, codeSize);
 
     /* Map it to the second page frame (to avoid the real-mode IDT at 0). */
     struct kvm_userspace_memory_region region = {
@@ -258,35 +270,51 @@ int main(void)
 
     dumpRegisters(vcpufd);
 
+    printf("\nstart kvm run loop\n");
+
     /* Repeatedly run code and handle VM exits. */
     int n = 10;
     while (n--) {
-        printf("Go!!!\n");
+        printf("\nKVM_RUN => ");
         ret = ioctl(vcpufd, KVM_RUN, NULL);
         if (ret == -1)
             err(1, "KVM_RUN");
-        dumpRegisters(vcpufd);
+
         switch (run->exit_reason) {
-        case KVM_EXIT_MMIO:
-            printf("MMIO : is_write:%d, phys_addr:%016llx, len:%d, data:%08x\n", (int)(run->mmio.is_write), run->mmio.phys_addr, run->mmio.len, *(int*)(&run->mmio.data[0]));
-            break;
-        case KVM_EXIT_HLT:
-            ioctl(vcpufd, KVM_GET_REGS, &regs);
-            puts("KVM_EXIT_HLT");
-            return 0;
-        case KVM_EXIT_IO:
-            if (run->io.direction == KVM_EXIT_IO_OUT && run->io.size == 1 && run->io.port == 0x3f8 && run->io.count == 1)
-                putchar(*(((char *)run) + run->io.data_offset));
-            else
-                errx(1, "unhandled KVM_EXIT_IO");
-            break;
-        case KVM_EXIT_FAIL_ENTRY:
-            errx(1, "KVM_EXIT_FAIL_ENTRY: hardware_entry_failure_reason = 0x%llx",
-                 (unsigned long long)run->fail_entry.hardware_entry_failure_reason);
-        case KVM_EXIT_INTERNAL_ERROR:
-            errx(1, "KVM_EXIT_INTERNAL_ERROR: suberror = 0x%x", run->internal.suberror);
-        default:
-            errx(1, "exit_reason = 0x%x", run->exit_reason);
+            case KVM_EXIT_MMIO:
+                printf("KVM_EXIT_MMIO : the vcpu is %s %d bytes at address %016llx\n", run->mmio.is_write ? "writing" : "reading", run->mmio.len, run->mmio.phys_addr);
+                if( run ->mmio.is_write) {
+                    printf("the written data is : %016llx\n", *(unsigned long long*)(&run->mmio.data[0]));
+                }
+                else {
+                    printf("we simlulate having the value 0x78 in memory\n");
+                    run->mmio.data[0] = 0x78;
+                }
+                break;
+
+            case KVM_EXIT_HLT:
+                ioctl(vcpufd, KVM_GET_REGS, &regs);
+                printf("KVM_EXIT_HLT, the vcpu has exited, finished\n");
+                return 0;
+
+            case KVM_EXIT_IO:
+                if (run->io.direction == KVM_EXIT_IO_OUT && run->io.size == 1 && run->io.port == 0x3f8 && run->io.count == 1)
+                    putchar(*(((char *)run) + run->io.data_offset));
+                else
+                    errx(1, "unhandled KVM_EXIT_IO");
+                break;
+
+            case KVM_EXIT_FAIL_ENTRY:
+                errx(1, "KVM_EXIT_FAIL_ENTRY: hardware_entry_failure_reason = 0x%llx",
+                    (unsigned long long)run->fail_entry.hardware_entry_failure_reason);
+
+            case KVM_EXIT_INTERNAL_ERROR:
+                errx(1, "KVM_EXIT_INTERNAL_ERROR: suberror = 0x%x", run->internal.suberror);
+
+            default:
+                errx(1, "exit_reason = 0x%x", run->exit_reason);
         }
+
+        dumpRegisters(vcpufd);
     }
 }
