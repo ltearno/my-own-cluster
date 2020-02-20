@@ -37,6 +37,8 @@
 
 // sudo setfacl -m u:${USER}:rw /dev/kvm
 
+#define CODE_GUEST_ADDRESS 0x8000
+
 // Our expected segment selectors.
 #define __BOOT_CS 2
 #define __BOOT_DS 3
@@ -219,7 +221,7 @@ int main(int argc, char **argv)
         err(1, "KVM_CREATE_VM");
 
     /* Allocate one aligned page of guest memory to hold the code. */
-    mem = mmap(NULL, 0x1000, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    mem = mmap(NULL, codeSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (!mem)
         err(1, "allocating guest memory");
     memcpy(mem, code, codeSize);
@@ -227,7 +229,7 @@ int main(int argc, char **argv)
     /* Map it to the second page frame (to avoid the real-mode IDT at 0). */
     struct kvm_userspace_memory_region region = {
         .slot = 0,
-        .guest_phys_addr = 0x2000,
+        .guest_phys_addr = CODE_GUEST_ADDRESS,
         .memory_size = 0x1000,
         .userspace_addr = (uint64_t)mem,
     };
@@ -263,10 +265,7 @@ int main(int argc, char **argv)
     /* Initialize registers: instruction pointer for our code, addends, and
      * initial flags required by x86 architecture. */
     struct kvm_regs regs = {
-        .rip = 0x2000,
-        .rax = 0x0,
-        .rbx = 128,
-        .rflags = 0x0,
+        .rip = CODE_GUEST_ADDRESS,
     };
     ret = ioctl(vcpufd, KVM_SET_REGS, &regs);
     if (ret == -1)
