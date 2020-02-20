@@ -2,10 +2,10 @@
 
         .text
 _start:
-        push $0x982
-        push $0x982
-        push $0x982
-        push $0x982
+        push $1
+        push $2
+        push $3
+        push $4
 
         # point to the address 0x100
         mov $0x100, %rbx

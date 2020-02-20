@@ -37,9 +37,24 @@
 
 // https://wiki.osdev.org/Global_Descriptor_Table
 
-#define MMU_TABLES_ADDRESS  0x1000
-#define GDT_ADDRESS         0x5000
-#define CODE_GUEST_ADDRESS  0x8000
+
+/**
+ * GUEST MEMORY LAYOUT
+ */
+
+// as for now, only 0x000000 to 0x1ff000 memory is mapped, you cannot go beyond yet !
+// this has to do with the buildMmuTables(..) function
+
+#define MMU_TABLES_ADDRESS  0x01000
+#define GDT_ADDRESS         0x05000
+#define STACK_ADDRESS       0x06000
+#define CODE_GUEST_ADDRESS  0x10000
+
+#define STACK_SIZE          (CODE_GUEST_ADDRESS - STACK_ADDRESS)
+
+/**
+ * Few useful definitions
+ */
 
 #define EFER_LMA 0x400
 #define EFER_LME 0x100
@@ -47,7 +62,7 @@
 #define X86_CR0_PG 0x80000000
 #define X86_CR4_PAE 0x20
 
-// from kernel source code
+// from Linux kernel source code
 #define GDT_ENTRY(flags, base, limit)               \
     ((((base)  & _AC(0xff000000,ULL)) << (56-24)) | \
      (((flags) & _AC(0x0000f0ff,ULL)) << 40) |      \
@@ -107,17 +122,24 @@ char* loadBinary(char *fileName, int *bufferSize) {
     int readden = read(fd, buffer, stat.st_size);
     printf("read size: %d\n", readden);
 
-    if(readden < 0x1000) {
-        printf("code bytes:\n");
-        for(int i=0;i<stat.st_size; i++ ){
-            printf(" %02x", buffer[i]);
-            if(i%16==15)
-                printf("\n");
-        }
-        printf( "\n");
-    }
+    printf("code bytes:\n");
+    hexDump(buffer, stat.st_size);
+    printf( "\n");
 
     return buffer;
+}
+
+// dump a buffer as bytes in hexa
+void hexDump(void* buffer, int len){
+    if(len>16*5)
+        len = 16*5+1;
+    for(int i=0;i<len; i++ ){
+        printf(" %02x", ((unsigned char*)buffer)[i]);
+        if(i%16==15)
+            printf("\n");
+    }
+    if(len==16*5+1)
+        printf(" ...\n");
 }
 
 // get kvm_run struct associated with a vcpu run state
@@ -286,8 +308,8 @@ int openKvm() {
  */
 int main(int argc, char **argv)
 {
-    if(argc != 2)
-        err(1, "you should give the program one argument : the binary executable code file name");
+    if(argc < 2)
+        err(1, "you should give the program one or two arguments : the binary executable code file name and the start address in hexa (0 by default)");
 
     printf("reading binary executable code file '%s'\n", argv[1]);
     int codeSize = 0;
@@ -295,6 +317,11 @@ int main(int argc, char **argv)
     if( ! codeSize ){
         err(1, "empty code");
     }
+
+    unsigned long long startAddress = 0;
+    if(argc >= 3)
+        sscanf(argv[2], "%llx", &startAddress);
+    printf("start address: 0x%llx\n", startAddress);
     
     int kvm = openKvm();
 
@@ -322,6 +349,10 @@ int main(int argc, char **argv)
     gdt[1] = GDT_ENTRY(0xa09b, 0, 0xfffff); // CODE segment
     gdt[2] = GDT_ENTRY(0xc093, 0, 0xfffff); // DATA segment
     gdt[3] = GDT_ENTRY(0x808b, 0, 0xfffff); // TaskState segment (might be useless for us...)
+
+    // create a stack space
+    uint8_t* stack = createMemoryRegion(vmfd, 3, STACK_ADDRESS, STACK_SIZE);
+    memset(stack, 0xfe, STACK_SIZE);
 
     // create a VCPU in the VM
     int vcpufd = ioctl(vmfd, KVM_CREATE_VCPU, (unsigned long)0);
@@ -363,10 +394,11 @@ int main(int argc, char **argv)
     if (ret == -1)
         err(1, "KVM_SET_SREGS");
 
-    // position RIP at our program start address
+    // position rip to the start of our program and provide a stack pointer
+    // TODO : maybe give rbp a value for enter and leave asm calls (rarely used it seems...)
     struct kvm_regs regs = {
-        .rip = CODE_GUEST_ADDRESS,
-        .rsp = CODE_GUEST_ADDRESS + 0x800,
+        .rip = CODE_GUEST_ADDRESS + startAddress,
+        .rsp = STACK_ADDRESS + STACK_SIZE,
     };
     ret = ioctl(vcpufd, KVM_SET_REGS, &regs);
     if (ret == -1)
@@ -388,14 +420,20 @@ int main(int argc, char **argv)
                     printf("the written data is : %016llx\n", *(unsigned long long*)(&run->mmio.data[0]));
                 }
                 else {
-                    printf("we simlulate having the value 0x78 in memory\n");
-                    run->mmio.data[0] = 0x78;
+                    run->mmio.data[0] = 0x12;
+                    printf("we simlulate having a value in memory (%x)\n", run->mmio.data[0]);
                 }
                 break;
 
             case KVM_EXIT_HLT:
-                printf("KVM_EXIT_HLT, the vcpu has exited, finished %d\n", code[0x7f0]);
+                printf("KVM_EXIT_HLT, the vcpu has exited, finished\n");
+
                 dumpRegisters(vcpufd);
+
+                printf("stack content (last 64 bytes):\n");
+                hexDump(stack + STACK_SIZE - 64, 64);
+                printf( "\n");
+
                 return 0;
 
             case KVM_EXIT_IO:
@@ -410,7 +448,13 @@ int main(int argc, char **argv)
                     (unsigned long long)run->fail_entry.hardware_entry_failure_reason);
 
             case KVM_EXIT_INTERNAL_ERROR:
-                errx(1, "KVM_EXIT_INTERNAL_ERROR: suberror = 0x%x", run->internal.suberror);
+                printf("KVM_EXIT_INTERNAL_ERROR: suberror = 0x%x\n", run->internal.suberror);
+
+                dumpRegisters(vcpufd);
+
+                printf("stack content (last 64 bytes):\n");
+                hexDump(stack + STACK_SIZE - 64, 64);
+                printf( "\n");
 
             default:
                 errx(1, "exit_reason = 0x%x", run->exit_reason);

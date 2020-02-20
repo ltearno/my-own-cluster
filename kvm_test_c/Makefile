@@ -1,4 +1,5 @@
 PAYLOAD64 := helloworld-gas-64bit
+C_PAYLOAD64 := helloworld-c-64bit
 
 all: kvm_test
 
@@ -41,10 +42,19 @@ run-kvm_bare-16: kvm_bare disasm-16 helloworld-gas-16bit.bin
 run-kvm_bare-64: kvm_bare disasm-64 $(PAYLOAD64).bin
 	./kvm_bare $(PAYLOAD64).bin
 
-.PHONY: test-c
-test-c: kvm_bare
-	gcc -nostdlib -m64 -c test-64bit.c -o test-64bit.o
-	ld --oformat binary -N -e _start -Ttext 0x10000 -o test-64bit.bin test-64bit.o
-	objdump -d test-64bit.o
-	hexdump -C test-64bit.bin
-	./kvm_bare test-64bit.bin
+$(C_PAYLOAD64).o: $(C_PAYLOAD64).c
+	gcc -nostdlib -fomit-frame-pointer -m64 -c $(C_PAYLOAD64).c -o $(C_PAYLOAD64).o
+
+$(C_PAYLOAD64).bin: $(C_PAYLOAD64).o
+	ld --oformat binary -N -e _start -Ttext 0x10000 -o $(C_PAYLOAD64).bin $(C_PAYLOAD64).o
+
+.PHONY: run-kvm_bare-c-64
+run-kvm_bare-c-64: kvm_bare $(C_PAYLOAD64).bin	$(C_PAYLOAD64).o
+	objdump -d $(C_PAYLOAD64).o
+	hexdump -C $(C_PAYLOAD64).bin
+	# the objdump thing is to get the _start symbol address
+	./kvm_bare $(C_PAYLOAD64).bin $(shell objdump -t $(C_PAYLOAD64).o | grep '_start' | cut -f 1 -d ' ')
+
+.PHONY: clean
+clean:
+	rm *.o *.bin
