@@ -2,11 +2,15 @@
 
         .text
 _start:
-        xor %rax, %rax
-        mov $7, %rax
-        mov $0xee3578622345678, %rax
-        mov $7, %rbx
+        # point to the address 0x100
+        mov $0x100, %rbx
+
+        # read memory to rax
         movq (%rbx), %rax
-        inc %rbx
-        movq $5, (%rbx)
+
+        # increment rax
+        inc %rax
+
+        # and write in memory at the same place
+        movq %rax, (%rbx)
         hlt
