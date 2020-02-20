@@ -169,3 +169,77 @@ More samples are coming...
 - think about integrating "https://github.com/svaarala/duktape" compiled in web assembly, in order to run javascript code...
 - export and import to and from a tar.gz file (even if leveldb files should be enough...)
 - SSO and security implemented as custom hooks
+
+## TO SORT
+
+KVM, ELF, ... useful links
+
+- https://reverseengineering.stackexchange.com/questions/21119/how-do-tools-like-objdump-find-names-of-functions-and-their-start-address-in-elf
+- https://wiki.osdev.org/Global_Descriptor_Table
+- https://wiki.osdev.org/Paging
+- http://ref.x86asm.net/coder32.html#xC7
+- https://github.com/cirosantilli/x86-bare-metal-examples/blob/5c672f73884a487414b3e21bd9e579c67cd77621/common.h
+- https://www.cs.rutgers.edu/~pxk/416/notes/
+- https://stackoverflow.com/questions/18431261/how-does-x86-paging-work
+- https://en.wikipedia.org/wiki/Control_register#CR4
+- https://forum.osdev.org/viewtopic.php?t=11093
+- https://slideplayer.com/slide/4821952/
+- https://wiki.osdev.org/Entering_Long_Mode_Directly
+- https://gitlab.com/bztsrc/bootboot (bof)
+- https://wiki.osdev.org/Long_Mode
+- https://wiki.osdev.org/CPU_Registers_x86
+- https://www.kernel.org/doc/Documentation/x86/boot.txt
+- https://www.st.com/content/ccc/resource/technical/document/user_manual/group1/fb/cb/d6/71/03/25/42/a1/UserManual_GNU_Assembler/files/UserManual_GNU_Assembler.pdf/jcr:content/translations/en.UserManual_GNU_Assembler.pdf
+- https://github.com/cirosantilli/linux-kernel-module-cheat#userland-assembly
+- https://github.com/cirosantilli/x86-bare-metal-examples#nasm
+- https://github.com/soulxu/kvmsample/blob/master/main.c
+- https://www.nayuki.io/page/a-fundamental-introduction-to-x86-assembly-programming
+- https://www.cs.dartmouth.edu/sergey/cs258/tiny-guide-to-x86-assembly.pdf
+- http://flint.cs.yale.edu/cs421/papers/x86-asm/asm.html
+- https://www.cs.virginia.edu/~evans/cs216/guides/x86.html
+- https://github.com/firecracker-microvm/firecracker/blob/master/src/vm-memory/src/guest_memory.rs
+- https://www.linux-kvm.org/page/Simple_shell_script_to_manage_your_virtual_machine_with_bridged_networking
+- https://www.kernel.org/doc/Documentation/x86/boot.txt
+- https://www.kernel.org/doc/html/latest/hwmon/index.html
+- https://wiki.linuxfoundation.org/networking/bridge
+- https://0xax.gitbooks.io/linux-insides/content/Booting/linux-bootstrap-4.html
+- https://0xax.gitbooks.io/linux-insides/content/
+- https://github.com/0xAX/linux-insides/blob/master/SUMMARY.md
+
+Rust
+
+- https://doc.rust-lang.org/nomicon/ffi.html
+- https://rustwasm.github.io/docs/book/reference/js-ffi.html
+
+WebAssembly
+
+- https://github.com/wasienv/wasienv
+- https://medium.com/wasmer/wasienv-wasi-development-workflow-for-humans-1811d9a50345
+- https://github.com/NuxiNL/cloudlibc
+- https://webassembly.org/docs/dynamic-linking/
+- https://webassembly.org/docs/c-and-c++/
+- https://github.com/bytecodealliance/wasmtime/blob/master/docs/WASI-tutorial.md
+- https://github.com/CraneStation/wasi-libc/blob/24792713d7e31cf593d7e19b943ef0c3aa26ef63/libc-top-half/musl/src/stdio/__stdio_write.c
+- https://github.com/CraneStation/wasi-libc/blob/446cb3f1aa21f9b1a1eab372f82d65d19003e924/libc-bottom-half/cloudlibc/src/libc/sys/uio/writev.c
+- https://developer.mozilla.org/fr/docs/WebAssembly/Understanding_the_text_format
+- https://github.com/bytecodealliance/wasmtime/blob/master/docs/WASI-api.md#args_sizes_get
+- https://github.com/CraneStation/wasi-libc/blob/410c66070a2ca1724531558048f78851cc9d43fe/libc-bottom-half/libpreopen/libpreopen.c
+- https://github.com/tinygo-org/tinygo/blob/v0.11.0/targets/wasm_exec.js
+- https://github.com/bytecodealliance/wasmtime/blob/master/docs/WASI-intro.md#how-can-i-write-programs-that-use-wasi
+- https://github.com/bytecodealliance/wasmtime/blob/master/docs/WASI-documents.md
+- https://github.com/wasm3/wasm3-arduino
+- https://dev.to/jeikabu/wasm-to-wasi-5866
+- https://rustwasm.github.io/2019/03/28/this-week-in-rust-and-wasm-015.html
+- https://github.com/bytecodealliance/wasi/blob/master/src/lib_generated.rs
+
+Duktape:
+
+- https://wiki.duktape.org/projectsusingduktape
+- https://duktape.org/
+- https://wiki.duktape.org/gettingstartedprimalitytesting
+- https://duktape.org/api.html
+- https://wiki.duktape.org/howtobuffers2x
+
+Golang Web assembly
+
+- https://github.com/golang/go/wiki/WebAssembly
