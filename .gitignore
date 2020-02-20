@@ -12,3 +12,7 @@ my-own-cluster-database-provisional/
 
 src/my-own-cluster/assetsgen/assets.go
 
+kvm_test_c/*.o
+kvm_test_c/*.bin
+kvm_test_c/kvm_bare
+kvm_test_c/kvm_test
