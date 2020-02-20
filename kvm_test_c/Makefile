@@ -40,3 +40,11 @@ run-kvm_bare-16: kvm_bare disasm-16 helloworld-gas-16bit.bin
 
 run-kvm_bare-64: kvm_bare disasm-64 $(PAYLOAD64).bin
 	./kvm_bare $(PAYLOAD64).bin
+
+.PHONY: test-c
+test-c: kvm_bare
+	gcc -nostdlib -m64 -c test-64bit.c -o test-64bit.o
+	ld --oformat binary -N -e _start -Ttext 0x10000 -o test-64bit.bin test-64bit.o
+	objdump -d test-64bit.o
+	hexdump -C test-64bit.bin
+	./kvm_bare test-64bit.bin

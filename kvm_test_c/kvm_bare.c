@@ -83,6 +83,7 @@ void dumpRegisters(int vcpufd) {
         err(1, "KVM_GET_SREGS");
 
     printf(" rax:%016llx, rbx:%016llx, rcx:%016llx, rdx:%016llx, rip:%016llx\n", regs.rax, regs.rbx, regs.rcx, regs.rdx, regs.rip);
+    printf(" rsp:%016llx\n", regs.rsp);
     printf(" cr0:%016llx, cr2:%016llx, cr3:%016llx, cr4:%016llx, cr8:%016llx\n", sregs.cr0, sregs.cr2, sregs.cr3, sregs.cr4, sregs.cr8);
     printf(" es: %016llx\n", sregs.es.base);
     printf(" cr0:");
@@ -106,13 +107,15 @@ char* loadBinary(char *fileName, int *bufferSize) {
     int readden = read(fd, buffer, stat.st_size);
     printf("read size: %d\n", readden);
 
-    printf("code bytes:\n");
-    for(int i=0;i<stat.st_size; i++ ){
-        printf(" %02x", buffer[i]);
-        if(i%16==15)
-            printf("\n");
+    if(readden < 0x1000) {
+        printf("code bytes:\n");
+        for(int i=0;i<stat.st_size; i++ ){
+            printf(" %02x", buffer[i]);
+            if(i%16==15)
+                printf("\n");
+        }
+        printf( "\n");
     }
-    printf( "\n");
 
     return buffer;
 }
@@ -142,7 +145,7 @@ void* createMemoryRegion(int vmfd, int slot, __u64 guestPhysicalAddress, int siz
     int mmapSize = size;
     if(mmapSize % 0x1000)
         mmapSize = mmapSize - (mmapSize % 0x1000) + 0x1000;
-    printf("mmap size: %d -> %d\n", size, mmapSize);
+    printf("mmap size: 0x%x -> 0x%x\n", size, mmapSize);
 
     uint8_t *mem = mmap(NULL, mmapSize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (!mem)
@@ -363,6 +366,7 @@ int main(int argc, char **argv)
     // position RIP at our program start address
     struct kvm_regs regs = {
         .rip = CODE_GUEST_ADDRESS,
+        .rsp = CODE_GUEST_ADDRESS + 0x800,
     };
     ret = ioctl(vcpufd, KVM_SET_REGS, &regs);
     if (ret == -1)
@@ -390,7 +394,7 @@ int main(int argc, char **argv)
                 break;
 
             case KVM_EXIT_HLT:
-                printf("KVM_EXIT_HLT, the vcpu has exited, finished\n");
+                printf("KVM_EXIT_HLT, the vcpu has exited, finished %d\n", code[0x7f0]);
                 dumpRegisters(vcpufd);
                 return 0;
 
