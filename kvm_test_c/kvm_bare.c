@@ -71,7 +71,7 @@ void dumpRegisters(int vcpufd) {
     struct kvm_regs regs;
     struct kvm_sregs sregs;
     int ret;
-
+    // vcpufd represents the state of the vcpu file descriptor. The id is actually passed when calling the KVM_NEW_VCPU ioctl
     printf("registers for vcpu %d:\n", vcpufd);
 
     ret = ioctl(vcpufd, KVM_GET_REGS, &regs);
@@ -303,6 +303,9 @@ int main(int argc, char **argv)
     // create and init the code memory region
     uint8_t* mem = createMemoryRegion(vmfd, 0, CODE_GUEST_ADDRESS, codeSize);
     memcpy(mem, code, codeSize);
+    
+    //Prevent memory leak
+    free(code);
 
     // create and init the MMU paging tables memory region
     uint8_t* mmuTable = createMemoryRegion(vmfd, 1, MMU_TABLES_ADDRESS, 0x4000);
