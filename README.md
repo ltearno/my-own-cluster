@@ -143,32 +143,35 @@ Here the list :
 
 More samples are coming...
 
-## TODO
+## Done
 
 - provide way to publish files with persistence
 - allow the function to call another function
-- isolate wasm3 execution in KVM (base ourselves on https://github.com/google/novm)
-- compile GNU core-utils and run them to see compatibility issues (https://github.com/coreutils/coreutils)
-- make those run on those languages :
-- golang (tinygo)
-- rust
-- C/C++ (wasicc)
-- C#
-- Lua
-- AssemblyScript
-- Python
-- Ruby
-- Kotlin/Native
-- PHP
+- run code: golang (tinygo)
+- run code: rust
+- run code: C/C++ (wasicc)
+- run code: javascript (bare duktape runtime)
 - define guest/host api over wasi/libc
 - provide persistent key-value storage
 - allow function to read/write in key-value storage
+
+## TODO
+
+- isolate wasm3 execution in KVM
+- run code: compile GNU core-utils and run them to see improve WASI POSIX compatibility issues (https://github.com/coreutils/coreutils)
+- run code: C#
+- run code: Lua
+- run code: AssemblyScript
+- run code: Python
+- run code: Ruby
+- run code: Kotlin/Native
+- run code: PHP
 - allow for easy backup and disaster recovery, by default start on previous state
 - implement cron like scheduling api
 - think about distributing, replicating and scaling
-- think about integrating "https://github.com/svaarala/duktape" compiled in web assembly, in order to run javascript code...
 - export and import to and from a tar.gz file (even if leveldb files should be enough...)
-- SSO and security implemented as custom hooks
+- SSO, User Federation, and security implemented as custom hooks
+- Provide GPU access (through WebGPU or other)
 
 ## TO SORT
 
