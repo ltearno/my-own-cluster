@@ -205,6 +205,8 @@ KVM, ELF, ... useful links
 - https://0xax.gitbooks.io/linux-insides/content/Booting/linux-bootstrap-4.html
 - https://0xax.gitbooks.io/linux-insides/content/
 - https://github.com/0xAX/linux-insides/blob/master/SUMMARY.md
+- https://software.intel.com/en-us/articles/intel-sdm (for the hardcore practitioner)
+- https://software.intel.com/sites/default/files/managed/7c/f1/253668-sdm-vol-3a.pdf (paging described section 4.5, table 4.15)
 
 Rust
 
