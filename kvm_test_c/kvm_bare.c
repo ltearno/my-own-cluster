@@ -172,6 +172,8 @@ void* createMemoryRegion(int vmfd, int slot, __u64 guestPhysicalAddress, int siz
  * if mmuTablePhysicalAddress is given inside the mapped region (0x1ff000), the mmu tables will then be manipulable directly
  * if the mmuTablePhysicalAddress is above the mapped region, mmu tables will be innaccessible from the running program.
  * After a call to 'buildMmuTables' you should set cr3 to mmuTablePhysicalAddress
+ * 
+ * good page : https://wiki.osdev.org/Paging, https://wiki.osdev.org/Page_Tables#Long_mode_.2864-bit.29_page_map
  */
 void buildMmuTables(uint8_t* mmuTable, __u64 mmuTablePhysicalAddress) {
     *(__u64*)&mmuTable[0x0000] = ((mmuTablePhysicalAddress + 0x1000) & 0x000ffffffffff000) | 0x3;
@@ -371,10 +373,10 @@ int main(int argc, char **argv)
         err(1, "KVM_SET_SREGS");
 
     // position rip to the start of our program and provide a stack pointer
-    // TODO : maybe give rbp a value for enter and leave asm calls (rarely used it seems...)
     struct kvm_regs regs = {
         .rip = CODE_GUEST_ADDRESS + startAddress,
         .rsp = STACK_ADDRESS + STACK_SIZE,
+        .rbp = STACK_ADDRESS + STACK_SIZE, // seen in regs.rs of firecracker/chromium os
         .rflags = RFLAGS_IF_BIT,
     };
     ret = ioctl(vcpufd, KVM_SET_REGS, &regs);
