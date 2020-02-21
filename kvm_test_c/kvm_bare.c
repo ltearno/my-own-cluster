@@ -164,6 +164,14 @@ void* createMemoryRegion(int vmfd, int slot, __u64 guestPhysicalAddress, int siz
 }
 
 /**
+ * To check whether a cpu support huge pages (from a Linux terminal) :
+ * (good link here : https://wiki.debian.org/Hugepages)
+ * 
+ * - grep pse /proc/cpuinfo | uniq      => if contains "pse", ok for 1Gb pages
+ * - grep pdpe1gb /proc/cpuinfo | uniq  => if contains "pdpe1gb", ok for 1Gb pages
+ */
+
+/**
  * Builds a very simple identity memory mapped paging tables using Huge pages on PDE level (level 2)
  * 
  * this means that only the first 1GB is availables,
@@ -389,7 +397,7 @@ int main(int argc, char **argv)
     // go here for details on each bit : https://wiki.osdev.org/Global_Descriptor_Table
     sregs.efer |= EFER_LMA | EFER_LME;
     sregs.cr0 |= X86_CR0_PG | X86_CR0_PE;
-    sregs.cr3 = MMU_TABLES_ADDRESS;
+    sregs.cr3 = MMU_TABLES_ADDRESS; // be careful, we should apply a mask to have no bit set above 52, and all 0 below bit 11
     sregs.cr4 |= X86_CR4_PAE;
 
     ret = ioctl(vcpufd, KVM_SET_SREGS, &sregs);
