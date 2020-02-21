@@ -18,8 +18,11 @@ unsigned char add(unsigned char a, unsigned char b) {
 
 // this is what will be called by the vm host
 void _start() {
-    // declare a pointer valued to an arbitray address
-    unsigned char* a = (unsigned char*) 0x100;
+    // declare a pointer valued to an arbitray address,
+    // depending on how memory is paginated, the address may
+    // or not be accessible.
+    // here we point to last byte of the first 1GB
+    unsigned char* a = (unsigned char*) 0x3FFFFFFF;
 
     // read at the address
     unsigned char r = add(*a, *a);

@@ -17,7 +17,7 @@
  */
 
 // as for now, only 0x000000 to 0x1ff000 memory is mapped, you cannot go beyond yet !
-// this has to do with the buildMmuTables(..) function
+// this has to do with the buildMmuTablesXXX(..) functions
 
 #define MMU_TABLES_ADDRESS  0x01000
 #define GDT_ADDRESS         0x05000
@@ -164,18 +164,42 @@ void* createMemoryRegion(int vmfd, int slot, __u64 guestPhysicalAddress, int siz
 }
 
 /**
- * Builds a very simple identity memory mapped paging tables.
+ * Builds a very simple identity memory mapped paging tables using Huge pages on PDE level (level 2)
  * 
- * it does not use huge pages, and only the level 1 pages have multiple entries
- * this means that only addresses from 0x0000000000000000 to 0x00000000001FF000 are mapped
+ * this means that only the first 1GB is availables,
+ * only addresses from 0x0000000000000000 to 0x000000003FFFFFFF (9+9+12 = 30 bits) are mapped
  * mmuTablePhysicalAddress should be 0x1000 aligned
  * if mmuTablePhysicalAddress is given inside the mapped region (0x1ff000), the mmu tables will then be manipulable directly
  * if the mmuTablePhysicalAddress is above the mapped region, mmu tables will be innaccessible from the running program.
- * After a call to 'buildMmuTables' you should set cr3 to mmuTablePhysicalAddress
+ * After a call to 'buildMmuTablesXXX' you should set cr3 to mmuTablePhysicalAddress
  * 
  * good page : https://wiki.osdev.org/Paging, https://wiki.osdev.org/Page_Tables#Long_mode_.2864-bit.29_page_map
  */
-void buildMmuTables(uint8_t* mmuTable, __u64 mmuTablePhysicalAddress) {
+void buildMmuTablesHugePages(uint8_t* mmuTable, __u64 mmuTablePhysicalAddress) {
+    *(__u64*)&mmuTable[0x0000] = ((mmuTablePhysicalAddress + 0x1000) & 0x000ffffffffff000) | 0x3;
+    *(__u64*)&mmuTable[0x1000] = ((mmuTablePhysicalAddress + 0x2000) & 0x000ffffffffff000) | 0x3;
+    
+    // level 2 table (pde) begins at 0x3000 and takes 0x1000 bytes
+    // doc https://software.intel.com/sites/default/files/managed/7c/f1/253668-sdm-vol-3a.pdf table 4.17
+    __u64* l2table = (__u64*)&mmuTable[0x2000];
+    for(int i=0; i<0x1000/sizeof(__u64); i++)
+        l2table[i] = ((i << 21) & 0x000ffffffffff000) | 0x83; // PRESENT, WRITABLE, PS (to set huge page)
+}
+
+/**
+ * Builds a very simple identity memory mapped paging tables.
+ * 
+ * it does not use huge pages, and only the level 1 pages have multiple entries
+ * this means that only the first 1MB is accessibles,
+ * only addresses from 0x0000000000000000 to 0x00000000001FF000 are mapped
+ * mmuTablePhysicalAddress should be 0x1000 aligned
+ * if mmuTablePhysicalAddress is given inside the mapped region (0x1ff000), the mmu tables will then be manipulable directly
+ * if the mmuTablePhysicalAddress is above the mapped region, mmu tables will be innaccessible from the running program.
+ * After a call to 'buildMmuTablesXXX' you should set cr3 to mmuTablePhysicalAddress
+ * 
+ * good page : https://wiki.osdev.org/Paging, https://wiki.osdev.org/Page_Tables#Long_mode_.2864-bit.29_page_map
+ */
+void buildMmuTablesNormalPages(uint8_t* mmuTable, __u64 mmuTablePhysicalAddress) {
     *(__u64*)&mmuTable[0x0000] = ((mmuTablePhysicalAddress + 0x1000) & 0x000ffffffffff000) | 0x3;
     *(__u64*)&mmuTable[0x1000] = ((mmuTablePhysicalAddress + 0x2000) & 0x000ffffffffff000) | 0x3;
     *(__u64*)&mmuTable[0x2000] = ((mmuTablePhysicalAddress + 0x3000) & 0x000ffffffffff000) | 0x3;
@@ -316,7 +340,7 @@ int main(int argc, char **argv)
     // create and init the MMU paging tables memory region
     uint8_t* mmuTable = createMemoryRegion(vmfd, 1, MMU_TABLES_ADDRESS, 0x4000);
     memset(mmuTable, 0, 0x4000);
-    buildMmuTables(mmuTable, MMU_TABLES_ADDRESS);
+    buildMmuTablesHugePages(mmuTable, MMU_TABLES_ADDRESS);
 
     // create and init the GDT memory region
     // https://wiki.osdev.org/Global_Descriptor_Table
@@ -376,7 +400,7 @@ int main(int argc, char **argv)
     struct kvm_regs regs = {
         .rip = CODE_GUEST_ADDRESS + startAddress,
         .rsp = STACK_ADDRESS + STACK_SIZE,
-        .rbp = STACK_ADDRESS + STACK_SIZE, // seen in regs.rs of firecracker/chromium os
+        .rbp = STACK_ADDRESS + STACK_SIZE, // seen in arch/src/x86_64/regs.rs of firecracker/chromium os
         .rflags = RFLAGS_IF_BIT,
     };
     ret = ioctl(vcpufd, KVM_SET_REGS, &regs);
