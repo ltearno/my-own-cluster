@@ -1,31 +1,9 @@
 const log = console.log.bind(console)
 
-function registerFunction() {
-    var req = JSON.parse(moc.readExchangeBufferAsString(moc.getInputBufferId()))
-
-    var codeBytes = moc.base64Decode(req.wasm_bytes)
-
-    var techID = moc.registerFunction(
-        req.name,
-        req.type,
-        codeBytes
-    )
-
-    moc.writeExchangeBufferFromString(moc.getOutputBufferId(), JSON.stringify({
-        status: true,
-        tech_id: techID,
-        type: req.type,
-        name: req.name,
-        wasm_bytes_size: codeBytes.length,
-    }))
-
-    return 200
-}
-
 function plugFunction() {
     var req = JSON.parse(moc.readExchangeBufferAsString(moc.getInputBufferId()))
 
-    var techID = moc.plugFunction(
+    moc.plugFunction(
         req.method,
         req.path,
         req.name,
@@ -34,11 +12,6 @@ function plugFunction() {
 
     moc.writeExchangeBufferFromString(moc.getOutputBufferId(), JSON.stringify({
         status: true,
-        tech_id: techID,
-        method: req.method,
-        path: req.path,
-        name: req.name,
-        start_function: req.start_function
     }))
 
     return 200
@@ -47,22 +20,42 @@ function plugFunction() {
 function plugFile() {
     var req = JSON.parse(moc.readExchangeBufferAsString(moc.getInputBufferId()))
 
-    var fileBytes = moc.base64Decode(req.bytes)
-
-    var techID = moc.plugFile(
+    moc.plugFile(
         req.method,
         req.path,
-        req.content_type,
-        fileBytes
+        req.name
     )
 
     moc.writeExchangeBufferFromString(moc.getOutputBufferId(), JSON.stringify({
         status: true,
-        tech_id: techID,
-        method: req.method,
-        path: req.path,
-        content_type: req.content_type,
-        bytes_size: fileBytes.length,
+    }))
+
+    return 200
+}
+
+function registerBlob() {
+    var req = JSON.parse(moc.readExchangeBufferAsString(moc.getInputBufferId()))
+
+    var bytes = moc.base64Decode(req.bytes)
+
+    var techID;
+
+    if (req.name) {
+        techID = moc.registerBlobWithName(
+            req.name,
+            req.content_type,
+            bytes
+        );
+    } else {
+        techID = moc.registerBlob(
+            req.content_type,
+            bytes
+        );
+    }
+
+    moc.writeExchangeBufferFromString(moc.getOutputBufferId(), JSON.stringify({
+        status: true,
+        tech_id: techID
     }))
 
     return 200

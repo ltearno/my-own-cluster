@@ -48,22 +48,6 @@ func (p *MyOwnClusterWASMAPIPlugin) Bind(wctx *WasmProcessContext) {
 		return uint32(bufferID), nil
 	})
 
-	// pub fn plug_file(method_buffer: *const u8, method_length: u32, path_buffer: *const u8, path_length: u32, content_type_buffer: *const u8, content_type_length: u32, bytes_buffer: *const u8, bytes_length: u32) -> u32;
-	wctx.BindAPIFunction("my-own-cluster", "plug_file", "i(iiiiiiii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
-		method := cs.GetParamString(0, 1)
-		path := cs.GetParamString(2, 3)
-		contentType := cs.GetParamString(4, 5)
-		bytes := cs.GetParamByteBuffer(6, 7)
-
-		techID := wctx.Fctx.Orchestrator.PlugFile(method, path, contentType, bytes)
-
-		bufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
-		buffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(bufferID)
-		buffer.Write([]byte(techID))
-
-		return uint32(bufferID), nil
-	})
-
 	// params : key addr, key length, value addr, value length
 	wctx.BindAPIFunction("my-own-cluster", "persistence_set", "i(iiii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
 		key := cs.GetParamByteBuffer(0, 1)

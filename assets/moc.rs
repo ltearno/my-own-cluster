@@ -2,6 +2,10 @@ use std::collections::HashMap;
 use std::io::{Cursor, Read};
 use byteorder::{LittleEndian, ReadBytesExt};
 
+/**
+ * Temporrary place, RUST API provisional...
+ */
+
 // import the 'my-own-cluster' library
 pub mod raw {
     #[link(wasm_import_module = "my-own-cluster")]

@@ -336,7 +336,7 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 	// auto import and dynamically link functions together
 	// TODO watch for updates on https://webassembly.org/docs/dynamic-linking/
 	for m := range wctx.GetImportedModules() {
-		if moduleFunctionTechID, ok := wctx.Fctx.Orchestrator.GetFunctionTechIDFromName(m); ok {
+		if moduleFunctionTechID, err := wctx.Fctx.Orchestrator.GetBlobTechIDFromName(m); err == nil {
 			if wctx.Fctx.Trace {
 				fmt.Printf("emulating %s imported module with function %s techID:%s...\n", m, m, moduleFunctionTechID)
 			}
@@ -354,8 +354,8 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 					if wctx.Fctx.Trace {
 						fmt.Printf("- imports func %s '%s' from module %s\n", *iField, iSignature, *iModule)
 					}
-					wasmBytes, ok := wctx.Fctx.Orchestrator.GetFunctionBytesByFunctionName(m)
-					if !ok {
+					wasmBytes, err := wctx.Fctx.Orchestrator.GetBlobBytesByTechID(moduleFunctionTechID)
+					if err != nil {
 						fmt.Printf("error: can't find sub function bytes (%s)\n", m)
 						continue
 					}

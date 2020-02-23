@@ -31,18 +31,31 @@ func FreeBuffer(ctx *common.FunctionExecutionContext, bufferID int) error {
 	return nil
 }
 
-func RegisterFunction(ctx *common.FunctionExecutionContext, name string, codeType string, codeBytes []byte) (string, error) {
-	techID := ctx.Orchestrator.RegisterFunction(name, codeType, codeBytes)
+func PlugFunction(ctx *common.FunctionExecutionContext, method string, path string, name string, startFunction string) error {
+	ctx.Orchestrator.PlugFunction(method, path, name, startFunction)
+	return nil
+}
+
+func PlugFile(ctx *common.FunctionExecutionContext, method string, path string, name string) error {
+	ctx.Orchestrator.PlugFile(method, path, name)
+	return nil
+}
+
+func RegisterBlobWithName(ctx *common.FunctionExecutionContext, name string, contentType string, contentBytes []byte) (string, error) {
+	techID, err := ctx.Orchestrator.RegisterBlobWithName(name, contentType, contentBytes)
+	if err != nil {
+		return "", err
+	}
+
 	return techID, nil
 }
 
-func PlugFunction(ctx *common.FunctionExecutionContext, method string, path string, name string, startFunction string) (string, error) {
-	ctx.Orchestrator.PlugFunction(method, path, name, startFunction)
-	return "ok", nil
-}
+func RegisterBlob(ctx *common.FunctionExecutionContext, contentType string, contentBytes []byte) (string, error) {
+	techID, err := ctx.Orchestrator.RegisterBlob(contentType, contentBytes)
+	if err != nil {
+		return "", err
+	}
 
-func PlugFile(ctx *common.FunctionExecutionContext, method string, path string, contentType string, fileBytes []byte) (string, error) {
-	techID := ctx.Orchestrator.PlugFile(method, path, contentType, fileBytes)
 	return techID, nil
 }
 

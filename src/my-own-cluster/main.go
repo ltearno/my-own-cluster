@@ -129,11 +129,11 @@ func main() {
 		orchestrator := common.NewOrchestrator(db)
 
 		// init core-api
-		coreApiLibrary, err := assetsgen.Asset("assets/core-api.js")
+		coreAPILibrary, err := assetsgen.Asset("assets/core-api.js")
 		if err == nil {
-			orchestrator.RegisterFunction("core-api", "js", coreApiLibrary)
-			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/register", "core-api", "registerFunction")
-			orchestrator.PlugFunction("POST", "/my-own-cluster/api/file/register", "core-api", "plugFile")
+			orchestrator.RegisterBlobWithName("core-api", "x-my-own-cluster/js", coreAPILibrary)
+			orchestrator.PlugFunction("POST", "/my-own-cluster/api/blob/register", "core-api", "registerBlob")
+			orchestrator.PlugFunction("POST", "/my-own-cluster/api/file/plug", "core-api", "plugFile")
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/plug", "core-api", "plugFunction")
 			fmt.Printf("core-api loaded and bound\n")
 		} else {
@@ -149,21 +149,12 @@ func main() {
 			}
 		}
 
-		controlPort := 8444
-		if controlPortOption, ok := verbs[0].Options["control-port"]; ok {
-			controlPort, err = strconv.Atoi(controlPortOption)
-			if err != nil {
-				fmt.Printf("wrong control-port '%s', should be a number\n", controlPortOption)
-				return
-			}
-		}
-
 		trace := verbs[0].GetOptionOr("trace", "false") == "true"
 
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 		go func() {
-			StartWebServer(port, controlPort, workingDir, orchestrator, trace)
+			StartWebServer(port, workingDir, orchestrator, trace)
 			fmt.Printf("\nweb server terminated abruptly, exiting\n")
 			done <- true
 		}()
@@ -183,9 +174,9 @@ func main() {
 		CliPushFunction(verbs)
 		break
 
-	case "call":
-		CliCallFunction(verbs)
-		break
+	/*case "call":
+	CliCallFunction(verbs)
+	break*/
 
 	case "upload":
 		CliUploadFile(verbs)

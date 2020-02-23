@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -23,20 +22,6 @@ type ErrorResponse struct {
 
 type MessageResponse struct {
 	Message string `json:"message"`
-}
-
-type RegisterFunctionRequest struct {
-	Type      string `json:"type"`
-	Name      string `json:"name"`
-	WasmBytes string `json:"wasm_bytes"`
-}
-
-type RegisterFunctionResponse struct {
-	Status        bool   `json:"status"`
-	TechID        string `json:"tech_id"`
-	Type          string `json:"type"`
-	Name          string `json:"name"`
-	WasmBytesSize int    `json:"wasm_bytes_size"`
 }
 
 func httpResponse(w http.ResponseWriter, code int, contentType string, body string) {
@@ -89,6 +74,19 @@ func extractBodyAsJSON(r *http.Request, v interface{}) error {
 	return json.Unmarshal(body, v)
 }
 
+func getTechIDFromPlugName(o *common.Orchestrator, name string) (string, error) {
+	if strings.HasPrefix("techID://", name) {
+		return name[len("techID://"):], nil
+	}
+
+	techID, err := o.GetBlobTechIDFromName(name)
+	if err != nil {
+		return "", err
+	}
+
+	return techID, nil
+}
+
 func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Params, server *WebServer) {
 	path := p.ByName("path")
 
@@ -102,20 +100,25 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 	case "function":
 		pluggedFunction := plug.(*common.PluggedFunction)
 
-		pluggedFunctionTechID, ok := server.orchestrator.GetFunctionTechIDFromName(pluggedFunction.Name)
-		if !ok {
+		pluggedFunctionTechID, err := getTechIDFromPlugName(server.orchestrator, pluggedFunction.Name)
+		if err != nil {
 			errorResponse(w, 400, fmt.Sprintf("can't find plugged function (%s)\n", pluggedFunction.Name))
 			return
 		}
 
-		pluggedFunctionType, ok := server.orchestrator.GetFunctionType(pluggedFunctionTechID)
-		if !ok {
-			errorResponse(w, 400, fmt.Sprintf("can't find plugged function type (%s)\n", pluggedFunction.Name))
+		pluggedFunctionAbstract, err := server.orchestrator.GetBlobAbstractByTechID(pluggedFunctionTechID)
+		if err != nil {
+			errorResponse(w, 400, fmt.Sprintf("can't find plugged function abstract (%s)\n", pluggedFunction.Name))
 			return
 		}
 
-		wasmBytes, ok := server.orchestrator.GetFunctionBytesByFunctionName(pluggedFunction.Name)
-		if !ok {
+		if pluggedFunctionAbstract.ContentType != "x-my-own-cluster/wasm" && pluggedFunctionAbstract.ContentType != "x-my-own-cluster/js" {
+			errorResponse(w, 400, "not supported function code type")
+			return
+		}
+
+		wasmBytes, err := server.orchestrator.GetBlobBytesByTechID(pluggedFunctionTechID)
+		if err != nil {
 			errorResponse(w, 400, fmt.Sprintf("can't find plugged function bytes (%s)\n", pluggedFunction.Name))
 			return
 		}
@@ -155,8 +158,8 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			Result:                 -1,
 		}
 
-		switch pluggedFunctionType {
-		case "wasm":
+		switch pluggedFunctionAbstract.ContentType {
+		case "x-my-own-cluster/wasm":
 			wctx, err := wasm.PorcelainPrepareWasm(fctx, "direct", wasmBytes)
 			if err != nil {
 				errorResponse(w, 404, fmt.Sprintf("cannot create function: %v", err))
@@ -165,7 +168,7 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			wctx.Run([]int{})
 			break
 
-		case "js":
+		case "x-my-own-cluster/js":
 			ctx := duktape.New()
 
 			ctx.PushGlobalObject()
@@ -253,21 +256,37 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			ctx.PutPropString(-2, "base64Decode")
 
 			ctx.PushGoFunction(func(c *duktape.Context) int {
-				codeBytesPtr, codeBytesLength := c.GetBuffer(-1)
-				codeBytes := (*[1 << 30]byte)(codeBytesPtr)[:codeBytesLength:codeBytesLength]
-				codeType := c.SafeToString(-2)
+				contentBytesPtr, contentBytesLength := c.GetBuffer(-1)
+				contentBytes := (*[1 << 30]byte)(contentBytesPtr)[:contentBytesLength:contentBytesLength]
+				contentType := c.SafeToString(-2)
 				name := c.SafeToString(-3)
 
-				techID, err := coreapi.RegisterFunction(fctx, name, codeType, codeBytes)
+				techID, err := coreapi.RegisterBlobWithName(fctx, name, contentType, contentBytes)
 				if err != nil {
-					fmt.Printf("[ERROR] registerFunction failed\n")
+					fmt.Printf("[ERROR] registerBlobWithName failed\n")
 					return 0
 				}
 
 				c.PushString(techID)
 				return 1
 			})
-			ctx.PutPropString(-2, "registerFunction")
+			ctx.PutPropString(-2, "registerBlobWithName")
+
+			ctx.PushGoFunction(func(c *duktape.Context) int {
+				contentBytesPtr, contentBytesLength := c.GetBuffer(-1)
+				contentBytes := (*[1 << 30]byte)(contentBytesPtr)[:contentBytesLength:contentBytesLength]
+				contentType := c.SafeToString(-2)
+
+				techID, err := coreapi.RegisterBlob(fctx, contentType, contentBytes)
+				if err != nil {
+					fmt.Printf("[ERROR] registerBlob failed\n")
+					return 0
+				}
+
+				c.PushString(techID)
+				return 1
+			})
+			ctx.PutPropString(-2, "registerBlob")
 
 			ctx.PushGoFunction(func(c *duktape.Context) int {
 				startFunction := c.SafeToString(-1)
@@ -275,32 +294,28 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 				path := c.SafeToString(-3)
 				method := c.SafeToString(-4)
 
-				techID, err := coreapi.PlugFunction(fctx, method, path, name, startFunction)
+				err := coreapi.PlugFunction(fctx, method, path, name, startFunction)
 				if err != nil {
 					fmt.Printf("[ERROR] plugFunction failed\n")
 					return 0
 				}
 
-				c.PushString(techID)
-				return 1
+				return 0
 			})
 			ctx.PutPropString(-2, "plugFunction")
 
 			ctx.PushGoFunction(func(c *duktape.Context) int {
-				fileBytesPtr, fileBytesLength := c.GetBuffer(-1)
-				fileBytes := (*[1 << 30]byte)(fileBytesPtr)[:fileBytesLength:fileBytesLength]
-				contentType := c.SafeToString(-2)
-				path := c.SafeToString(-3)
-				method := c.SafeToString(-4)
+				name := c.SafeToString(-1)
+				path := c.SafeToString(-2)
+				method := c.SafeToString(-3)
 
-				techID, err := coreapi.PlugFile(fctx, method, path, contentType, fileBytes)
+				err := coreapi.PlugFile(fctx, method, path, name)
 				if err != nil {
 					fmt.Printf("[ERROR] plugFile failed\n")
 					return 0
 				}
 
-				c.PushString(techID)
-				return 1
+				return 0
 			})
 			ctx.PutPropString(-2, "plugFile")
 
@@ -320,7 +335,7 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			break
 
 		default:
-			errorResponse(w, 400, fmt.Sprintf("unknown function type '%s'\n", pluggedFunctionType))
+			errorResponse(w, 400, fmt.Sprintf("unknown function type '%s'\n", pluggedFunctionAbstract.ContentType))
 			return
 		}
 
@@ -352,22 +367,29 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 	case "file":
 		pluggedFile := plug.(*common.PluggedFile)
 
-		contentType, present := server.orchestrator.GetFileContentType(pluggedFile.TechID)
-		if !present {
+		fileTechID, err := getTechIDFromPlugName(server.orchestrator, pluggedFile.Name)
+		if err != nil {
 			errorResponse(w, 404, "sorry, file content type not found")
 			return
 		}
 
-		fileBytes, present := server.orchestrator.GetFileBytes(pluggedFile.TechID)
-		if !present {
+		fileAbstract, err := server.orchestrator.GetBlobAbstractByTechID(fileTechID)
+		if err != nil {
+			errorResponse(w, 404, "sorry, file abstract type not found")
+			return
+		}
+
+		fileBytes, err := server.orchestrator.GetBlobBytesByTechID(fileTechID)
+		if err != nil {
 			errorResponse(w, 404, "sorry, file bytes not found")
 			return
 		}
 
 		// TODO add the ETag header corresponding to the sha
-		w.Header().Set("Content-Type", contentType)
+		w.Header().Set("Content-Type", fileAbstract.ContentType)
 		w.WriteHeader(200)
 		w.Write(fileBytes)
+
 		return
 	}
 
@@ -375,128 +397,7 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 	return
 }
 
-/*-----------------------------------------------------------------------------
-
-Plug file
-
------------------------------------------------------------------------------*/
-
-type PlugFileRequest struct {
-	Method      string `json:"method"`
-	Path        string `json:"path"`
-	ContentType string `json:"content_type"`
-	Bytes       string `json:"bytes"`
-}
-
-type PlugFileResponse struct {
-	Status      bool   `json:"status"`
-	TechID      string `json:"tech_id"`
-	Method      string `json:"method"`
-	Path        string `json:"path"`
-	ContentType string `json:"content_type"`
-	BytesSize   int    `json:"bytes_size"`
-}
-
-func handlerPlugFile(w http.ResponseWriter, r *http.Request, p httprouter.Params, server *WebServer) {
-	bodyReq := PlugFileRequest{}
-	err := extractBodyAsJSON(r, &bodyReq)
-	if err != nil {
-		fmt.Println(err)
-		errorResponse(w, 500, "cannot read/parse your body")
-		return
-	}
-
-	bytes, err := base64.StdEncoding.WithPadding(base64.StdPadding).DecodeString(bodyReq.Bytes)
-	if err != nil {
-		fmt.Println(err)
-		errorResponse(w, 500, "cannot base64 decode your body 'bytes'")
-		return
-	}
-
-	techID := server.orchestrator.PlugFile(bodyReq.Method, bodyReq.Path, bodyReq.ContentType, bytes)
-
-	response := PlugFileResponse{
-		Status:      true,
-		TechID:      techID,
-		Method:      bodyReq.Method,
-		Path:        bodyReq.Path,
-		ContentType: bodyReq.ContentType,
-		BytesSize:   len(bytes),
-	}
-
-	jsonResponse(w, 200, response)
-}
-
-/*-----------------------------------------------------------------------------
-
-Plug function
-
------------------------------------------------------------------------------*/
-
-type PlugFunctionRequest struct {
-	Method        string `json:"method"`
-	Path          string `json:"path"`
-	Name          string `json:"name"`
-	StartFunction string `json:"start_function"`
-}
-
-type PlugFunctionResponse struct {
-	Status        bool   `json:"status"`
-	Method        string `json:"method"`
-	Path          string `json:"path"`
-	Name          string `json:"name"`
-	StartFunction string `json:"start_function"`
-}
-
-func handlerPlugFunction(w http.ResponseWriter, r *http.Request, p httprouter.Params, server *WebServer) {
-	bodyReq := PlugFunctionRequest{}
-	err := extractBodyAsJSON(r, &bodyReq)
-	if err != nil {
-		fmt.Println(err)
-		errorResponse(w, 500, "cannot read/parse your body")
-		return
-	}
-
-	ok := server.orchestrator.PlugFunction(bodyReq.Method, bodyReq.Path, bodyReq.Name, bodyReq.StartFunction)
-
-	response := PlugFunctionResponse{
-		Status:        ok,
-		Method:        bodyReq.Method,
-		Path:          bodyReq.Path,
-		Name:          bodyReq.Name,
-		StartFunction: bodyReq.StartFunction,
-	}
-
-	jsonResponse(w, 200, response)
-}
-
-func handlerRegisterFunction(w http.ResponseWriter, r *http.Request, p httprouter.Params, server *WebServer) {
-	bodyReq := RegisterFunctionRequest{}
-	err := extractBodyAsJSON(r, &bodyReq)
-	if err != nil {
-		fmt.Println(err)
-		errorResponse(w, 500, "cannot read/parse your body")
-		return
-	}
-
-	wasmBytes, err := base64.StdEncoding.WithPadding(base64.StdPadding).DecodeString(bodyReq.WasmBytes)
-	if err != nil {
-		panic(err)
-	}
-
-	techID := server.orchestrator.RegisterFunction(bodyReq.Name, bodyReq.Type, wasmBytes)
-
-	response := RegisterFunctionResponse{
-		Status:        true,
-		TechID:        techID,
-		Type:          bodyReq.Type,
-		Name:          bodyReq.Name,
-		WasmBytesSize: len(wasmBytes),
-	}
-
-	jsonResponse(w, 200, response)
-}
-
+/*
 type CallFunctionRequest struct {
 	Name string `json:"name"`
 	// 'direct' or 'posix'
@@ -571,13 +472,6 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 		return
 	}
 
-	/*
-		Instead of waiting for the end of the call, we should count references to the exchange buffer
-		and wait for the last reference to dissappear. At this moment, the http response is complete and
-		can be sent back to the client. This allows the first callee to transfer its output exchange
-		buffer to another function and exit. The other function will then do whatever it wants to do
-		(fan out, fan in and so on...).
-	*/
 	outputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
 
 	inputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
@@ -623,7 +517,7 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 		Output: base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(outputExchangeBuffer),
 		Error:  false,
 	})
-}
+}*/
 
 // injects the WebServer context in http-router handler
 func (server *WebServer) makeHandler(handler func(http.ResponseWriter, *http.Request, httprouter.Params, *WebServer)) func(http.ResponseWriter, *http.Request, httprouter.Params) {
@@ -632,72 +526,42 @@ func (server *WebServer) makeHandler(handler func(http.ResponseWriter, *http.Req
 	}
 }
 
-func initControlRouting(server *WebServer) {
-	/**
-	 * The web server should be split into two :
-	 * - one that receives commands (push, upload, call, ...)
-	 * - one that receives users http requests
-	 */
-
-	// associate an url to a file
-	server.controlRouter.POST("/my-own-cluster/api/file/register", server.makeHandler(handlerPlugFile))
-	// associate an url to a function call
-	server.controlRouter.POST("/my-own-cluster/api/function/plug", server.makeHandler(handlerPlugFunction))
-	// associate a name with a function code
-	server.controlRouter.POST("/my-own-cluster/api/function/register", server.makeHandler(handlerRegisterFunction))
-	// calls a named function
-	server.controlRouter.POST("/my-own-cluster/api/function/call", server.makeHandler(handlerCallFunction))
-}
-
 func initRouting(server *WebServer) {
 	server.router.GET("/*path", server.makeHandler(handlerGetGeneric))
 	server.router.POST("/*path", server.makeHandler(handlerGetGeneric))
 }
 
 type WebServer struct {
-	name          string
-	orchestrator  *common.Orchestrator
-	trace         bool
-	router        *httprouter.Router
-	controlRouter *httprouter.Router
+	name         string
+	orchestrator *common.Orchestrator
+	trace        bool
+	router       *httprouter.Router
 }
 
-// Start runs a webserver hosting the application
-func StartWebServer(port int, controlPort int, workingDir string, orchestrator *common.Orchestrator, trace bool) {
+// StartWebServer runs a webserver hosting the application
+func StartWebServer(port int, workingDir string, orchestrator *common.Orchestrator, trace bool) {
 	router := httprouter.New()
 	if router == nil {
 		fmt.Printf("Failed to instantiate the router, exit\n")
 	}
 
-	controlRouter := httprouter.New()
-	if router == nil {
-		fmt.Printf("Failed to instantiate the control-router, exit\n")
-	}
-
 	server := &WebServer{
-		name:          "my-own-cluster",
-		orchestrator:  orchestrator,
-		trace:         trace,
-		router:        router,
-		controlRouter: controlRouter,
+		name:         "my-own-cluster",
+		orchestrator: orchestrator,
+		trace:        trace,
+		router:       router,
 	}
 
-	initControlRouting(server)
 	initRouting(server)
 
 	endSignal := make(chan bool, 1)
-
-	go func() {
-		log.Fatal(http.ListenAndServeTLS(fmt.Sprintf("0.0.0.0:%d", controlPort), filepath.Join(workingDir, "tls.cert.pem"), filepath.Join(workingDir, "tls.key.pem"), controlRouter))
-		endSignal <- true
-	}()
 
 	go func() {
 		log.Fatal(http.ListenAndServeTLS(fmt.Sprintf("0.0.0.0:%d", port), filepath.Join(workingDir, "tls.cert.pem"), filepath.Join(workingDir, "tls.key.pem"), router))
 		endSignal <- true
 	}()
 
-	fmt.Printf("listening on port %d, control-port on %d\n", port, controlPort)
+	fmt.Printf("listening on port %d\n", port)
 
 	<-endSignal
 }
