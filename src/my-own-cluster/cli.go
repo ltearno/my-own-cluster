@@ -429,7 +429,7 @@ func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Pa
 	inputExchangeBuffer := server.orchestrator.GetExchangeBuffer(inputExchangeBufferID)
 	inputExchangeBuffer.Write(input)
 
-	fctx := &common.FunctionExecutionContext{
+	fctx := &FunctionExecutionContext{
 		Orchestrator:           server.orchestrator,
 		Name:                   baseReq.Name,
 		StartFunction:          startFunction,

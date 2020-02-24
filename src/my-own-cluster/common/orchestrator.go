@@ -53,7 +53,6 @@ Execution context creation and launch
 */
 
 func (o *Orchestrator) NewFunctionExecutionContext(
-	codeBytes []byte,
 	functionName string,
 	startFunction string,
 	arguments []int,
@@ -67,7 +66,6 @@ func (o *Orchestrator) NewFunctionExecutionContext(
 	return &FunctionExecutionContext{
 		Orchestrator: o,
 
-		CodeBytes:     codeBytes,
 		Name:          functionName,
 		StartFunction: startFunction,
 
@@ -84,7 +82,73 @@ func (o *Orchestrator) NewFunctionExecutionContext(
 	}
 }
 
-func (ctx *FunctionExecutionContext) Run() {
+func (fctx *FunctionExecutionContext) Run() error {
+	pluggedFunctionTechID, err := fctx.Orchestrator.GetBlobTechIDFromReference(fctx.Name)
+	if err != nil {
+		return fmt.Errorf("can't find plugged function (%s)", fctx.Name)
+	}
+
+	pluggedFunctionAbstract, err := fctx.Orchestrator.GetBlobAbstractByTechID(pluggedFunctionTechID)
+	if err != nil {
+		return fmt.Errorf("can't find plugged function abstract (%s)", fctx.Name)
+	}
+
+	if pluggedFunctionAbstract.ContentType != "application/wasm" && pluggedFunctionAbstract.ContentType != "text/javascript" {
+		return fmt.Errorf("not supported function code type '%s'", pluggedFunctionAbstract.ContentType)
+	}
+
+	codeBytes, err := fctx.Orchestrator.GetBlobBytesByTechID(pluggedFunctionTechID)
+	if err != nil {
+		return fmt.Errorf("can't find plugged function bytes (%s)", fctx.Name)
+	}
+
+	fctx.CodeBytes = codeBytes
+
+	switch pluggedFunctionAbstract.ContentType {
+	case "application/wasm":
+		wctx, err := PorcelainPrepareWasm(fctx)
+		if err != nil || wctx == nil {
+			return fmt.Errorf("cannot create wasm context for function: %v", err)
+		}
+
+		err = wctx.Run()
+		if err != nil {
+			return fmt.Errorf("execution error in function: %v", err)
+		}
+
+		break
+
+	case "text/javascript":
+		jsctx, err := PorcelainPrepareJs(fctx)
+		if err != nil || jsctx == nil {
+			return fmt.Errorf("cannot create js context for function: %v", err)
+		}
+
+		err = jsctx.Run()
+		if err != nil {
+			return fmt.Errorf("execution error in function: %v", err)
+		}
+
+		break
+
+	default:
+		return fmt.Errorf("unknown function type '%s'", pluggedFunctionAbstract.ContentType)
+	}
+
+	if fctx.Trace {
+		fmt.Printf(" -> result:%d\n", fctx.Result)
+	}
+
+	/*
+		Instead of waiting for the end of the call, we should count references to the exchange buffer
+		and wait for the last reference to dissappear. At this moment, the http response is complete and
+		can be sent back to the client. This allows the first callee to transfer its output exchange
+		buffer to another function and exit. The other function will then do whatever it wants to do
+		(fan out, fan in and so on...).
+		At this point in time, resources associated with this call can be destroyed.
+	*/
+
+	return nil
 }
 
 /*

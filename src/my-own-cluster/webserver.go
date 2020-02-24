@@ -6,8 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 	"my-own-cluster/common"
-	"my-own-cluster/js"
-	"my-own-cluster/wasm"
 	"net/http"
 	"path/filepath"
 
@@ -85,29 +83,7 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 	case "function":
 		pluggedFunction := plug.(*common.PluggedFunction)
 
-		pluggedFunctionTechID, err := server.orchestrator.GetBlobTechIDFromReference(pluggedFunction.Name)
-		if err != nil {
-			errorResponse(w, 400, fmt.Sprintf("can't find plugged function (%s)\n", pluggedFunction.Name))
-			return
-		}
-
-		pluggedFunctionAbstract, err := server.orchestrator.GetBlobAbstractByTechID(pluggedFunctionTechID)
-		if err != nil {
-			errorResponse(w, 400, fmt.Sprintf("can't find plugged function abstract (%s)\n", pluggedFunction.Name))
-			return
-		}
-
-		if pluggedFunctionAbstract.ContentType != "application/wasm" && pluggedFunctionAbstract.ContentType != "text/javascript" {
-			errorResponse(w, 400, fmt.Sprintf("not supported function code type '%s'", pluggedFunctionAbstract.ContentType))
-			return
-		}
-
-		codeBytes, err := server.orchestrator.GetBlobBytesByTechID(pluggedFunctionTechID)
-		if err != nil {
-			errorResponse(w, 400, fmt.Sprintf("can't find plugged function bytes (%s)\n", pluggedFunction.Name))
-			return
-		}
-
+		// create exchange buffers and provide informations about current http request
 		outputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
 		inputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
 		inputExchangeBuffer := server.orchestrator.GetExchangeBuffer(inputExchangeBufferID)
@@ -131,8 +107,8 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			inputExchangeBuffer.SetHeader(fmt.Sprintf("x-moc-path-param-%s", k), v)
 		}
 
+		// create a function execution context ...
 		fctx := server.orchestrator.NewFunctionExecutionContext(
-			codeBytes,
 			pluggedFunction.Name,
 			pluggedFunction.StartFunction,
 			[]int{},
@@ -144,71 +120,24 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			outputExchangeBufferID,
 		)
 
-		fctx.Run()
-
-		switch pluggedFunctionAbstract.ContentType {
-		case "application/wasm":
-			wctx, err := wasm.PorcelainPrepareWasm(fctx)
-			if err != nil || wctx == nil {
-				errorResponse(w, 404, fmt.Sprintf("cannot create wasm context for function: %v", err))
-				return
-			}
-
-			err = wctx.Run()
-			if err != nil {
-				errorResponse(w, 500, fmt.Sprintf("execution error in function: %v", err))
-				return
-			}
-
-			break
-
-		case "text/javascript":
-			jsctx, err := js.PorcelainPrepareJs(fctx, codeBytes)
-			if err != nil || jsctx == nil {
-				errorResponse(w, 404, fmt.Sprintf("cannot create js context for function: %v", err))
-				return
-			}
-
-			err = jsctx.Run()
-			if err != nil {
-				errorResponse(w, 500, fmt.Sprintf("execution error in function: %v", err))
-				return
-			}
-
-			break
-
-		default:
-			errorResponse(w, 400, fmt.Sprintf("unknown function type '%s'\n", pluggedFunctionAbstract.ContentType))
+		// ... and run it
+		err = fctx.Run()
+		if err != nil {
+			errorResponse(w, 500, fmt.Sprintf("error while executing the function: %v", err))
 			return
 		}
 
-		if fctx.Trace {
-			fmt.Printf(" -> result:%d\n", fctx.Result)
-		}
-
-		/*
-			Instead of waiting for the end of the call, we should count references to the exchange buffer
-			and wait for the last reference to dissappear. At this moment, the http response is complete and
-			can be sent back to the client. This allows the first callee to transfer its output exchange
-			buffer to another function and exit. The other function will then do whatever it wants to do
-			(fan out, fan in and so on...).
-		*/
-
-		// here we will have to wait for the output buffer to be released by
-		// all components before returning the http response. If the buffer is not touched, we will respond
-		// with some user well known 5xx code.
-		// That's a kind of distributed GC for buffers...
-		outputExchangeBuffer := server.orchestrator.GetExchangeBuffer(outputExchangeBufferID)
-
 		// copy output exchange buffer headers to the response headers
+		outputExchangeBuffer := server.orchestrator.GetExchangeBuffer(outputExchangeBufferID)
 		outputExchangeBuffer.GetHeaders(func(name string, value string) {
 			w.Header().Set(name, value)
 		})
-		w.WriteHeader(200)
+		w.WriteHeader(fctx.Result)
 
 		// copy output exchange buffer content to response body
 		w.Write(outputExchangeBuffer.GetBuffer())
 
+		// release exchange buffers
 		server.orchestrator.ReleaseExchangeBuffer(inputExchangeBufferID)
 		server.orchestrator.ReleaseExchangeBuffer(outputExchangeBufferID)
 
@@ -217,7 +146,7 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 	case "file":
 		pluggedFile := plug.(*common.PluggedFile)
 
-		fileTechID, err := getTechIDFromPlugName(server.orchestrator, pluggedFile.Name)
+		fileTechID, err := server.orchestrator.GetBlobTechIDFromReference(pluggedFile.Name)
 		if err != nil {
 			errorResponse(w, 404, fmt.Sprintf("sorry, file techID '%s' not found", fileTechID))
 			return
