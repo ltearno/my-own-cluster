@@ -75,7 +75,7 @@ func extractBodyAsJSON(r *http.Request, v interface{}) error {
 }
 
 func getTechIDFromPlugName(o *common.Orchestrator, name string) (string, error) {
-	if strings.HasPrefix("techID://", name) {
+	if strings.HasPrefix(name, "techID://") {
 		return name[len("techID://"):], nil
 	}
 
@@ -112,8 +112,8 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			return
 		}
 
-		if pluggedFunctionAbstract.ContentType != "x-my-own-cluster/wasm" && pluggedFunctionAbstract.ContentType != "x-my-own-cluster/js" {
-			errorResponse(w, 400, "not supported function code type")
+		if pluggedFunctionAbstract.ContentType != "application/wasm" && pluggedFunctionAbstract.ContentType != "text/javascript" {
+			errorResponse(w, 400, fmt.Sprintf("not supported function code type '%s'", pluggedFunctionAbstract.ContentType))
 			return
 		}
 
@@ -159,7 +159,7 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 		}
 
 		switch pluggedFunctionAbstract.ContentType {
-		case "x-my-own-cluster/wasm":
+		case "application/wasm":
 			wctx, err := wasm.PorcelainPrepareWasm(fctx, "direct", wasmBytes)
 			if err != nil {
 				errorResponse(w, 404, fmt.Sprintf("cannot create function: %v", err))
@@ -168,7 +168,7 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			wctx.Run([]int{})
 			break
 
-		case "x-my-own-cluster/js":
+		case "text/javascript":
 			ctx := duktape.New()
 
 			ctx.PushGlobalObject()
@@ -240,6 +240,23 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			ctx.PutPropString(-2, "writeExchangeBufferFromString")
 
 			ctx.PushGoFunction(func(c *duktape.Context) int {
+				bufferID := int(c.GetNumber(-3))
+				name := c.SafeToString(-2)
+				value := c.SafeToString(-1)
+
+				buffer := fctx.Orchestrator.GetExchangeBuffer(bufferID)
+				if buffer == nil {
+					fmt.Printf("buffer %d not found for writing header %s\n", bufferID, name)
+					return 0
+				}
+
+				buffer.SetHeader(name, value)
+
+				return 0
+			})
+			ctx.PutPropString(-2, "writeExchangeBufferHeader")
+
+			ctx.PushGoFunction(func(c *duktape.Context) int {
 				encoded := c.SafeToString(-1)
 				decoded, err := coreapi.Base64Decode(fctx, encoded)
 				if err != nil {
@@ -289,6 +306,34 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			ctx.PutPropString(-2, "registerBlob")
 
 			ctx.PushGoFunction(func(c *duktape.Context) int {
+				name := c.SafeToString(-1)
+
+				techID, err := fctx.Orchestrator.GetBlobTechIDFromName(name)
+				if err != nil {
+					fmt.Printf("[ERROR] getBlobTechIDFromName failed\n")
+					return 0
+				}
+
+				c.PushString(techID)
+				return 1
+			})
+			ctx.PutPropString(-2, "getBlobTechIDFromName")
+
+			ctx.PushGoFunction(func(c *duktape.Context) int {
+				techID := c.SafeToString(-1)
+
+				contentBytes, err := fctx.Orchestrator.GetBlobBytesByTechID(techID)
+				if err != nil {
+					fmt.Printf("[ERROR] getBlobTechIDFromName failed\n")
+					return 0
+				}
+
+				c.PushString(string(contentBytes))
+				return 1
+			})
+			ctx.PutPropString(-2, "getBlobBytesAsString")
+
+			ctx.PushGoFunction(func(c *duktape.Context) int {
 				startFunction := c.SafeToString(-1)
 				name := c.SafeToString(-2)
 				path := c.SafeToString(-3)
@@ -319,6 +364,12 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			})
 			ctx.PutPropString(-2, "plugFile")
 
+			ctx.PushGoFunction(func(c *duktape.Context) int {
+				c.PushString(fctx.Orchestrator.GetStatus())
+				return 1
+			})
+			ctx.PutPropString(-2, "getStatus")
+
 			ctx.PutPropString(-2, "moc")
 			ctx.Pop()
 
@@ -339,7 +390,9 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			return
 		}
 
-		fmt.Printf(" -> result:%d\n", fctx.Result)
+		if fctx.Trace {
+			fmt.Printf(" -> result:%d\n", fctx.Result)
+		}
 
 		/*
 			Instead of waiting for the end of the call, we should count references to the exchange buffer
@@ -362,6 +415,10 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 
 		// copy output exchange buffer content to response body
 		w.Write(outputExchangeBuffer.GetBuffer())
+
+		server.orchestrator.ReleaseExchangeBuffer(inputExchangeBufferID)
+		server.orchestrator.ReleaseExchangeBuffer(outputExchangeBufferID)
+
 		return
 
 	case "file":
@@ -369,7 +426,7 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 
 		fileTechID, err := getTechIDFromPlugName(server.orchestrator, pluggedFile.Name)
 		if err != nil {
-			errorResponse(w, 404, "sorry, file content type not found")
+			errorResponse(w, 404, fmt.Sprintf("sorry, file techID '%s' not found", fileTechID))
 			return
 		}
 

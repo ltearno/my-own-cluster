@@ -131,7 +131,7 @@ func main() {
 		// init core-api
 		coreAPILibrary, err := assetsgen.Asset("assets/core-api.js")
 		if err == nil {
-			orchestrator.RegisterBlobWithName("core-api", "x-my-own-cluster/js", coreAPILibrary)
+			orchestrator.RegisterBlobWithName("core-api", "text/javascript", coreAPILibrary)
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/blob/register", "core-api", "registerBlob")
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/file/plug", "core-api", "plugFile")
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/plug", "core-api", "plugFunction")

@@ -58,9 +58,16 @@ register: http-request.wasm api-demo-c.wasm uppercase.wasm wasi-write.wasm hello
 	@../my-own-cluster push hello-go hello-go.wasm
 	@../my-own-cluster push cowsay cowsay.wasm
 	@../my-own-cluster push interop interop.wasm
-	@../my-own-cluster push js-hello js-hello.js
-	@../my-own-cluster plug /js-hello js-hello test
-	@curl -k https://localhost:8443/js-hello
+
+.PHONY: dashboard
+dashboard: dashboard.js
+	@../my-own-cluster push dashboard dashboard.js
+	@../my-own-cluster push dashboard-template dashboard-template.html
+	@../my-own-cluster plug /dashboard dashboard getDashboardHtml
+	@curl -k https://localhost:8443/dashboard
+
+	#../my-own-cluster upload /dashboard/dashboard.js dashboard.js
+	#curl -k https://localhost:8443/dashboard/dashboard.js
 
 call:
 	@echo Calling 'http-request' POSIX mode, the client code makes a http request through the my-own-cluster api and outputs its reply body

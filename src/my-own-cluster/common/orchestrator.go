@@ -94,14 +94,6 @@ func (o *Orchestrator) PersistenceGetSubset(keyPrefix []byte) ([][]byte, error) 
 	return r, nil
 }
 
-/**
- * TODO
- *
- * We should be able to accept wildcards and named parameters in plugged path.
- *
- * The named parameters should then be injected as headers in the called input exchange buffer
- */
-
 type Plug struct {
 	Type string `json:"type"`
 }
@@ -157,4 +149,47 @@ func (o *Orchestrator) PlugFile(method string, path string, name string) error {
 	fmt.Printf("plugged_file on method:%s, path:'%s', name:%s\n", method, path, name)
 
 	return nil
+}
+
+func (o *Orchestrator) GetPlugs() map[string]string {
+	r := make(map[string]string, 0)
+
+	prefix := []byte("/plugs/byspec/")
+
+	iter := o.db.NewIterator(util.BytesPrefix(prefix), nil)
+	for iter.Next() {
+		key := iter.Key()[len(prefix):]
+		value := iter.Value()
+
+		r[string(dup(key))] = string(dup(value))
+	}
+	iter.Release()
+
+	return r
+}
+
+/**
+GetStatus
+
+*/
+
+type status struct {
+	NbExchangeBuffers  int               `json:"nb_exchange_buffers"`
+	NbExchangedBuffers int               `json:"nb_exchanged_buffers"`
+	Plugs              map[string]string `json:"plugs"`
+}
+
+func (o *Orchestrator) GetStatus() string {
+	status := &status{}
+
+	status.NbExchangeBuffers = len(o.exchangeBuffers)
+	status.NbExchangedBuffers = int(o.nextExchangeBufferID)
+	status.Plugs = o.GetPlugs()
+
+	b, err := json.Marshal(status)
+	if err != nil {
+		return ""
+	}
+
+	return string(b)
 }

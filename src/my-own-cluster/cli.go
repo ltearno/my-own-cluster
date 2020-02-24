@@ -157,12 +157,11 @@ func CliPushFunction(verbs []Verb) {
 
 	var codeType string
 	if strings.HasSuffix(wasmFileName, ".wasm") {
-		codeType = "x-my-own-cluster/wasm"
+		codeType = "application/wasm"
 	} else if strings.HasSuffix(wasmFileName, ".js") {
-		codeType = "x-my-own-cluster/js"
+		codeType = "text/javascript"
 	} else {
-		fmt.Printf("unknown code type for file '%s', only .wasm and .js are legal\n", wasmFileName)
-		return
+		codeType = detectContentTypeFromFileName(wasmFileName)
 	}
 
 	registerBlobWithName(baseURL, functionName, codeType, wasmFileName)
