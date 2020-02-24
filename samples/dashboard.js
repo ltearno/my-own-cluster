@@ -143,10 +143,22 @@ var doT = (function () {
 function getDashboardHtml() {
     var status = JSON.parse(moc.getStatus());
 
+    var plugs = []
     for (var spec in status.plugs) {
+        var fs = spec.indexOf("/")
+        var method = spec.substr(0, fs)
+        var path = spec.substr(fs + 1)
         var p = JSON.parse(status.plugs[spec])
-        console.log(spec + " " + p.type + " " + p.name + " " + p.start_function)
+
+        plugs.push({
+            method: method,
+            path: path,
+            type: p.type,
+            name: p.name,
+            startFunction: p.start_function
+        })
     }
+    status.plugs = plugs
 
     var templateTechID = moc.getBlobTechIDFromName("dashboard-template");
     var templateContent = moc.getBlobBytesAsString(templateTechID);
@@ -158,9 +170,4 @@ function getDashboardHtml() {
     moc.writeExchangeBufferFromString(moc.getOutputBufferId(), resultText);
 
     return 200
-}
-
-function registerFunction() {
-    var body = JSON.parse(readExchangeBufferAsString(getInputBufferId()))
-    console.log("received " + JSON.stringify(body))
 }
