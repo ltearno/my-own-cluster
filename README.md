@@ -66,10 +66,10 @@ make call
 
 My-own-cluster executes :
 
-- `web assembly` byte code through the `wasm3` interpreter,
-- `javascript` code through the `duktape` interpreter (there is no nodejs runtime).
+- `web assembly` byte code thanks to the [wasm3](https://github.com/wasm3/wasm3) interpreter,
+- `javascript` code thanks to the [duktape](https://github.com/svaarala/duktape) interpreter (there is no nodejs runtime).
 
-Each function is (_not yet implemented, actively developping_) executed in a jailed and sandboxed very light VM instance (requires KVM).
+Each function is executed in a jailed and sandboxed very light VM instance (requires KVM, not yet fully implemented, code in [kvm_test_c](kvm_test_c/)).
 
 The functions can interact with the platform through the Guest API which is described just below.
 
@@ -220,6 +220,7 @@ Run `make clean-db` to remove all persistence files. Your state will be lost.
 
 ## TODO
 
+- include project templates in the CLI : rust, c, js, ...
 - isolate wasm3 execution in KVM
 - run code: compile GNU core-utils and run them to see improve WASI POSIX compatibility issues (https://github.com/coreutils/coreutils)
 - run code: C#
