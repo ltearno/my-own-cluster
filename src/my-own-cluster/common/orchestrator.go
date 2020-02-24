@@ -168,6 +168,64 @@ func (o *Orchestrator) GetPlugs() map[string]string {
 	return r
 }
 
+type BlobNameStatus struct {
+	Name   string `json:"name"`
+	TechID string `json:"tech_id"`
+}
+
+func (o *Orchestrator) GetBlobsByName() []BlobNameStatus {
+	r := make([]BlobNameStatus, 0)
+
+	prefix := []byte("/blobs/byname/")
+
+	iter := o.db.NewIterator(util.BytesPrefix(prefix), nil)
+	for iter.Next() {
+		key := iter.Key()[len(prefix):]
+		value := iter.Value()
+
+		r = append(r, BlobNameStatus{
+			Name:   string(dup(key)),
+			TechID: string(dup(value)),
+		})
+	}
+	iter.Release()
+
+	return r
+}
+
+type BlobStatus struct {
+	TechID      string `json:"tech_id"`
+	ContentType string `json:"content_type"`
+	Length      int    `json:"length"`
+}
+
+func (o *Orchestrator) GetBlobs() []BlobStatus {
+	r := make([]BlobStatus, 0)
+
+	prefix := []byte("/blobs/abstract/")
+
+	iter := o.db.NewIterator(util.BytesPrefix(prefix), nil)
+	for iter.Next() {
+		key := iter.Key()[len(prefix):]
+		value := iter.Value()
+
+		a := &BlobAbstract{}
+		err := json.Unmarshal(value, a)
+		if err != nil {
+			continue
+		}
+
+		r = append(r, BlobStatus{
+			TechID:      string(dup(key)),
+			ContentType: a.ContentType,
+			Length:      a.Length,
+		})
+	}
+	iter.Release()
+
+	return r
+}
+
 /**
 GetStatus
 
@@ -177,6 +235,8 @@ type status struct {
 	NbExchangeBuffers  int               `json:"nb_exchange_buffers"`
 	NbExchangedBuffers int               `json:"nb_exchanged_buffers"`
 	Plugs              map[string]string `json:"plugs"`
+	BlobNames          []BlobNameStatus  `json:"blob_names"`
+	Blobs              []BlobStatus      `json:"blobs"`
 }
 
 func (o *Orchestrator) GetStatus() string {
@@ -185,6 +245,8 @@ func (o *Orchestrator) GetStatus() string {
 	status.NbExchangeBuffers = len(o.exchangeBuffers)
 	status.NbExchangedBuffers = int(o.nextExchangeBufferID)
 	status.Plugs = o.GetPlugs()
+	status.BlobNames = o.GetBlobsByName()
+	status.Blobs = o.GetBlobs()
 
 	b, err := json.Marshal(status)
 	if err != nil {

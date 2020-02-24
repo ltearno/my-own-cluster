@@ -13,7 +13,7 @@ type BlobAbstract struct {
 func (o *Orchestrator) RegisterBlob(contentType string, contentBytes []byte) (string, error) {
 	techID := Sha256Sum(contentBytes)
 
-	has, err := o.db.Has([]byte(fmt.Sprintf("/blobs/byid/%s/abstract", techID)), nil)
+	has, err := o.db.Has([]byte(fmt.Sprintf("/blobs/abstract/%s", techID)), nil)
 	if err == nil && has {
 		return techID, nil
 	}
@@ -28,8 +28,8 @@ func (o *Orchestrator) RegisterBlob(contentType string, contentBytes []byte) (st
 		return "", err
 	}
 
-	o.db.Put([]byte(fmt.Sprintf("/blobs/byid/%s/abstract", techID)), abstractBytes, nil)
-	o.db.Put([]byte(fmt.Sprintf("/blobs/byid/%s/bytes", techID)), contentBytes, nil)
+	o.db.Put([]byte(fmt.Sprintf("/blobs/abstract/%s", techID)), abstractBytes, nil)
+	o.db.Put([]byte(fmt.Sprintf("/blobs/bytes/%s", techID)), contentBytes, nil)
 
 	fmt.Printf("registered_blob '%s', content_type:%s, size:%d\n", techID, contentType, len(contentBytes))
 
@@ -59,7 +59,7 @@ func (o *Orchestrator) GetBlobTechIDFromName(name string) (string, error) {
 }
 
 func (o *Orchestrator) GetBlobAbstractByTechID(techID string) (*BlobAbstract, error) {
-	abstractBytes, err := o.db.Get([]byte(fmt.Sprintf("/blobs/byid/%s/abstract", techID)), nil)
+	abstractBytes, err := o.db.Get([]byte(fmt.Sprintf("/blobs/abstract/%s", techID)), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (o *Orchestrator) GetBlobAbstractByTechID(techID string) (*BlobAbstract, er
 }
 
 func (o *Orchestrator) GetBlobBytesByTechID(techID string) ([]byte, error) {
-	contentBytes, err := o.db.Get([]byte(fmt.Sprintf("/blobs/byid/%s/bytes", techID)), nil)
+	contentBytes, err := o.db.Get([]byte(fmt.Sprintf("/blobs/bytes/%s", techID)), nil)
 	if err != nil {
 		return nil, err
 	}

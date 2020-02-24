@@ -63,8 +63,9 @@ register: http-request.wasm api-demo-c.wasm uppercase.wasm wasi-write.wasm hello
 dashboard: dashboard.js
 	@../my-own-cluster push dashboard dashboard.js
 	@../my-own-cluster push dashboard-template dashboard-template.html
-	@../my-own-cluster plug /dashboard dashboard getDashboardHtml
-	@curl -k https://localhost:8443/dashboard
+	@../my-own-cluster plug /dashboard/ dashboard getDashboardHtml
+	@../my-own-cluster upload /dashboard/index.css surface_styles.css
+	@curl -k https://localhost:8443/dashboard/
 
 	#../my-own-cluster upload /dashboard/dashboard.js dashboard.js
 	#curl -k https://localhost:8443/dashboard/dashboard.js

@@ -4,40 +4,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>My Own Cluster - Dashboard</title>
+    <link href="index.css" / rel="stylesheet">
 
     <style>
+        body {
+            justify-content: center;
+        }
+
         .code {
             font-family: 'Courier New', Courier, monospace;
+        }
+
+        tr:hover {
+            background-color: peru;
+        }
+
+        th {
+            text-align: left;
+        }
+
+        td {
+            padding-left: .5em;
+            padding-right: .5em;
         }
     </style>
 </head>
 
 <body>
-    <h1>My Own Cluster - Dashboard</h1>
+    <div class="container container--center">
+        <div class="g--12 g-s--12">
+            <header class="container">
+                <h1 class="m--1">Dashboard - My Own Cluster</h1>
+            </header>
 
-    <h2>nb_exchange_buffers: {{=it.nb_exchange_buffers}}</h2>
-    <h2>nb_exchanged_buffers: {{=it.nb_exchanged_buffers}}</h2>
+            <h2>Stats</h2>
+            <div class="card">
+                <table>
+                    <tbody class="code">
+                        <tr>
+                            <td>nb_exchange_buffers</td>
+                            <td>{{=it.nb_exchange_buffers}}</td>
+                        </tr>
+                        <tr>
+                            <td>nb_exchanged_buffers</td>
+                            <td>{{=it.nb_exchanged_buffers}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
-    <h2>Plugs</h2>
-    <table>
-        <thead>
-            <th>Method</th>
-            <th>Path</th>
-            <th>Type</th>
-            <th>Name</th>
-            <th>Start Function</th>
-        </thead>
-        <tbody class="code">
-            {{~it.plugs:plug:i}}<tr>
-                <td>{{=plug.method}}</td>
-                <td>{{=plug.path}}</td>
-                <td>{{=plug.type}}</td>
-                <td>{{=plug.name}}</td>
-                <td>{{=plug.startFunction}}</td>
-            </tr>{{~}}
-        </tbody>
-    </table>
+            <h2>Plugs</h2>
+            <div class="card">
+                <table>
+                    <thead class="table-header">
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>Type</th>
+                        <th>Name</th>
+                        <th>Start Function</th>
+                    </thead>
+                    <tbody class="code">
+                        {{~it.plugs:plug:i}}<tr>
+                            <td>{{=plug.method}}</td>
+                            <td>{{=plug.path}}</td>
+                            <td>{{=plug.type}}</td>
+                            <td>{{=plug.name}}</td>
+                            <td>{{=plug.type=='function'?plug.start_function:'-'}}</td>
+                        </tr>{{~}}
+                    </tbody>
+                </table>
+            </div>
+
+            <h2>Blob names</h2>
+            <div class="card">
+                <table>
+                    <thead class="table-header">
+                        <th>Name</th>
+                        <th>Tech ID</th>
+                    </thead>
+                    <tbody class="code">
+                        {{~it.blob_names:blob}}
+                        <tr>
+                            <td>{{=blob.name}}</td>
+                            <td>{{=blob.tech_id.substr(0,7)}}</td>
+                        </tr>
+                        {{~}}
+                    </tbody>
+                </table>
+            </div>
+
+            <h2>Blobs</h2>
+            <div class="card">
+                <table>
+                    <thead class="table-header">
+                        <th>Tech ID</th>
+                        <th>Content Type</th>
+                        <th>Length</th>
+                    </thead>
+                    <tbody class="code">
+                        {{~it.blobs:blob}}
+                        <tr>
+                            <td>{{=blob.tech_id.substr(0,7)}}</td>
+                            <td>{{=blob.content_type}}</td>
+                            <td>{{=blob.length}}</td>
+                        </tr>
+                        {{~}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

@@ -155,7 +155,7 @@ function getDashboardHtml() {
             path: path,
             type: p.type,
             name: p.name,
-            startFunction: p.start_function
+            start_function: p.start_function
         })
     }
     status.plugs = plugs
