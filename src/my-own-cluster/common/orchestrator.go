@@ -28,13 +28,20 @@ func NewOrchestrator(db *leveldb.DB) *Orchestrator {
 }
 
 type FunctionExecutionContext struct {
-	Orchestrator  *Orchestrator
+	Orchestrator *Orchestrator
+
+	CodeBytes     []byte
 	Name          string
 	StartFunction string
-	Trace         bool
+	Arguments     []int
+
+	Trace                 bool
+	Mode                  string // direct or posix
+	POSIXFileName         *string
+	POSIXArguments        *[]string
+	InputExchangeBufferID int
 
 	HasFinishedRunning     bool
-	InputExchangeBufferID  int
 	OutputExchangeBufferID int
 	Result                 int
 }

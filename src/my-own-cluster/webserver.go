@@ -116,7 +116,7 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			return
 		}
 
-		wasmBytes, err := server.orchestrator.GetBlobBytesByTechID(pluggedFunctionTechID)
+		codeBytes, err := server.orchestrator.GetBlobBytesByTechID(pluggedFunctionTechID)
 		if err != nil {
 			errorResponse(w, 400, fmt.Sprintf("can't find plugged function bytes (%s)\n", pluggedFunction.Name))
 			return
@@ -145,16 +145,18 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			inputExchangeBuffer.SetHeader(fmt.Sprintf("x-moc-path-param-%s", k), v)
 		}
 
-		mode := "direct"
-		arguments := []int{}
-		posixFileName := "a.out"
-		posixArguments := []string{"42", "33"}
-
 		fctx := &common.FunctionExecutionContext{
-			Orchestrator:  server.orchestrator,
+			Orchestrator: server.orchestrator,
+
+			CodeBytes:     codeBytes,
 			Name:          pluggedFunction.Name,
 			StartFunction: pluggedFunction.StartFunction,
-			Trace:         server.trace,
+
+			Trace:          server.trace,
+			Mode:           "direct",
+			Arguments:      []int{},
+			POSIXFileName:  nil,
+			POSIXArguments: nil,
 
 			HasFinishedRunning:     false,
 			InputExchangeBufferID:  inputExchangeBufferID,
@@ -164,21 +166,13 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 
 		switch pluggedFunctionAbstract.ContentType {
 		case "application/wasm":
-			wctx, err := wasm.PorcelainPrepareWasm(fctx, mode, wasmBytes)
+			wctx, err := wasm.PorcelainPrepareWasm(fctx)
 			if err != nil || wctx == nil {
 				errorResponse(w, 404, fmt.Sprintf("cannot create wasm context for function: %v", err))
 				return
 			}
 
-			if mode == "posix" {
-				wctx.AddAPIPlugin(wasm.NewWASIHostPlugin(posixFileName, posixArguments, map[int]wasm.VirtualFile{
-					0: wasm.CreateStdInVirtualFile(wctx, inputExchangeBuffer.GetBuffer()),
-					1: wctx.Fctx.Orchestrator.GetExchangeBuffer(wctx.Fctx.OutputExchangeBufferID),
-					2: wasm.CreateStdErrVirtualFile(wctx),
-				}))
-			}
-
-			err = wctx.Run(arguments)
+			err = wctx.Run()
 			if err != nil {
 				errorResponse(w, 500, fmt.Sprintf("execution error in function: %v", err))
 				return
@@ -187,13 +181,13 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			break
 
 		case "text/javascript":
-			jsctx, err := js.PorcelainPrepareJs(fctx, wasmBytes)
+			jsctx, err := js.PorcelainPrepareJs(fctx, codeBytes)
 			if err != nil || jsctx == nil {
 				errorResponse(w, 404, fmt.Sprintf("cannot create js context for function: %v", err))
 				return
 			}
 
-			err = jsctx.Run(arguments)
+			err = jsctx.Run()
 			if err != nil {
 				errorResponse(w, 500, fmt.Sprintf("execution error in function: %v", err))
 				return
@@ -269,128 +263,6 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 	errorResponse(w, 404, "sorry, nothing found")
 	return
 }
-
-/*
-type CallFunctionRequest struct {
-	Name string `json:"name"`
-	// 'direct' or 'posix'
-	Mode  string  `json:"mode"`
-	Input *string `json:"input,omitempty"`
-}
-
-type WASICallFunctionRequest struct {
-	CallFunctionRequest
-	WasiFilename string   `json:"wasi_file_name"`
-	Arguments    []string `json:"arguments"`
-}
-
-type DirectCallFunctionRequest struct {
-	CallFunctionRequest
-	StartFunction string `json:"start_function"`
-	Arguments     []int  `json:"arguments"`
-}
-
-type CallFunctionResponse struct {
-	Result int    `json:"result"`
-	Output string `json:"output"`
-	Error  bool   `json:"error"`
-}
-
-func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Params, server *WebServer) {
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		errorResponse(w, 400, "cannot read your body")
-		return
-	}
-
-	baseReq := CallFunctionRequest{}
-	if json.Unmarshal(body, &baseReq) != nil {
-		errorResponse(w, 400, "cannot read/parse your body")
-		return
-	}
-
-	var input []byte
-	if baseReq.Input != nil {
-		input = []byte(*baseReq.Input)
-	}
-
-	startFunction := "_start"
-	var arguments []int = []int{}
-
-	mode := strings.ToLower(baseReq.Mode)
-
-	switch mode {
-	case "direct":
-		bodyReq := DirectCallFunctionRequest{}
-		if json.Unmarshal(body, &bodyReq) != nil {
-			errorResponse(w, 400, "cannot read/parse your body for DIRECT mode")
-			return
-		}
-
-		startFunction = bodyReq.StartFunction
-		arguments = bodyReq.Arguments
-		break
-
-	case "posix":
-		break
-
-	default:
-		errorResponse(w, 400, fmt.Sprintf("invalid execution mode '%s', aborting", mode))
-		return
-	}
-
-	wasmBytes, ok := server.orchestrator.GetFunctionBytesByFunctionName(baseReq.Name)
-	if !ok {
-		errorResponse(w, 400, fmt.Sprintf("can't find sub function bytes (%s)\n", baseReq.Name))
-		return
-	}
-
-	outputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
-
-	inputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
-	inputExchangeBuffer := server.orchestrator.GetExchangeBuffer(inputExchangeBufferID)
-	inputExchangeBuffer.Write(input)
-
-	fctx := &common.FunctionExecutionContext{
-		Orchestrator:           server.orchestrator,
-		Name:                   baseReq.Name,
-		StartFunction:          startFunction,
-		HasFinishedRunning:     false,
-		InputExchangeBufferID:  inputExchangeBufferID,
-		OutputExchangeBufferID: outputExchangeBufferID,
-		Result:                 0,
-	}
-
-	wctx, err := wasm.PorcelainPrepareWasm(fctx, mode, wasmBytes)
-	if err != nil {
-		errorResponse(w, 404, fmt.Sprintf("cannot create function: %v", err))
-		return
-	}
-
-	if mode == "posix" {
-		bodyReq := WASICallFunctionRequest{}
-		if json.Unmarshal(body, &bodyReq) != nil {
-			errorResponse(w, 400, "cannot read/parse your body POSIX mode")
-			return
-		}
-
-		wasm.PorcelainAddWASIPlugin(wctx, bodyReq.WasiFilename, bodyReq.Arguments)
-	}
-
-	wctx.Run(arguments)
-
-	// as seen in the previous comment, here we will have to wait for the output buffer to be released by
-	// all components before returning the http response. If the buffer is not touched, we will respond
-	// with some user well known 5xx code.
-	// That's a kind of distributed GC for buffers...
-	outputExchangeBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(wctx.Fctx.OutputExchangeBufferID).GetBuffer()
-
-	jsonResponse(w, 200, CallFunctionResponse{
-		Result: wctx.Fctx.Result,
-		Output: base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(outputExchangeBuffer),
-		Error:  false,
-	})
-}*/
 
 // injects the WebServer context in http-router handler
 func (server *WebServer) makeHandler(handler func(http.ResponseWriter, *http.Request, httprouter.Params, *WebServer)) func(http.ResponseWriter, *http.Request, httprouter.Params) {

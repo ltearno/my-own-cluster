@@ -54,9 +54,6 @@ func setWasiStat(fd int, fdStatAddr unsafe.Pointer) {
 type WasmProcessContext struct {
 	Fctx *common.FunctionExecutionContext
 
-	Mode      string
-	WasmBytes []byte
-
 	Runtime *wasm3.Runtime
 	Module  *wasm3.Module
 
@@ -73,11 +70,9 @@ type VirtualFile interface {
 	Close() int
 }
 
-func CreateWasmContext(fctx *common.FunctionExecutionContext, mode string, wasmBytes []byte) *WasmProcessContext {
+func CreateWasmContext(fctx *common.FunctionExecutionContext) *WasmProcessContext {
 	wctx := &WasmProcessContext{
 		Fctx:       fctx,
-		Mode:       mode,
-		WasmBytes:  wasmBytes,
 		APIPlugins: []WASMAPIPlugin{},
 	}
 
@@ -276,8 +271,8 @@ func (wctx *WasmProcessContext) AddAPIPlugin(plugin WASMAPIPlugin) {
 	wctx.APIPlugins = append(wctx.APIPlugins, plugin)
 }
 
-func PorcelainPrepareWasm(fctx *common.FunctionExecutionContext, mode string, wasmBytes []byte) (*WasmProcessContext, error) {
-	wctx := CreateWasmContext(fctx, mode, wasmBytes)
+func PorcelainPrepareWasm(fctx *common.FunctionExecutionContext) (*WasmProcessContext, error) {
+	wctx := CreateWasmContext(fctx)
 	if wctx == nil {
 		return nil, errors.New("cannot create wasm context")
 	}
@@ -285,22 +280,20 @@ func PorcelainPrepareWasm(fctx *common.FunctionExecutionContext, mode string, wa
 	wctx.AddAPIPlugin(NewMyOwnClusterWASMAPIPlugin())
 	wctx.AddAPIPlugin(NewTinyGoWASMAPIPlugin())
 	wctx.AddAPIPlugin(NewAutoLinkWASMAPIPlugin())
+	if fctx.Mode == "posix" {
+		inputExchangeBuffer := fctx.Orchestrator.GetExchangeBuffer(fctx.InputExchangeBufferID)
+		wctx.AddAPIPlugin(NewWASIHostPlugin(fctx.POSIXFileName, fctx.POSIXArguments, map[int]VirtualFile{
+			0: CreateStdInVirtualFile(wctx, inputExchangeBuffer.GetBuffer()),
+			1: wctx.Fctx.Orchestrator.GetExchangeBuffer(wctx.Fctx.OutputExchangeBufferID),
+			2: CreateStdErrVirtualFile(wctx),
+		}))
+	}
 
 	return wctx, nil
 }
 
-func PorcelainAddWASIPlugin(wctx *WasmProcessContext, posixFileName string, posixArguments []string) {
-	inputBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(wctx.Fctx.InputExchangeBufferID)
-
-	wctx.AddAPIPlugin(NewWASIHostPlugin(posixFileName, posixArguments, map[int]VirtualFile{
-		0: CreateStdInVirtualFile(wctx, inputBuffer.GetBuffer()),
-		1: wctx.Fctx.Orchestrator.GetExchangeBuffer(wctx.Fctx.OutputExchangeBufferID),
-		2: CreateStdErrVirtualFile(wctx),
-	}))
-}
-
 // Run runs the process
-func (wctx *WasmProcessContext) Run(arguments []int) error {
+func (wctx *WasmProcessContext) Run() error {
 	wctx.Runtime = wasm3.NewRuntime(&wasm3.Config{
 		Environment: wasm3.NewEnvironment(),
 		StackSize:   64 * 1024, // original 64ko
@@ -310,7 +303,7 @@ func (wctx *WasmProcessContext) Run(arguments []int) error {
 	//wctx.Runtime.PrintRuntimeInfo()
 
 	{
-		module, err := wctx.Runtime.ParseModule(wctx.WasmBytes)
+		module, err := wctx.Runtime.ParseModule(wctx.Fctx.CodeBytes)
 		if err != nil {
 			return errors.New("cannot parse module")
 		}
@@ -378,18 +371,17 @@ func (wctx *WasmProcessContext) Run(arguments []int) error {
 							OutputExchangeBufferID: outputExchangeBufferID,
 							Orchestrator:           wctx.Fctx.Orchestrator,
 							Result:                 0,
+							Mode:                   "direct",
+							CodeBytes:              wasmBytes,
+							Arguments:              parameters,
 						}
 
-						subWctx, err := PorcelainPrepareWasm(
-							subFctx,
-							"direct",
-							wasmBytes,
-						)
+						subWctx, err := PorcelainPrepareWasm(subFctx)
 						if err != nil {
 							return 0xffff, err
 						}
 
-						subWctx.Run(parameters)
+						subWctx.Run()
 
 						return uint32(subWctx.Fctx.Result), nil
 					})
@@ -407,11 +399,11 @@ func (wctx *WasmProcessContext) Run(arguments []int) error {
 		return fmt.Errorf("not found '%s' function (using module.GetFunctionByName)", wctx.Fctx.StartFunction)
 	}
 
-	fmt.Printf("calling function_name:\"%s\" start_function:\"%s\" mode:%s ...\n", wctx.Fctx.Name, wctx.Fctx.StartFunction, wctx.Mode)
+	fmt.Printf("calling function_name:\"%s\" start_function:\"%s\" mode:%s ...\n", wctx.Fctx.Name, wctx.Fctx.StartFunction, wctx.Fctx.Mode)
 
 	wctx.Fctx.Result = 0
-	result, err := fn.Call2(arguments)
-	if wctx.Mode != "posix" {
+	result, err := fn.Call2(wctx.Fctx.Arguments)
+	if wctx.Fctx.Mode != "posix" {
 		wctx.Fctx.Result = result
 	}
 

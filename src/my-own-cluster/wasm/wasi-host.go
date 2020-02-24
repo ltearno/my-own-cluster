@@ -31,12 +31,22 @@ type state struct {
 	WasiExitValue uint32
 }
 
-func NewWASIHostPlugin(wasiFileName string, arguments []string, preopenedFiles map[int]VirtualFile) WASMAPIPlugin {
+func NewWASIHostPlugin(wasiFileName *string, arguments *[]string, preopenedFiles map[int]VirtualFile) WASMAPIPlugin {
 	s := &state{
-		Arguments:            arguments,
 		OpenedVirtualFiles:   make(map[int]VirtualFile),
 		NextFileDescriptorID: 42,
-		WasiFilename:         wasiFileName,
+	}
+
+	if wasiFileName != nil {
+		s.WasiFilename = *wasiFileName
+	} else {
+		s.WasiFilename = "a.out"
+	}
+
+	if arguments != nil {
+		s.Arguments = *arguments
+	} else {
+		s.Arguments = []string{}
 	}
 
 	for k, v := range preopenedFiles {

@@ -228,7 +228,7 @@ func PorcelainPrepareJs(fctx *common.FunctionExecutionContext, codeBytes []byte)
 	}, nil
 }
 
-func (jsctx *JSProcessContext) Run(arguments []int) error {
+func (jsctx *JSProcessContext) Run() error {
 	jsctx.Context.PushString(string(jsctx.CodeBytes))
 	jsctx.Context.Eval()
 	jsctx.Context.Pop()

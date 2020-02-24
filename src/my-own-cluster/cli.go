@@ -357,6 +357,119 @@ func uploadFile(serverBaseUrl string, method string, path string, contentType st
 	return techID, nil
 }
 
+type CallFunctionRequest struct {
+	Name           string    `json:"name"`
+	StartFunction  *string   `json:"start_function,omitempty"`  // defaults to "_start"
+	Arguments      *[]int    `json:"arguments,omitempty"`       // defaults to []int{}
+	Mode           *string   `json:"mode,omitempty"`            // "direct" or "posix" (only for webassembly code, not applicable for javascript)
+	Input          *string   `json:"input,omitempty"`           // defaults to empty buffer
+	POSIXFilename  *string   `json:"posix_file_name,omitempty"` // defaults to "a.out"
+	POSIXArguments *[]string `json:"posix_arguments,omitempty"` // defaults to []string{}
+}
+
+type CallFunctionResponse struct {
+	Result int    `json:"result"`
+	Output string `json:"output"`
+	Error  bool   `json:"error"`
+}
+
+/*
+func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Params, server *WebServer) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		errorResponse(w, 400, "cannot read your body")
+		return
+	}
+
+	baseReq := CallFunctionRequest{}
+	if json.Unmarshal(body, &baseReq) != nil {
+		errorResponse(w, 400, "cannot read/parse your body")
+		return
+	}
+
+	var input []byte
+	if baseReq.Input != nil {
+		input = []byte(*baseReq.Input)
+	}
+
+	startFunction := "_start"
+	var arguments []int = []int{}
+
+	mode := strings.ToLower(baseReq.Mode)
+
+	switch mode {
+	case "direct":
+		bodyReq := DirectCallFunctionRequest{}
+		if json.Unmarshal(body, &bodyReq) != nil {
+			errorResponse(w, 400, "cannot read/parse your body for DIRECT mode")
+			return
+		}
+
+		startFunction = bodyReq.StartFunction
+		arguments = bodyReq.Arguments
+		break
+
+	case "posix":
+		break
+
+	default:
+		errorResponse(w, 400, fmt.Sprintf("invalid execution mode '%s', aborting", mode))
+		return
+	}
+
+	wasmBytes, ok := server.orchestrator.GetFunctionBytesByFunctionName(baseReq.Name)
+	if !ok {
+		errorResponse(w, 400, fmt.Sprintf("can't find sub function bytes (%s)\n", baseReq.Name))
+		return
+	}
+
+	outputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
+
+	inputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
+	inputExchangeBuffer := server.orchestrator.GetExchangeBuffer(inputExchangeBufferID)
+	inputExchangeBuffer.Write(input)
+
+	fctx := &common.FunctionExecutionContext{
+		Orchestrator:           server.orchestrator,
+		Name:                   baseReq.Name,
+		StartFunction:          startFunction,
+		HasFinishedRunning:     false,
+		InputExchangeBufferID:  inputExchangeBufferID,
+		OutputExchangeBufferID: outputExchangeBufferID,
+		Result:                 0,
+	}
+
+	wctx, err := wasm.PorcelainPrepareWasm(fctx, mode, wasmBytes)
+	if err != nil {
+		errorResponse(w, 404, fmt.Sprintf("cannot create function: %v", err))
+		return
+	}
+
+	if mode == "posix" {
+		bodyReq := WASICallFunctionRequest{}
+		if json.Unmarshal(body, &bodyReq) != nil {
+			errorResponse(w, 400, "cannot read/parse your body POSIX mode")
+			return
+		}
+
+		wasm.PorcelainAddWASIPlugin(wctx, bodyReq.WasiFilename, bodyReq.Arguments)
+	}
+
+	wctx.Run(arguments)
+
+	// as seen in the previous comment, here we will have to wait for the output buffer to be released by
+	// all components before returning the http response. If the buffer is not touched, we will respond
+	// with some user well known 5xx code.
+	// That's a kind of distributed GC for buffers...
+	outputExchangeBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(wctx.Fctx.OutputExchangeBufferID).GetBuffer()
+
+	jsonResponse(w, 200, CallFunctionResponse{
+		Result: wctx.Fctx.Result,
+		Output: base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(outputExchangeBuffer),
+		Error:  false,
+	})
+}*/
+
 /*
 func CliCallFunction(verbs []Verb) {
 	// skip the verb that triggered us, it is given to us in case it contains options
