@@ -42,6 +42,11 @@ func (o *Orchestrator) RegisterBlobWithName(name string, contentType string, con
 		return "", err
 	}
 
+	alreadyTechID, err := o.GetBlobTechIDFromName(name)
+	if err == nil && alreadyTechID == techID {
+		return techID, err
+	}
+
 	o.db.Put([]byte(fmt.Sprintf("/blobs/byname/%s", name)), []byte(techID), nil)
 
 	fmt.Printf("registered_blob_by_name '%s', techID:%s\n", name, techID)
