@@ -48,6 +48,47 @@ type FunctionExecutionContext struct {
 
 /*
 
+Execution context creation and launch
+
+*/
+
+func (o *Orchestrator) NewFunctionExecutionContext(
+	codeBytes []byte,
+	functionName string,
+	startFunction string,
+	arguments []int,
+	trace bool,
+	mode string,
+	posixFileName *string,
+	posixArguments *[]string,
+	inputExchangeBufferID int,
+	outputExchangeBufferID int,
+) *FunctionExecutionContext {
+	return &FunctionExecutionContext{
+		Orchestrator: o,
+
+		CodeBytes:     codeBytes,
+		Name:          functionName,
+		StartFunction: startFunction,
+
+		Trace:          trace,
+		Mode:           mode,
+		Arguments:      arguments,
+		POSIXFileName:  posixFileName,
+		POSIXArguments: posixArguments,
+
+		HasFinishedRunning:     false,
+		InputExchangeBufferID:  inputExchangeBufferID,
+		OutputExchangeBufferID: outputExchangeBufferID,
+		Result:                 -1,
+	}
+}
+
+func (ctx *FunctionExecutionContext) Run() {
+}
+
+/*
+
 Persistence service for applications, a simple key value database
 
 */

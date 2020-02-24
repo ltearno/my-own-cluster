@@ -3,6 +3,7 @@ package common
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 type BlobAbstract struct {
@@ -61,6 +62,19 @@ func (o *Orchestrator) GetBlobTechIDFromName(name string) (string, error) {
 	}
 
 	return string(techID), nil
+}
+
+func (o *Orchestrator) GetBlobTechIDFromReference(reference string) (string, error) {
+	if strings.HasPrefix(reference, "techID://") {
+		return reference[len("techID://"):], nil
+	}
+
+	techID, err := o.GetBlobTechIDFromName(reference)
+	if err != nil {
+		return "", err
+	}
+
+	return techID, nil
 }
 
 func (o *Orchestrator) GetBlobAbstractByTechID(techID string) (*BlobAbstract, error) {

@@ -10,7 +10,6 @@ import (
 	"my-own-cluster/wasm"
 	"net/http"
 	"path/filepath"
-	"strings"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -73,19 +72,6 @@ func extractBodyAsJSON(r *http.Request, v interface{}) error {
 	return json.Unmarshal(body, v)
 }
 
-func getTechIDFromPlugName(o *common.Orchestrator, name string) (string, error) {
-	if strings.HasPrefix(name, "techID://") {
-		return name[len("techID://"):], nil
-	}
-
-	techID, err := o.GetBlobTechIDFromName(name)
-	if err != nil {
-		return "", err
-	}
-
-	return techID, nil
-}
-
 func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Params, server *WebServer) {
 	path := p.ByName("path")
 
@@ -99,7 +85,7 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 	case "function":
 		pluggedFunction := plug.(*common.PluggedFunction)
 
-		pluggedFunctionTechID, err := getTechIDFromPlugName(server.orchestrator, pluggedFunction.Name)
+		pluggedFunctionTechID, err := server.orchestrator.GetBlobTechIDFromReference(pluggedFunction.Name)
 		if err != nil {
 			errorResponse(w, 400, fmt.Sprintf("can't find plugged function (%s)\n", pluggedFunction.Name))
 			return
@@ -145,24 +131,20 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			inputExchangeBuffer.SetHeader(fmt.Sprintf("x-moc-path-param-%s", k), v)
 		}
 
-		fctx := &common.FunctionExecutionContext{
-			Orchestrator: server.orchestrator,
+		fctx := server.orchestrator.NewFunctionExecutionContext(
+			codeBytes,
+			pluggedFunction.Name,
+			pluggedFunction.StartFunction,
+			[]int{},
+			server.trace,
+			"direct",
+			nil,
+			nil,
+			inputExchangeBufferID,
+			outputExchangeBufferID,
+		)
 
-			CodeBytes:     codeBytes,
-			Name:          pluggedFunction.Name,
-			StartFunction: pluggedFunction.StartFunction,
-
-			Trace:          server.trace,
-			Mode:           "direct",
-			Arguments:      []int{},
-			POSIXFileName:  nil,
-			POSIXArguments: nil,
-
-			HasFinishedRunning:     false,
-			InputExchangeBufferID:  inputExchangeBufferID,
-			OutputExchangeBufferID: outputExchangeBufferID,
-			Result:                 -1,
-		}
+		fctx.Run()
 
 		switch pluggedFunctionAbstract.ContentType {
 		case "application/wasm":
@@ -211,6 +193,7 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			buffer to another function and exit. The other function will then do whatever it wants to do
 			(fan out, fan in and so on...).
 		*/
+
 		// here we will have to wait for the output buffer to be released by
 		// all components before returning the http response. If the buffer is not touched, we will respond
 		// with some user well known 5xx code.
