@@ -6,14 +6,13 @@ import (
 	"io/ioutil"
 	"log"
 	"my-own-cluster/common"
-	coreapi "my-own-cluster/core-api"
+	"my-own-cluster/js"
 	"my-own-cluster/wasm"
 	"net/http"
 	"path/filepath"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
-	"gopkg.in/olebedev/go-duktape.v3"
 )
 
 type ErrorResponse struct {
@@ -146,6 +145,11 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			inputExchangeBuffer.SetHeader(fmt.Sprintf("x-moc-path-param-%s", k), v)
 		}
 
+		mode := "direct"
+		arguments := []int{}
+		posixFileName := "a.out"
+		posixArguments := []string{"42", "33"}
+
 		fctx := &common.FunctionExecutionContext{
 			Orchestrator:  server.orchestrator,
 			Name:          pluggedFunction.Name,
@@ -160,229 +164,41 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 
 		switch pluggedFunctionAbstract.ContentType {
 		case "application/wasm":
-			wctx, err := wasm.PorcelainPrepareWasm(fctx, "direct", wasmBytes)
-			if err != nil {
-				errorResponse(w, 404, fmt.Sprintf("cannot create function: %v", err))
+			wctx, err := wasm.PorcelainPrepareWasm(fctx, mode, wasmBytes)
+			if err != nil || wctx == nil {
+				errorResponse(w, 404, fmt.Sprintf("cannot create wasm context for function: %v", err))
 				return
 			}
-			wctx.Run([]int{})
+
+			if mode == "posix" {
+				wctx.AddAPIPlugin(wasm.NewWASIHostPlugin(posixFileName, posixArguments, map[int]wasm.VirtualFile{
+					0: wasm.CreateStdInVirtualFile(wctx, inputExchangeBuffer.GetBuffer()),
+					1: wctx.Fctx.Orchestrator.GetExchangeBuffer(wctx.Fctx.OutputExchangeBufferID),
+					2: wasm.CreateStdErrVirtualFile(wctx),
+				}))
+			}
+
+			err = wctx.Run(arguments)
+			if err != nil {
+				errorResponse(w, 500, fmt.Sprintf("execution error in function: %v", err))
+				return
+			}
+
 			break
 
 		case "text/javascript":
-			ctx := duktape.New()
+			jsctx, err := js.PorcelainPrepareJs(fctx, wasmBytes)
+			if err != nil || jsctx == nil {
+				errorResponse(w, 404, fmt.Sprintf("cannot create js context for function: %v", err))
+				return
+			}
 
-			ctx.PushGlobalObject()
-			ctx.PushObject()
+			err = jsctx.Run(arguments)
+			if err != nil {
+				errorResponse(w, 500, fmt.Sprintf("execution error in function: %v", err))
+				return
+			}
 
-			ctx.PushGoFunction(func(c *duktape.Context) int {
-				res, err := coreapi.GetInputBufferID(fctx)
-				if err != nil {
-					c.PushInt(-1)
-				} else {
-					c.PushInt(res)
-				}
-
-				return 1
-			})
-			ctx.PutPropString(-2, "getInputBufferId")
-
-			ctx.PushGoFunction(func(c *duktape.Context) int {
-				res, err := coreapi.GetOutputBufferID(fctx)
-				if err != nil {
-					c.PushInt(-1)
-				} else {
-					c.PushInt(res)
-				}
-
-				return 1
-			})
-			ctx.PutPropString(-2, "getOutputBufferId")
-
-			ctx.PushGoFunction(func(c *duktape.Context) int {
-				bufferID := int(c.GetNumber(-1))
-
-				buffer := fctx.Orchestrator.GetExchangeBuffer(bufferID)
-				if buffer == nil {
-					fmt.Printf("buffer %d not found for reading\n", bufferID)
-					return 0
-				}
-
-				c.PushString(string(buffer.GetBuffer()))
-
-				return 1
-			})
-			ctx.PutPropString(-2, "readExchangeBufferAsString")
-
-			ctx.PushGoFunction(func(c *duktape.Context) int {
-				bufferID := int(c.GetNumber(-2))
-
-				var contentBytes []byte
-				switch c.GetType(-1) {
-				case duktape.TypeString:
-					contentBytes = []byte(c.SafeToString(-1))
-					break
-				default:
-					fmt.Printf("cannot guess content type when writing on buffer %d\n", bufferID)
-					return 0
-				}
-
-				buffer := fctx.Orchestrator.GetExchangeBuffer(bufferID)
-				if buffer == nil {
-					fmt.Printf("buffer %d not found for writing\n", bufferID)
-					return 0
-				}
-
-				buffer.Write(contentBytes)
-
-				c.PushInt(len(contentBytes))
-				return 1
-			})
-			ctx.PutPropString(-2, "writeExchangeBufferFromString")
-
-			ctx.PushGoFunction(func(c *duktape.Context) int {
-				bufferID := int(c.GetNumber(-3))
-				name := c.SafeToString(-2)
-				value := c.SafeToString(-1)
-
-				buffer := fctx.Orchestrator.GetExchangeBuffer(bufferID)
-				if buffer == nil {
-					fmt.Printf("buffer %d not found for writing header %s\n", bufferID, name)
-					return 0
-				}
-
-				buffer.SetHeader(name, value)
-
-				return 0
-			})
-			ctx.PutPropString(-2, "writeExchangeBufferHeader")
-
-			ctx.PushGoFunction(func(c *duktape.Context) int {
-				encoded := c.SafeToString(-1)
-				decoded, err := coreapi.Base64Decode(fctx, encoded)
-				if err != nil {
-					fmt.Printf("cannot decode base64\n")
-					return 0
-				}
-
-				dest := (*[1 << 30]byte)(c.PushBuffer(len(decoded), false))[:len(decoded):len(decoded)]
-
-				copy(dest, decoded)
-
-				return 1
-			})
-			ctx.PutPropString(-2, "base64Decode")
-
-			ctx.PushGoFunction(func(c *duktape.Context) int {
-				contentBytesPtr, contentBytesLength := c.GetBuffer(-1)
-				contentBytes := (*[1 << 30]byte)(contentBytesPtr)[:contentBytesLength:contentBytesLength]
-				contentType := c.SafeToString(-2)
-				name := c.SafeToString(-3)
-
-				techID, err := coreapi.RegisterBlobWithName(fctx, name, contentType, contentBytes)
-				if err != nil {
-					fmt.Printf("[ERROR] registerBlobWithName failed\n")
-					return 0
-				}
-
-				c.PushString(techID)
-				return 1
-			})
-			ctx.PutPropString(-2, "registerBlobWithName")
-
-			ctx.PushGoFunction(func(c *duktape.Context) int {
-				contentBytesPtr, contentBytesLength := c.GetBuffer(-1)
-				contentBytes := (*[1 << 30]byte)(contentBytesPtr)[:contentBytesLength:contentBytesLength]
-				contentType := c.SafeToString(-2)
-
-				techID, err := coreapi.RegisterBlob(fctx, contentType, contentBytes)
-				if err != nil {
-					fmt.Printf("[ERROR] registerBlob failed\n")
-					return 0
-				}
-
-				c.PushString(techID)
-				return 1
-			})
-			ctx.PutPropString(-2, "registerBlob")
-
-			ctx.PushGoFunction(func(c *duktape.Context) int {
-				name := c.SafeToString(-1)
-
-				techID, err := fctx.Orchestrator.GetBlobTechIDFromName(name)
-				if err != nil {
-					fmt.Printf("[ERROR] getBlobTechIDFromName failed\n")
-					return 0
-				}
-
-				c.PushString(techID)
-				return 1
-			})
-			ctx.PutPropString(-2, "getBlobTechIDFromName")
-
-			ctx.PushGoFunction(func(c *duktape.Context) int {
-				techID := c.SafeToString(-1)
-
-				contentBytes, err := fctx.Orchestrator.GetBlobBytesByTechID(techID)
-				if err != nil {
-					fmt.Printf("[ERROR] getBlobTechIDFromName failed\n")
-					return 0
-				}
-
-				c.PushString(string(contentBytes))
-				return 1
-			})
-			ctx.PutPropString(-2, "getBlobBytesAsString")
-
-			ctx.PushGoFunction(func(c *duktape.Context) int {
-				startFunction := c.SafeToString(-1)
-				name := c.SafeToString(-2)
-				path := c.SafeToString(-3)
-				method := c.SafeToString(-4)
-
-				err := coreapi.PlugFunction(fctx, method, path, name, startFunction)
-				if err != nil {
-					fmt.Printf("[ERROR] plugFunction failed\n")
-					return 0
-				}
-
-				return 0
-			})
-			ctx.PutPropString(-2, "plugFunction")
-
-			ctx.PushGoFunction(func(c *duktape.Context) int {
-				name := c.SafeToString(-1)
-				path := c.SafeToString(-2)
-				method := c.SafeToString(-3)
-
-				err := coreapi.PlugFile(fctx, method, path, name)
-				if err != nil {
-					fmt.Printf("[ERROR] plugFile failed\n")
-					return 0
-				}
-
-				return 0
-			})
-			ctx.PutPropString(-2, "plugFile")
-
-			ctx.PushGoFunction(func(c *duktape.Context) int {
-				c.PushString(fctx.Orchestrator.GetStatus())
-				return 1
-			})
-			ctx.PutPropString(-2, "getStatus")
-
-			ctx.PutPropString(-2, "moc")
-			ctx.Pop()
-
-			ctx.PushString(string(wasmBytes))
-			ctx.Eval()
-			ctx.Pop()
-			ctx.PushGlobalObject()
-			ctx.GetPropString(-1, pluggedFunction.StartFunction)
-			ctx.Call(0)
-
-			fctx.Result = ctx.GetInt(-1)
-
-			ctx.DestroyHeap()
 			break
 
 		default:

@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"unsafe"
 
@@ -290,18 +289,18 @@ func PorcelainPrepareWasm(fctx *common.FunctionExecutionContext, mode string, wa
 	return wctx, nil
 }
 
-func PorcelainAddWASIPlugin(wctx *WasmProcessContext, wasiFileName string, arguments []string) {
+func PorcelainAddWASIPlugin(wctx *WasmProcessContext, posixFileName string, posixArguments []string) {
 	inputBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(wctx.Fctx.InputExchangeBufferID)
 
-	wctx.AddAPIPlugin(NewWASIHostPlugin(wasiFileName, arguments, map[int]VirtualFile{
+	wctx.AddAPIPlugin(NewWASIHostPlugin(posixFileName, posixArguments, map[int]VirtualFile{
 		0: CreateStdInVirtualFile(wctx, inputBuffer.GetBuffer()),
-		1: wctx.Fctx.Orchestrator.GetExchangeBuffer(wctx.Fctx.OutputExchangeBufferID), // CreateStdOutVirtualFile(wctx)
+		1: wctx.Fctx.Orchestrator.GetExchangeBuffer(wctx.Fctx.OutputExchangeBufferID),
 		2: CreateStdErrVirtualFile(wctx),
 	}))
 }
 
 // Run runs the process
-func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
+func (wctx *WasmProcessContext) Run(arguments []int) error {
 	wctx.Runtime = wasm3.NewRuntime(&wasm3.Config{
 		Environment: wasm3.NewEnvironment(),
 		StackSize:   64 * 1024, // original 64ko
@@ -313,7 +312,7 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 	{
 		module, err := wctx.Runtime.ParseModule(wctx.WasmBytes)
 		if err != nil {
-			return -1, err
+			return errors.New("cannot parse module")
 		}
 
 		wctx.Module = module
@@ -321,7 +320,7 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 
 	_, err := wctx.Runtime.LoadModule(wctx.Module)
 	if err != nil {
-		return -2, err
+		return errors.New("cannot load module")
 	}
 
 	if wctx.Fctx.Trace {
@@ -405,8 +404,7 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 
 	fn, err := wctx.Module.GetFunctionByName(wctx.Fctx.StartFunction)
 	if err != nil {
-		log.Printf("not found '%s' function (using module.GetFunctionByName)", wctx.Fctx.StartFunction)
-		return -3, err
+		return fmt.Errorf("not found '%s' function (using module.GetFunctionByName)", wctx.Fctx.StartFunction)
 	}
 
 	fmt.Printf("calling function_name:\"%s\" start_function:\"%s\" mode:%s ...\n", wctx.Fctx.Name, wctx.Fctx.StartFunction, wctx.Mode)
@@ -420,7 +418,7 @@ func (wctx *WasmProcessContext) Run(arguments []int) (int, error) {
 	wctx.Fctx.HasFinishedRunning = true
 	wctx.Fctx.Result = result
 
-	return wctx.Fctx.Result, err
+	return err
 }
 
 // WasmCallHandler is the type of functions called back by wasm3 runtime
