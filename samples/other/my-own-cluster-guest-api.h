@@ -1,0 +1,1 @@
+../../assets/my-own-cluster-guest-api.h

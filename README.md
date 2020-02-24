@@ -39,7 +39,7 @@ Then to run it, call this :
 ```bash
 # Some values will be asked for https autosigned certificates generation,
 # you can type [ENTER] until the end to use default values
-make
+make build run-serve
 ```
 
 The program should build and start. It will listen on port 8443 with https protocol.
@@ -62,17 +62,22 @@ make register
 make call
 ```
 
-## APIS
+## Executable formats
 
-- GAPI : guest API
-- PAPI : platform API
-- WAPI : web API
+My-own-cluster executes :
 
-### Guest API
+- `web assembly` byte code through the `wasm3` interpreter,
+- `javascript` code through the `duktape` interpreter (there is no nodejs runtime).
+
+Each function is (_not yet implemented, actively developping_) executed in a jailed and sandboxed very light VM instance (requires KVM).
+
+The functions can interact with the platform through the Guest API which is described just below.
+
+## Guest API
 
 From the _guest_ to the _my-own-cluster_ host.
 
-To support legacy POSIX applications, the host implements most of its API through WASI. There is also a direct binding for applications not using `libc`.
+To support legacy POSIX applications, the host implements most of its API through WASI. There is also a direct binding for applications not using `libc`. _partially implemented_.
 
 File system :
 
@@ -80,28 +85,21 @@ File system :
 - `api://output` : application output payload
 - `http://` and `https://` : used by the guest application to issue a request to some JSON REST Service services.
 
-There is also a raw API.
+There is also an API that my-own-cluster provides for guests. It does not require POSIX at all.
 
-Here is the current implemented API, for the guest to communicate with my-own-cluster :
+The bindings are available in :
 
-```rust
-#[link(wasm_import_module = "my-own-cluster")]
-extern {
-    pub fn test() -> u32;
-    pub fn print_debug(buffer: *const u8, length: u32) -> u32;
-    pub fn register_buffer(buffer: *const u8, length: u32) -> u32;
-    pub fn get_buffer_size(buffer_id: u32) -> u32;
-    pub fn get_buffer(buffer_id: u32, buffer: *const u8, length: u32) -> u32;
-    pub fn write_buffer(buffer_id: u32, buffer: *const u8, length: u32) -> u32;
-    pub fn write_buffer_header(buffer_id: u32, name: *const u8, name_length: u32, value: *const u8, value_length: u32) -> u32;
-    pub fn free_buffer(buffer_id: u32) -> i32;
-    pub fn get_input_buffer_id() -> u32;
-    pub fn get_output_buffer_id() -> u32;
-    pub fn get_url(buffer: *const u8, length: u32) -> u32;
-}
-```
+- `rust` : in this file [assets/my-own-cluster-guest-api.rs](assets/my-own-cluster-guest-api.rs)
+- `C/C++` : in this file [assets/my-own-cluster-guest-api.rs](assets/my-own-cluster-guest-api.rs)
 
-Those functions can be called by whatever language which is targetting WASM and has an FFI (nearly all serious ones).
+Those functions can be called by whatever language which is targetting WASM and has an FFI (all serious ones).
+
+## Core REST API
+
+A basic set of REST api is provided through the _core_ module. 
+This module is loaded at startup like other functions and use the guest api to provide the REST API that the _cli_ program uses.
+
+The core api module implementation can be found in the [assets/core-api.js](assets/core-api.js) file.
 
 ## Automatic module binding
 
@@ -134,14 +132,79 @@ Hooks and customization allow to customize web requests processing, filter, impl
 
 The `samples` directory contains littles samples compiled from different languages, using wasi or not.
 
+### Dashboard
+
+This sample is an application written in javascript that uses the Guest API to provide a Web page listing all
+the resources and statistics actually available from the _my own cluster_ platform.
+
+Have the server running and run :
+
+```bash
+cd samples/dashboard
+make
+```
+
+This will upload the required files and plug them to `/dashboard/` url.
+
+You can then visit https://localhost:8443/dashboard/ in your browser.
+
+
+
+### Watchdog
+
+This sample is written in Rust. It is a simple Web application that uses the platform persistence utility (a key-value storage)
+to store services health checks timestamps.
+
+Have the server running and run :
+
+```bash
+cd sample/watchdog
+make
+```
+
+This will upload the required files and plug them to `/watchdog/` url.
+
+You can then visit https://localhost:8443/watchdog/ in your browser.
+
+At the beginning no service is declared, they are added as they call their _heart-beat_ url.
+
+You can simulate a heart beat by opening this url in another tab of your brower : https://localhost:8443/watchdog/update/SERVICE_NAME (with any _SERVICE_NAME_).
+
+Then refresh the web page to see the updated status.
+
+
+
+### WASI Rust demo
+
+This is a demo of a POSIX program written in Rust running in my own cluster with the WASI ad-hoc implementation.
+
+```bash
+cd samples/wasi-rust-demo
+make
+```
+
+### Other demos
+
+Other demos are available in the `samples/other` directory.
+
 Here the list :
 
-- Rust : `wasm-rust-demo` (with WASI)
-- C : `api-demo-c` (without WASI), `http-request` (with WASI), `uppercase` (with WASI), `cowsay` (does not work yet)
+- C : `api-demo-c` (without WASI), `http-request` (with WASI), `uppercase` (with WASI)
 - WebAssembly (native) : `wasi-write` (with WASI)
 - Go : `hello-go` (with WASI) can be compiled with `tinygo` and normal `go` compiler.
 
+```bash
+cd samples/other
+make
+```
+
+
 More samples are coming...
+
+
+## Cleaning database
+
+Run `make clean-db` to remove all persistence files. Your state will be lost.
 
 ## Done
 

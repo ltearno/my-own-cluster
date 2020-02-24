@@ -1,3 +1,16 @@
+/**
+ * This is the Core REST API my-own-cluster implementation
+ * 
+ * It allows to execute basic operations like :
+ * 
+ * - register a blob
+ * - plus a blob as a function
+ * - plug a blob as a file
+ * 
+ * It is mainly used by the CLI program.
+ * It is normally bound to the cluster web endpoint during startup (in main.go)
+ */
+
 const log = console.log.bind(console)
 
 function plugFunction() {

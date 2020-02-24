@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Watchdog</title>
+    <link href="index.css" / rel="stylesheet">
+
+    <style>
+        body {
+            justify-content: center;
+        }
+
+        .code {
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .alert {
+            color: red;
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background-color: peru;
+        }
+
+        th {
+            text-align: left;
+        }
+
+        td {
+            padding-left: .5em;
+            padding-right: .5em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container container--center">
+        <div id='main' class="g--12 g-s--12">
+            <header class="container">
+                <h1 class="m--1">Watchdog - My Own Cluster</h1>
+            </header>
+
+            <div class="card">
+                <table>
+                    <thead class="table-header">
+                        <th>Service Name</th>
+                        <th>Refresh date</th>
+                    </thead>
+                    <tbody id='tableBody'>
+                    </tbody>
+                </table>
+
+                <button id='refresh' class="btn--raised btn--blue">Refresh</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('load', async () => {
+            const tableBody = document.getElementById('tableBody')
+            const refreshButton = document.getElementById('refresh')
+
+            const refresh = async () => {
+                let status = await (await fetch('status')).json()
+
+                tableBody.innerHTML = Object.keys(status.services)
+                    .sort()
+                    .map(serviceName => {
+                        let timestamp = new Date(status.services[serviceName].timestamp / 1000)
+                        let evtOld = ((new Date().getTime() - timestamp.getTime()) / (60 * 1000)).toFixed(0)
+
+                        return `<tr class="code ${evtOld > 3 ? 'alert' : ''}"><td>${serviceName}</td><td>${evtOld} minutes ago at ${timestamp.toLocaleTimeString({ weekday: 'long', day: 'numeric', month: 'long' })}</td></tr>`
+                    })
+                    .join('')
+            }
+
+            tableBody.innerHTML = `loading ...`
+            refresh()
+            refreshButton.addEventListener('click', refresh)
+        })
+    </script>
+</body>
+
+</html>
