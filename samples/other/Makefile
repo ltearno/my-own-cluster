@@ -1,8 +1,7 @@
 MOC := ../../my-own-cluster
 COMPILED_TARGETS := http-request.wasm api-demo-c.wasm uppercase.wasm wasi-write.wasm hello-go.wasm interop.wasm api-demo-c.wasm
 
-all: register
-	@echo functions registered, you can call them with "'make call'"
+all: http-request uppercase api-demo-c wasi-write hello-go
 
 http-request.wasm: http-request.c
 	wasicc http-request.c -o http-request.wasm
@@ -42,45 +41,48 @@ hello-go.wasm: hello-go.go
 clean:
 	rm $(COMPILED_TARGETS)
 
-.PHONY: register
-register: $(COMPILED_TARGETS)
-	@echo Registering functions...
+.PHONY: http-request
+http-request: http-request.wasm
 	@$(MOC) push http-request http-request.wasm
-	@$(MOC) push uppercase uppercase.wasm
-	@$(MOC) push api-demo-c api-demo-c.wasm
-	@$(MOC) push wasi-write wasi-write.wasm
-	@$(MOC) push hello-go hello-go.wasm
-	@$(MOC) push interop interop.wasm
-
-.PHONY: call
-call:
 	@echo Calling 'http-request' POSIX mode, the client code makes a http request through the my-own-cluster api and outputs its reply body
 	@$(MOC) call http-request -mode posix -input "Hello to you application" https://lkml.org/ | jq -r '.output' | base64 -d
 	@echo
 
+.PHONY: uppercase
+uppercase: uppercase.wasm
+	@$(MOC) push uppercase uppercase.wasm
 	@echo Calling 'uppercase' POSIX mode, result is the uppercase of the buffer given in the http request
 	@$(MOC) call uppercase -mode posix -input "This text should be in uppercase, if yes, you can say yeahh !" | jq -r '.output' | base64 -d
 	@echo
-	@echo
 
+.PHONY: api-demo-c
+api-demo-c: api-demo-c.wasm
+	@$(MOC) push api-demo-c api-demo-c.wasm
 	@echo Calling 'api-demo-c' DIRECT mode, result is the addition of the two parameters we pass in the http query
 	@$(MOC) call api-demo-c 264 55 | jq
 	@echo
 
+.PHONY: wasi-write
+wasi-write: wasi-write.wasm
+	@$(MOC) push wasi-write wasi-write.wasm
 	@echo Calling 'wasi-write' POSIX mode, a simple webassembly text compiled program
 	@$(MOC) call wasi-write -mode posix -wasi_file_name some_name_eh_eh | jq -r '.output' | base64 -d
 	@echo
 
+.PHONY: hello-go
+hello-go: hello-go.wasm
+	@$(MOC) push hello-go hello-go.wasm
 	@echo Calling 'hello-go' POSIX mode, a golang program compiled with TinyGo
 	$(MOC) call hello-go -mode posix
 	@echo
 
-call-rust:
+.PHONY: interop
+interop: interop.wasm
+	@$(MOC) push interop interop.wasm
 	# TODO move await rustMultiply function from watchdog !!!
 	@echo Calling multiply function implemented in Rust without wasi, result of the multiplication is found in the result field
 	$(MOC) call rust-multiply -start_function rustMultiply 4 3 | jq
-
-call-interop:
+	@echo
 	@echo Calling 'interop' DIRECT mode, result is processed in the C code that calls Rust code
 	$(MOC) call interop -start_function process 264 55 | jq
 	@echo

@@ -6,6 +6,7 @@
  * - register a blob
  * - plus a blob as a function
  * - plug a blob as a file
+ * - call a function
  * 
  * It is mainly used by the CLI program.
  * It is normally bound to the cluster web endpoint during startup (in main.go)
@@ -70,6 +71,24 @@ function registerBlob() {
         status: true,
         tech_id: techID
     }))
+
+    return 200
+}
+
+function callFunction() {
+    var req = JSON.parse(moc.readExchangeBufferAsString(moc.getInputBufferId()))
+
+    var result = moc.callFunction(
+        req.name,
+        req.start_function || "_start",
+        req.arguments || [],
+        req.mode || "direct",
+        req.input || "",
+        req.posix_file_name || "",
+        req.posix_arguments || [""]
+    )
+
+    moc.writeExchangeBufferFromString(moc.getOutputBufferId(), JSON.stringify(result))
 
     return 200
 }

@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -373,104 +374,6 @@ type CallFunctionResponse struct {
 	Error  bool   `json:"error"`
 }
 
-/*
-func handlerCallFunction(w http.ResponseWriter, r *http.Request, p httprouter.Params, server *WebServer) {
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		errorResponse(w, 400, "cannot read your body")
-		return
-	}
-
-	baseReq := CallFunctionRequest{}
-	if json.Unmarshal(body, &baseReq) != nil {
-		errorResponse(w, 400, "cannot read/parse your body")
-		return
-	}
-
-	var input []byte
-	if baseReq.Input != nil {
-		input = []byte(*baseReq.Input)
-	}
-
-	startFunction := "_start"
-	var arguments []int = []int{}
-
-	mode := strings.ToLower(baseReq.Mode)
-
-	switch mode {
-	case "direct":
-		bodyReq := DirectCallFunctionRequest{}
-		if json.Unmarshal(body, &bodyReq) != nil {
-			errorResponse(w, 400, "cannot read/parse your body for DIRECT mode")
-			return
-		}
-
-		startFunction = bodyReq.StartFunction
-		arguments = bodyReq.Arguments
-		break
-
-	case "posix":
-		break
-
-	default:
-		errorResponse(w, 400, fmt.Sprintf("invalid execution mode '%s', aborting", mode))
-		return
-	}
-
-	wasmBytes, ok := server.orchestrator.GetFunctionBytesByFunctionName(baseReq.Name)
-	if !ok {
-		errorResponse(w, 400, fmt.Sprintf("can't find sub function bytes (%s)\n", baseReq.Name))
-		return
-	}
-
-	outputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
-
-	inputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
-	inputExchangeBuffer := server.orchestrator.GetExchangeBuffer(inputExchangeBufferID)
-	inputExchangeBuffer.Write(input)
-
-	fctx := &FunctionExecutionContext{
-		Orchestrator:           server.orchestrator,
-		Name:                   baseReq.Name,
-		StartFunction:          startFunction,
-		HasFinishedRunning:     false,
-		InputExchangeBufferID:  inputExchangeBufferID,
-		OutputExchangeBufferID: outputExchangeBufferID,
-		Result:                 0,
-	}
-
-	wctx, err := wasm.PorcelainPrepareWasm(fctx, mode, wasmBytes)
-	if err != nil {
-		errorResponse(w, 404, fmt.Sprintf("cannot create function: %v", err))
-		return
-	}
-
-	if mode == "posix" {
-		bodyReq := WASICallFunctionRequest{}
-		if json.Unmarshal(body, &bodyReq) != nil {
-			errorResponse(w, 400, "cannot read/parse your body POSIX mode")
-			return
-		}
-
-		wasm.PorcelainAddWASIPlugin(wctx, bodyReq.WasiFilename, bodyReq.Arguments)
-	}
-
-	wctx.Run(arguments)
-
-	// as seen in the previous comment, here we will have to wait for the output buffer to be released by
-	// all components before returning the http response. If the buffer is not touched, we will respond
-	// with some user well known 5xx code.
-	// That's a kind of distributed GC for buffers...
-	outputExchangeBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(wctx.Fctx.OutputExchangeBufferID).GetBuffer()
-
-	jsonResponse(w, 200, CallFunctionResponse{
-		Result: wctx.Fctx.Result,
-		Output: base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(outputExchangeBuffer),
-		Error:  false,
-	})
-}*/
-
-/*
 func CliCallFunction(verbs []Verb) {
 	// skip the verb that triggered us, it is given to us in case it contains options
 	baseUrl := getAPIBaseURL(verbs[0])
@@ -480,7 +383,9 @@ func CliCallFunction(verbs []Verb) {
 	mode := strings.ToLower(verbs[0].GetOptionOr("mode", "direct"))
 	input := verbs[0].GetOptionOr("input", "")
 
-	var bodyReq interface{} = nil
+	bodyReq := &CallFunctionRequest{}
+	startFunction := verbs[0].GetOptionOr("start_function", "_start")
+	bodyReq.StartFunction = &startFunction
 
 	switch mode {
 	case "posix":
@@ -489,15 +394,12 @@ func CliCallFunction(verbs []Verb) {
 			arguments = append(arguments, verbs[a].Name)
 		}
 
-		bodyReq = &WASICallFunctionRequest{
-			CallFunctionRequest: CallFunctionRequest{
-				Name:  functionName,
-				Mode:  mode,
-				Input: &input,
-			},
-			WasiFilename: verbs[0].GetOptionOr("wasi_file_name", functionName),
-			Arguments:    arguments,
-		}
+		bodyReq.Name = functionName
+		bodyReq.Mode = &mode
+		bodyReq.Input = &input
+		posixFileName := verbs[0].GetOptionOr("wasi_file_name", functionName)
+		bodyReq.POSIXFilename = &posixFileName
+		bodyReq.POSIXArguments = &arguments
 		break
 
 	case "direct":
@@ -511,15 +413,10 @@ func CliCallFunction(verbs []Verb) {
 			arguments = append(arguments, an)
 		}
 
-		bodyReq = &DirectCallFunctionRequest{
-			CallFunctionRequest: CallFunctionRequest{
-				Name:  functionName,
-				Mode:  mode,
-				Input: &input,
-			},
-			Arguments:     arguments,
-			StartFunction: verbs[0].GetOptionOr("start_function", "_start"),
-		}
+		bodyReq.Name = functionName
+		bodyReq.Mode = &mode
+		bodyReq.Input = &input
+		bodyReq.Arguments = &arguments
 		break
 
 	default:
@@ -550,4 +447,3 @@ func CliCallFunction(verbs []Verb) {
 
 	fmt.Print(string(bytes))
 }
-*/

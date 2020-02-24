@@ -408,7 +408,7 @@ func (wctx *WasmProcessContext) Run() error {
 	wctx.Fctx.HasFinishedRunning = true
 	wctx.Fctx.Result = result
 
-	return err
+	return nil /*err*/ // the error "[trap] program called exit" should not be seen as an error, how to do that ?
 }
 
 // WasmCallHandler is the type of functions called back by wasm3 runtime

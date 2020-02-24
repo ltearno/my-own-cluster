@@ -1,6 +1,7 @@
 package common
 
 import (
+	"encoding/base64"
 	"fmt"
 
 	"gopkg.in/olebedev/go-duktape.v3"
@@ -207,6 +208,72 @@ func PorcelainPrepareJs(fctx *FunctionExecutionContext) (*JSProcessContext, erro
 		return 0
 	})
 	ctx.PutPropString(-2, "plugFile")
+
+	ctx.PushGoFunction(func(c *duktape.Context) int {
+		name := c.SafeToString(-7)
+		startFunction := c.SafeToString(-6)
+		arguments := []int{}
+		c.Enum(-5, (1 << 5))
+		for c.Next(-1, true) {
+			arguments = append(arguments, c.GetInt(-1))
+			c.Pop()
+			c.Pop()
+		}
+		c.Pop()
+		mode := c.SafeToString(-4)
+		input := []byte(c.SafeToString(-3))
+		posixFileName := c.SafeToString(-2)
+		// #define DUK_ENUM_ARRAY_INDICES_ONLY       (1U << 5)    /* only enumerate array indices */
+		posixArguments := []string{}
+		c.Enum(-1, (1 << 5))
+		for c.Next(-1, true) {
+			posixArguments = append(posixArguments, c.SafeToString(-1))
+			c.Pop()
+			c.Pop()
+		}
+		c.Pop()
+
+		inputExchangeBufferID := fctx.Orchestrator.CreateExchangeBuffer()
+		inputExchangeBuffer := fctx.Orchestrator.GetExchangeBuffer(inputExchangeBufferID)
+		inputExchangeBuffer.Write(input)
+		outputExchangeBufferID := fctx.Orchestrator.CreateExchangeBuffer()
+
+		newCtx := fctx.Orchestrator.NewFunctionExecutionContext(
+			name,
+			startFunction,
+			arguments,
+			fctx.Trace,
+			mode,
+			&posixFileName,
+			&posixArguments,
+			inputExchangeBufferID,
+			outputExchangeBufferID,
+		)
+
+		err := newCtx.Run()
+		if err != nil {
+			fmt.Printf("[ERROR] callFunction failed (%v)\n", err)
+			return 0
+		}
+
+		outputExchangeBuffer := fctx.Orchestrator.GetExchangeBuffer(outputExchangeBufferID)
+
+		// push a json with status result and output
+		c.PushObject()
+		c.PushBoolean(true)
+		c.PutPropString(-2, "status")
+		c.PushInt(newCtx.Result)
+		c.PutPropString(-2, "result")
+		c.PushString(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(outputExchangeBuffer.GetBuffer()))
+		c.PutPropString(-2, "output")
+
+		// release exchange buffers
+		fctx.Orchestrator.ReleaseExchangeBuffer(inputExchangeBufferID)
+		fctx.Orchestrator.ReleaseExchangeBuffer(outputExchangeBufferID)
+
+		return 1
+	})
+	ctx.PutPropString(-2, "callFunction")
 
 	ctx.PushGoFunction(func(c *duktape.Context) int {
 		c.PushString(fctx.Orchestrator.GetStatus())

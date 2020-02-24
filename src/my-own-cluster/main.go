@@ -135,6 +135,7 @@ func main() {
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/blob/register", "core-api", "registerBlob")
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/file/plug", "core-api", "plugFile")
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/plug", "core-api", "plugFunction")
+			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/call", "core-api", "callFunction")
 			fmt.Printf("core-api loaded and bound\n")
 		} else {
 			fmt.Printf("[ERROR] cannot load core-api.js, things will go bad quickly...\n")
@@ -174,9 +175,9 @@ func main() {
 		CliPushFunction(verbs)
 		break
 
-	/*case "call":
-	CliCallFunction(verbs)
-	break*/
+	case "call":
+		CliCallFunction(verbs)
+		break
 
 	case "upload":
 		CliUploadFile(verbs)
