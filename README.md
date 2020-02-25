@@ -237,9 +237,9 @@ Run `make clean-db` to remove all persistence files. Your state will be lost.
 - SSO, User Federation, and security implemented as custom hooks
 - Provide GPU access (through WebGPU or other)
 
-## TO SORT
+## TO SORT Usefult links
 
-KVM, ELF, ... useful links
+KVM, ELF, ...
 
 - https://reverseengineering.stackexchange.com/questions/21119/how-do-tools-like-objdump-find-names-of-functions-and-their-start-address-in-elf
 - https://wiki.osdev.org/Global_Descriptor_Table
