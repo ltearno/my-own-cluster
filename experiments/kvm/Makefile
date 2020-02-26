@@ -57,4 +57,4 @@ run-kvm_bare-c-64: kvm_bare $(C_PAYLOAD64).bin	$(C_PAYLOAD64).o
 
 .PHONY: clean
 clean:
-	rm *.o *.bin
+	rm *.o *.bin kvm_bare kvm_test
