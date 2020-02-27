@@ -69,7 +69,7 @@ My-own-cluster executes :
 - `web assembly` byte code thanks to the [wasm3](https://github.com/wasm3/wasm3) interpreter,
 - `javascript` code thanks to the [duktape](https://github.com/svaarala/duktape) interpreter (there is no nodejs runtime).
 
-Each function is executed in a jailed and sandboxed very light VM instance (requires KVM, not yet fully implemented, code in [kvm_test_c](kvm_test_c/)).
+Each function is executed in a jailed and sandboxed very light VM instance (requires KVM, not yet fully implemented, code in [experiments/kvm](experiments/kvm/)).
 
 The functions can interact with the platform through the Guest API which is described just below.
 
