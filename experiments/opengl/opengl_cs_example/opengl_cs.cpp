@@ -1,6 +1,24 @@
 #include "opengl.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <iostream>
+#include <fstream>
+using namespace std;
+
+
+const char* loadTextd(const char *fileName) {
+   printf("a %s\n", fileName);
+   ifstream in;
+   in.open(fileName);
+
+   std::string contents((std::istreambuf_iterator<char>(in)), 
+    std::istreambuf_iterator<char>());
+
+    cout << contents;
+    cout.flush();
+
+    return contents.c_str();
+}
 
 GLuint genComputeProg(GLuint texHandle) {
 	// Creating the compute shader, and the program object containing the shader
@@ -12,6 +30,7 @@ GLuint genComputeProg(GLuint texHandle) {
 	// gl_GlobalInvocationID is a uvec3 variable giving the global ID of the thread,
 	// gl_LocalInvocationID is the local index within the work group, and
 	// gl_WorkGroupID is the work group's index
+    //const char *csSrc[] = loadTextd("shader_430.glsl");
 	const char *csSrc[] = {
 		"#version 430\n",
 		"uniform float roll;\
