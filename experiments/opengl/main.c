@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #include <gbm.h>
 
@@ -14,16 +15,23 @@
 #include <GL/glx.h>
 #include <GL/glext.h>
 
-/* a dummy compute shader that does nothing */
-#define COMPUTE_SHADER_SRC "          \
-#version 310 es\n                                                       \
-                                                                        \
-layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;       \
-                                                                        \
-void main(void) {                                                       \
-   /* awesome compute code here */                                      \
-}                                                                       \
-"
+// loads a binary file, allocate and return the file content
+char* loadText(char *fileName) {
+    int fd = open(fileName, O_RDONLY);
+    if (fd < 0)
+        err(1, "can not open binary file\n");
+
+    struct stat stat;
+    fstat(fd, &stat);
+
+    unsigned char* buffer = malloc(stat.st_size +1);
+
+    int readden = read(fd, buffer, stat.st_size);
+    buffer[stat.st_size] = 0;
+    printf("read size: %d\n", readden);
+
+    return buffer;
+}
 
 void checkErrors() {
 	GLenum e = glGetError();
@@ -57,21 +65,38 @@ int main() {
    assert (strstr (egl_extension_st, "EGL_KHR_create_context") != NULL);
    assert (strstr (egl_extension_st, "EGL_KHR_surfaceless_context") != NULL);
 
+   printf("EGL_CLIENT_APIS: '%s'\n", eglQueryString(egl_dpy, EGL_CLIENT_APIS));
+   printf("EGL_EXTENSIONS: '%s'\n", eglQueryString(egl_dpy, EGL_EXTENSIONS));
+   printf("EGL_VENDOR: '%s'\n", eglQueryString(egl_dpy, EGL_VENDOR));
+   printf("EGL_VERSION: '%s'\n", eglQueryString(egl_dpy, EGL_VERSION));
+
    static const EGLint config_attribs[] = {
-      EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
+      EGL_RENDERABLE_TYPE, EGL_OPENGL_ES_BIT, //EGL_OPENGL_ES3_BIT_KHR,
       EGL_NONE
    };
-   EGLConfig cfg;
-   EGLint count;
+   
+   EGLint configCount;
+   res = eglChooseConfig (egl_dpy, config_attribs, NULL, 0, &configCount);
+   printf("config_count: %d\n", configCount);
 
-   res = eglChooseConfig (egl_dpy, config_attribs, &cfg, 1, &count);
+   EGLConfig *configs = (EGLConfig*) malloc(sizeof(EGLConfig) * configCount);
+
+   res = eglChooseConfig (egl_dpy, config_attribs, configs, configCount, &configCount);
    assert (res);
 
-   res = eglBindAPI (EGL_OPENGL_ES_API);
+   for(int i=0; i<configCount; i++) {
+      printf("config %d\n", i);
+      EGLint configValue;
+      eglGetConfigAttrib(egl_dpy, configs[i], EGL_RENDERABLE_TYPE, &configValue);
+      printf("EGL_RENDERABLE_TYPE: %d\n", configValue);
+   }
+
+   // EGL_OPENGL_API, EGL_OPENGL_ES_API, or EGL_OPENVG_API
+   res = eglBindAPI (EGL_OPENGL_API);
    assert (res);
 
    static const EGLint attribs[] = {
-      EGL_CONTEXT_CLIENT_VERSION, 3,
+      //EGL_CONTEXT_CLIENT_VERSION, 3,
       EGL_NONE
    };
 
@@ -93,16 +118,37 @@ int main() {
 		exit(13);
 	}*/
 
-   printf("glx context created\n");
 
    EGLContext core_ctx = eglCreateContext (egl_dpy,
-                                           cfg,
+                                           configs[0],
                                            EGL_NO_CONTEXT,
                                            attribs);
    assert (core_ctx != EGL_NO_CONTEXT);
+   printf("egl context created\n");
+   // EGL_CONFIG_ID, EGL_CONTEXT_CLIENT_TYPE, EGL_CONTEXT_CLIENT_VERSION, or EGL_RENDER_BUFFER
+   EGLint contextValue;
+   res = eglQueryContext(egl_dpy, core_ctx, EGL_CONTEXT_CLIENT_TYPE, &contextValue);
+   assert (res);
+   printf("core_ctx EGL_CONTEXT_CLIENT_TYPE: %x\n", contextValue);
+   assert (contextValue == EGL_OPENGL_API);
+   res = eglQueryContext(egl_dpy, core_ctx, EGL_RENDER_BUFFER, &contextValue);
+   assert (res);
+   printf("core_ctx EGL_RENDER_BUFFER: %x = ", contextValue);
+   switch(contextValue) {
+      case EGL_SINGLE_BUFFER: printf("EGL_SINGLE_BUFFER\n"); break;
+      case EGL_BACK_BUFFER: printf("EGL_BACK_BUFFER\n"); break;
+      case EGL_NONE: printf("EGL_NONE"); break;
+      default: printf("UNKNOWN"); break;
+   };
+   printf("\n");
 
    res = eglMakeCurrent (egl_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, core_ctx);
    assert (res);
+
+   printf("GL_VERSION: '%s'\n", glGetString(GL_VERSION));
+   printf("GL_VENDOR: '%s'\n", glGetString(GL_VENDOR));
+   printf("GL_RENDERER: '%s'\n", glGetString(GL_RENDERER));
+   printf("GL_EXTENSIONS: '%s'\n", glGetString(GL_EXTENSIONS));
 
    /* print some compute limits (not strictly necessary) */
    GLint work_group_count[3] = {0};
@@ -137,7 +183,7 @@ int main() {
    checkErrors();
    printf("compute_shader created\n");
 
-   const char *shader_source = COMPUTE_SHADER_SRC;
+   const char *shader_source = loadText("shader_nop.glsl");
 
    glShaderSource (compute_shader, 1, &shader_source, NULL);
    checkErrors();
