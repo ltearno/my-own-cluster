@@ -183,7 +183,7 @@ int main() {
    checkErrors();
    printf("compute_shader created\n");
 
-   const char *shader_source = loadText("shader_nop.glsl");
+   const char *shader_source = loadText("shader_101.glsl");
 
    glShaderSource (compute_shader, 1, &shader_source, NULL);
    checkErrors();
@@ -204,11 +204,52 @@ int main() {
    glUseProgram (shader_program);
    checkErrors();
 
+   /* prepare input and output */
+   const int dataSize = 1024;
+   float *in1 = malloc(sizeof(float) * dataSize);
+   float *in2 = malloc(sizeof(float) * dataSize);
+   for(int i=0;i<dataSize; i++ ){
+      in1[i] = in2[i] = i;
+   }
+   GLuint in1Index, in2Index, outIndex;
+   glGenBuffers(1, &in1Index);
+   glBindBuffer(GL_SHADER_STORAGE_BUFFER, in1Index);
+   glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * dataSize, in1, GL_DYNAMIC_COPY);
+   glGenBuffers(1, &in2Index);
+   glBindBuffer(GL_SHADER_STORAGE_BUFFER, in2Index);
+   glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * dataSize, in2, GL_DYNAMIC_COPY);
+   glGenBuffers(1, &outIndex);
+   glBindBuffer(GL_SHADER_STORAGE_BUFFER, outIndex);
+   glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * dataSize, NULL, GL_DYNAMIC_COPY);
+   //glBufferData(GL_SHADER_STORAGE_BUFFER, ...);
+
+   glBindBuffer(GL_SHADER_STORAGE_BUFFER, outIndex);
+   checkErrors();
+   GLvoid* outBound = (float*) glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+   checkErrors();
+   printf("outBound buffer: %p\n", outBound);
+   for(int i=0;i<10;i++)
+      ((float*)outBound)[i] = 0;
+   glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+
    /* dispatch computation */
-   glDispatchCompute (10, 10, 10);
+   glDispatchCompute (1, 1, 1);
+   checkErrors();
+
+   glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
    checkErrors();
 
    printf ("Compute shader dispatched and finished successfully\n");
+
+   glBindBuffer(GL_SHADER_STORAGE_BUFFER, outIndex);
+   checkErrors();
+   outBound = (float*) glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+   checkErrors();
+   printf("outBound buffer: %p\n", outBound);
+   for(int i=0;i<10;i++)
+      printf("outBound[%d] = %f\n", i, ((float*)outBound)[i]);
+   glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
    /* free stuff */
    glDeleteProgram (shader_program);
