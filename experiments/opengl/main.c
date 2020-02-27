@@ -100,25 +100,6 @@ int main() {
       EGL_NONE
    };
 
-   // see that https://community.arm.com/developer/tools-software/graphics/b/blog/posts/get-started-with-compute-shaders
-
-   // OpenGL version 4.3, forward compatible core profile
-	/*int gl3attr[] = {
-      GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
-      GLX_CONTEXT_MINOR_VERSION_ARB, 3,
-      GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
-      GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
-   None
-   };
-   wglCreateContextAttribs();
-   GLXContext d_ctx = glXCreateContextAttribsARB(egl_dpy, cfg, NULL, true, gl3attr);
-
-	if (!d_ctx) {
-		fprintf(stderr, "Couldn't create an OpenGL context\n");
-		exit(13);
-	}*/
-
-
    EGLContext core_ctx = eglCreateContext (egl_dpy,
                                            configs[0],
                                            EGL_NO_CONTEXT,
@@ -145,11 +126,37 @@ int main() {
    res = eglMakeCurrent (egl_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, core_ctx);
    assert (res);
 
+
+
+
+
+   // see that https://community.arm.com/developer/tools-software/graphics/b/blog/posts/get-started-with-compute-shaders
+
+   // OpenGL version 4.3, forward compatible core profile
+	/*int gl3attr[] = {
+      GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
+      GLX_CONTEXT_MINOR_VERSION_ARB, 3,
+      GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+      GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+   None
+   };
+   wglCreateContextAttribs();
+   GLXContext d_ctx = glXCreateContextAttribsARB(egl_dpy, cfg, NULL, true, gl3attr);
+
+	if (!d_ctx) {
+		fprintf(stderr, "Couldn't create an OpenGL context\n");
+		exit(13);
+	}*/
+
+
+
+
+
    printf("GL_VERSION: '%s'\n", glGetString(GL_VERSION));
    printf("GL_VENDOR: '%s'\n", glGetString(GL_VENDOR));
    printf("GL_RENDERER: '%s'\n", glGetString(GL_RENDERER));
    printf("GL_EXTENSIONS: '%s'\n", glGetString(GL_EXTENSIONS));
-
+   
    /* print some compute limits (not strictly necessary) */
    GLint work_group_count[3] = {0};
    for (unsigned i = 0; i < 3; i++)
@@ -176,7 +183,7 @@ int main() {
    GLint mem_size;
    glGetIntegerv (GL_MAX_COMPUTE_SHARED_MEMORY_SIZE, &mem_size);
    printf ("GL_MAX_COMPUTE_SHARED_MEMORY_SIZE: %d\n", mem_size);
-
+   
    /* setup a compute shader */
    printf("compute_shader creating...\n");
    GLuint compute_shader = glCreateShader (GL_COMPUTE_SHADER);
@@ -204,7 +211,10 @@ int main() {
    glUseProgram (shader_program);
    checkErrors();
 
-   /* prepare input and output */
+
+
+
+/* prepare input and output */
    const int dataSize = 1024;
    float *in1 = malloc(sizeof(float) * dataSize);
    float *in2 = malloc(sizeof(float) * dataSize);
@@ -215,36 +225,29 @@ int main() {
    glGenBuffers(1, &in1Index);
    glBindBuffer(GL_SHADER_STORAGE_BUFFER, in1Index);
    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * dataSize, in1, GL_DYNAMIC_COPY);
+   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, in1Index);
    glGenBuffers(1, &in2Index);
    glBindBuffer(GL_SHADER_STORAGE_BUFFER, in2Index);
    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * dataSize, in2, GL_DYNAMIC_COPY);
+   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, in2Index);
    glGenBuffers(1, &outIndex);
    glBindBuffer(GL_SHADER_STORAGE_BUFFER, outIndex);
    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * dataSize, NULL, GL_DYNAMIC_COPY);
-   //glBufferData(GL_SHADER_STORAGE_BUFFER, ...);
-
-   glBindBuffer(GL_SHADER_STORAGE_BUFFER, outIndex);
+   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, outIndex);
    checkErrors();
-   GLvoid* outBound = (float*) glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
-   checkErrors();
-   printf("outBound buffer: %p\n", outBound);
-   for(int i=0;i<10;i++)
-      ((float*)outBound)[i] = 0;
-   glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-
 
    /* dispatch computation */
-   glDispatchCompute (1, 1, 1);
+   glDispatchCompute (dataSize, 1, 1);
    checkErrors();
 
-   glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
-   checkErrors();
+   //glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+   //checkErrors();
 
    printf ("Compute shader dispatched and finished successfully\n");
 
    glBindBuffer(GL_SHADER_STORAGE_BUFFER, outIndex);
    checkErrors();
-   outBound = (float*) glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+   GLvoid *outBound = (float*) glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
    checkErrors();
    printf("outBound buffer: %p\n", outBound);
    for(int i=0;i<10;i++)
