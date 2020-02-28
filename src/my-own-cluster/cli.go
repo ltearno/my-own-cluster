@@ -373,7 +373,7 @@ func CliCallFunction(verbs []Verb) {
 
 	functionName := verbs[0].Name
 	mode := strings.ToLower(verbs[0].GetOptionOr("mode", "direct"))
-	input := verbs[0].GetOptionOr("input", "")
+	input := base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString([]byte(verbs[0].GetOptionOr("input", "")))
 
 	bodyReq := &CallFunctionRequest{}
 	startFunction := verbs[0].GetOptionOr("start_function", "_start")

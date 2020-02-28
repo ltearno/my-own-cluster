@@ -230,7 +230,6 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 		}
 		c.Pop()
 		mode := c.SafeToString(-4)
-		input := []byte(c.SafeToString(-3))
 		posixFileName := c.SafeToString(-2)
 		// #define DUK_ENUM_ARRAY_INDICES_ONLY       (1U << 5)    /* only enumerate array indices */
 		posixArguments := []string{}
@@ -241,6 +240,25 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 			c.Pop()
 		}
 		c.Pop()
+
+		var input []byte
+		switch c.GetType(-3) {
+		case duktape.TypeString:
+			encoded := c.SafeToString(-3)
+			decoded, err := base64.StdEncoding.WithPadding(base64.StdPadding).DecodeString(encoded)
+			if err != nil {
+				fmt.Printf("cannot decode input string\n")
+				return 0
+			}
+			input = decoded
+			break
+		case duktape.TypeBuffer:
+			inputPtr, inputLength := c.GetBuffer(-3)
+			input = (*[1 << 30]byte)(inputPtr)[:inputLength:inputLength]
+		default:
+			fmt.Printf("cannot guess content type of input param when calling function from js\n")
+			return 0
+		}
 
 		inputExchangeBufferID := fctx.Orchestrator.CreateExchangeBuffer()
 		inputExchangeBuffer := fctx.Orchestrator.GetExchangeBuffer(inputExchangeBufferID)
