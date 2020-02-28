@@ -1,15 +1,23 @@
-#define GL_GLEXT_PROTOTYPES
+package main
 
+/*
+#cgo LDFLAGS: -lOpenGL -lGLU -lEGL
+#define GL_GLEXT_PROTOTYPES
 #include <fcntl.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <GL/gl.h>
 #include <sys/stat.h>
+#include <stdlib.h>
+
+#include "glext.h"
 
 #include <stdio.h>
 
-#include <GL/glext.h>
-
+void err(int n, char* s){
+	printf("err %d %s\n", n, s);
+	exit(n);
+}
 
 void checkErrors(const char* when) {
 	GLenum e = glGetError();
@@ -20,24 +28,6 @@ void checkErrors(const char* when) {
 	}
 }
 
-// loads a binary file, allocate and return the file content
-char* loadText(char *fileName) {
-    int fd = open(fileName, O_RDONLY);
-    if (fd < 0)
-        err(1, "can not open binary file\n");
-
-    struct stat stat;
-    fstat(fd, &stat);
-
-    unsigned char* buffer = malloc(stat.st_size +1);
-
-    int readden = read(fd, buffer, stat.st_size);
-    buffer[stat.st_size] = 0;
-    printf("read size: %d\n", readden);
-
-    return buffer;
-}
-
   static const EGLint configAttribs[] = {
           EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
           EGL_BLUE_SIZE, 8,
@@ -46,18 +36,15 @@ char* loadText(char *fileName) {
           EGL_DEPTH_SIZE, 8,
           EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
           EGL_NONE
-  };    
-
-  static const int pbufferWidth = 9;
-  static const int pbufferHeight = 9;
+  };
 
   static const EGLint pbufferAttribs[] = {
-        EGL_WIDTH, pbufferWidth,
-        EGL_HEIGHT, pbufferHeight,
+        EGL_WIDTH, 9,
+        EGL_HEIGHT, 9,
         EGL_NONE,
   };
 
-int main(int argc, char *argv[])
+int runOpenGLDemo(const char *shader_source)
 {
   // 1. Initialize EGL
   unsetenv("DISPLAY");
@@ -79,12 +66,6 @@ int main(int argc, char *argv[])
 
   EGLConfig *eglConfigs = (EGLConfig*) malloc(sizeof(EGLConfig) * configCount);
   eglChooseConfig (eglDpy, configAttribs, eglConfigs, configCount, &configCount);
-  /*for(int i=0; i<configCount; i++) {
-    printf("config %d\n", i);
-    EGLint configValue;
-    eglGetConfigAttrib(eglDpy, eglConfigs[i], EGL_RENDERABLE_TYPE, &configValue);
-    printf("EGL_RENDERABLE_TYPE: %d\n", configValue);
-  }*/
 
   EGLConfig eglCfg = eglConfigs[0];
   //eglChooseConfig(eglDpy, configAttribs, &eglCfg, 1, &configCount);
@@ -111,7 +92,7 @@ int main(int argc, char *argv[])
   printf("GL_RENDERER: '%s'\n", glGetString(GL_RENDERER));
   printf("GL_EXTENSIONS: '%s'\n", glGetString(GL_EXTENSIONS));
 
-  /* prepare input and output */
+  // prepare input and output
   const int dataSize = 1024;
   float *in1 = malloc(sizeof(float) * dataSize);
   float *in2 = malloc(sizeof(float) * dataSize);
@@ -138,14 +119,12 @@ int main(int argc, char *argv[])
   checkErrors("creating and binding buffers");
 
   printf("buffers: %d %d %d\n", in1Index, in2Index, outIndex);
-  
-  /* setup a compute shader */
+
+  // setup a compute shader
   printf("compute_shader creating...\n");
   GLuint compute_shader = glCreateShader (GL_COMPUTE_SHADER);
   checkErrors("creating shader");
   printf("compute_shader created\n");
-
-  const char *shader_source = loadText("shader_430.glsl");
 
   glShaderSource (compute_shader, 1, &shader_source, NULL);
   checkErrors("giving shader source");
@@ -166,7 +145,7 @@ int main(int argc, char *argv[])
   glUseProgram (shader_program);
   checkErrors("using shader in program");
 
-  /* dispatch computation */
+  // dispatch computation
   glDispatchCompute (dataSize, 1, 1);
   checkErrors("dispatching compute");
 
@@ -179,15 +158,43 @@ int main(int argc, char *argv[])
   for(int i=0;i<10;i++)
     printf("tmp[%d] = %f\n", i, tmp[i]);
 
-  /*float *outBound = (float*) glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-  checkErrors("mapping buffer");
-  printf("outBound buffer: %p\n", outBound);
-  for(int i=8;i<10;i++)
-  printf("outBound[%d] = %f\n", i, outBound[i]);
-  glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);*/
-
   // 6. Terminate EGL when finished
   eglTerminate(eglDpy);
   printf("ok\n");
   return 0;
+}
+*/
+import "C"
+
+var shaderCode string = `
+#version 430
+
+layout(std430) buffer;
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = 0) readonly buffer Input0 {
+    float elements[];
+} input_data0;
+
+layout(binding = 1) readonly buffer Input1 {
+    float elements[];
+} input_data1;
+
+layout(binding = 2) writeonly buffer Output {
+    float elements[];
+} output_data;
+
+void main() {
+    uint ident = gl_GlobalInvocationID.x;
+    output_data.elements[ident] = input_data0.elements[ident] * input_data1.elements[ident];
+
+    //ivec2 storePos = ivec2(gl_GlobalInvocationID.xy);
+    //float localCoef = length(vec2(ivec2(gl_LocalInvocationID.xy)-8)/8.0);
+    //float globalCoef = sin(float(gl_WorkGroupID.x+gl_WorkGroupID.y)*0.1 + roll)*0.5;
+    //imageStore(destTex, storePos, vec4(1.0-globalCoef*localCoef, 0.0, 0.0, 0.0));
+}
+`
+
+func TestOpenGL() {
+	C.runOpenGLDemo(C.CString(shaderCode))
 }

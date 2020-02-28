@@ -1,6 +1,7 @@
-FROM golang:1.13-alpine
+FROM ubuntu:18.04
 
-RUN apk add bash make git gcc g++ cmake linux-headers
+RUN apt update
+RUN apt install -y bash make git gcc g++ cmake golang libegl1-mesa-dev libgl1-mesa-dev libglu1-mesa-dev
 
 RUN mkdir /.cache && chmod ugo+rw /.cache
 
@@ -20,8 +21,6 @@ RUN make build-prepare
 RUN cp /wasm3/wasm3/build/source/libm3.a /my-own-cluster/src/github.com/ltearno/go-wasm3/lib/linux/
 
 RUN make build-embed-assets
-
-RUN apk add mesa-dev glu
 
 RUN make build
 

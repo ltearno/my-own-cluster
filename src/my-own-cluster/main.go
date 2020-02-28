@@ -195,6 +195,10 @@ func main() {
 		TestKVM()
 		break
 
+	case "opengl_test":
+		TestOpenGL()
+		break
+
 	default:
 		fmt.Printf("No argument received !\n")
 		printHelp()
