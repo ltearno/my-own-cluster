@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"my-own-cluster/common"
+	"my-own-cluster/tools"
 	"net/http"
 	"unsafe"
 
@@ -111,7 +112,7 @@ func CreateStdErrVirtualFile(wctx *WasmProcessContext) VirtualFile {
 }
 
 func (vf *StdAccess) Read(buffer []byte) int {
-	l := common.Min(len(buffer), len(vf.ReadBuffer)-vf.ReadPos)
+	l := tools.Min(len(buffer), len(vf.ReadBuffer)-vf.ReadPos)
 	copy(buffer, (vf.ReadBuffer)[vf.ReadPos:][:l])
 	vf.ReadPos = vf.ReadPos + l
 
@@ -142,7 +143,7 @@ func CreateInputVirtualFile(wctx *WasmProcessContext) VirtualFile {
 func (vf *InputAccessState) Read(buffer []byte) int {
 	inputBuffer := vf.Wctx.Fctx.Orchestrator.GetExchangeBuffer(vf.Wctx.Fctx.InputExchangeBufferID)
 
-	l := common.Min(len(buffer), len(inputBuffer.GetBuffer())-vf.ReadPos)
+	l := tools.Min(len(buffer), len(inputBuffer.GetBuffer())-vf.ReadPos)
 	copy(buffer, (inputBuffer.GetBuffer())[vf.ReadPos:][:l])
 	vf.ReadPos = vf.ReadPos + l
 
@@ -211,7 +212,7 @@ func (vf *WebAccessState) Write(buffer []byte) int {
 func (vf *WebAccessState) Read(buffer []byte) int {
 	vf.readAll()
 
-	l := common.Min(len(buffer), len(*vf.Response)-vf.ReadPos)
+	l := tools.Min(len(buffer), len(*vf.Response)-vf.ReadPos)
 	copy(buffer, (*vf.Response)[vf.ReadPos:][:l])
 	vf.ReadPos = vf.ReadPos + l
 

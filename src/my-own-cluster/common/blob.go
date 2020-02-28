@@ -3,6 +3,7 @@ package common
 import (
 	"encoding/json"
 	"fmt"
+	"my-own-cluster/tools"
 	"strings"
 )
 
@@ -12,7 +13,7 @@ type BlobAbstract struct {
 }
 
 func (o *Orchestrator) RegisterBlob(contentType string, contentBytes []byte) (string, error) {
-	techID := Sha256Sum(contentBytes)
+	techID := tools.Sha256Sum(contentBytes)
 
 	has, err := o.db.Has([]byte(fmt.Sprintf("/blobs/abstract/%s", techID)), nil)
 	if err == nil && has {

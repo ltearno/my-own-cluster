@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"my-own-cluster/common"
+	"my-own-cluster/coreapi"
 	"net/http"
 	"time"
 )
@@ -28,14 +28,14 @@ func (p *MyOwnClusterWASMAPIPlugin) Bind(wctx *WasmProcessContext) {
 	}
 
 	wctx.BindAPIFunction("my-own-cluster", "test", "i()", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
-		res, err := common.Test(wctx.Fctx)
+		res, err := coreapi.Test(wctx.Fctx)
 		return uint32(res), err
 	})
 
 	wctx.BindAPIFunction("my-own-cluster", "base64_decode", "i(ii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
 		encoded := cs.GetParamString(0, 1)
 
-		decoded, err := common.Base64Decode(wctx.Fctx, encoded)
+		decoded, err := coreapi.Base64Decode(wctx.Fctx, encoded)
 		if err != nil {
 			fmt.Println(err)
 			return uint32(0xffff), nil
@@ -243,19 +243,19 @@ func (p *MyOwnClusterWASMAPIPlugin) Bind(wctx *WasmProcessContext) {
 	// params : buffer id
 	wctx.BindAPIFunction("my-own-cluster", "free_buffer", "i(i)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
 		bufferID := cs.GetParamUINT32(0)
-		err := common.FreeBuffer(wctx.Fctx, int(bufferID))
+		err := coreapi.FreeBuffer(wctx.Fctx, int(bufferID))
 		return uint32(0), err
 	})
 
 	// params : buffer id
 	wctx.BindAPIFunction("my-own-cluster", "get_input_buffer_id", "i()", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
-		res, err := common.GetInputBufferID(wctx.Fctx)
+		res, err := coreapi.GetInputBufferID(wctx.Fctx)
 		return uint32(res), err
 	})
 
 	// params : buffer id
 	wctx.BindAPIFunction("my-own-cluster", "get_output_buffer_id", "i()", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
-		res, err := common.GetOutputBufferID(wctx.Fctx)
+		res, err := coreapi.GetOutputBufferID(wctx.Fctx)
 		return uint32(res), err
 	})
 

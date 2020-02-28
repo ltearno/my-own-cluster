@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"my-own-cluster/common"
+	"my-own-cluster/coreapi"
 
 	"gopkg.in/olebedev/go-duktape.v3"
 )
@@ -28,7 +29,7 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 	ctx.PushObject()
 
 	ctx.PushGoFunction(func(c *duktape.Context) int {
-		res, err := common.GetInputBufferID(fctx)
+		res, err := coreapi.GetInputBufferID(fctx)
 		if err != nil {
 			c.PushInt(-1)
 		} else {
@@ -40,7 +41,7 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 	ctx.PutPropString(-2, "getInputBufferId")
 
 	ctx.PushGoFunction(func(c *duktape.Context) int {
-		res, err := common.GetOutputBufferID(fctx)
+		res, err := coreapi.GetOutputBufferID(fctx)
 		if err != nil {
 			c.PushInt(-1)
 		} else {
@@ -111,7 +112,7 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 
 	ctx.PushGoFunction(func(c *duktape.Context) int {
 		encoded := c.SafeToString(-1)
-		decoded, err := common.Base64Decode(fctx, encoded)
+		decoded, err := coreapi.Base64Decode(fctx, encoded)
 		if err != nil {
 			fmt.Printf("cannot decode base64\n")
 			return 0
@@ -131,7 +132,7 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 		contentType := c.SafeToString(-2)
 		name := c.SafeToString(-3)
 
-		techID, err := common.RegisterBlobWithName(fctx, name, contentType, contentBytes)
+		techID, err := coreapi.RegisterBlobWithName(fctx, name, contentType, contentBytes)
 		if err != nil {
 			fmt.Printf("[ERROR] registerBlobWithName failed\n")
 			return 0
@@ -147,7 +148,7 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 		contentBytes := (*[1 << 30]byte)(contentBytesPtr)[:contentBytesLength:contentBytesLength]
 		contentType := c.SafeToString(-2)
 
-		techID, err := common.RegisterBlob(fctx, contentType, contentBytes)
+		techID, err := coreapi.RegisterBlob(fctx, contentType, contentBytes)
 		if err != nil {
 			fmt.Printf("[ERROR] registerBlob failed\n")
 			return 0
@@ -192,7 +193,7 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 		path := c.SafeToString(-3)
 		method := c.SafeToString(-4)
 
-		err := common.PlugFunction(fctx, method, path, name, startFunction)
+		err := coreapi.PlugFunction(fctx, method, path, name, startFunction)
 		if err != nil {
 			fmt.Printf("[ERROR] plugFunction failed\n")
 			return 0
@@ -207,7 +208,7 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 		path := c.SafeToString(-2)
 		method := c.SafeToString(-3)
 
-		err := common.PlugFile(fctx, method, path, name)
+		err := coreapi.PlugFile(fctx, method, path, name)
 		if err != nil {
 			fmt.Printf("[ERROR] plugFile failed\n")
 			return 0
