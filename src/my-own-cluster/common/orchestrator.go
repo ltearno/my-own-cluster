@@ -10,6 +10,14 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
+type ExecutionEngineContext interface {
+	Run() error
+}
+
+type ExecutionEngine interface {
+	PrepareContext(fctx *FunctionExecutionContext) (ExecutionEngineContext, error)
+}
+
 type Orchestrator struct {
 	nextExchangeBufferID int32
 	exchangeBuffers      map[int]*ExchangeBuffer
@@ -17,6 +25,8 @@ type Orchestrator struct {
 	lock sync.Mutex
 
 	db *leveldb.DB
+
+	executionEngines map[string]ExecutionEngine
 }
 
 func NewOrchestrator(db *leveldb.DB) *Orchestrator {
@@ -24,7 +34,12 @@ func NewOrchestrator(db *leveldb.DB) *Orchestrator {
 		nextExchangeBufferID: 0,
 		exchangeBuffers:      make(map[int]*ExchangeBuffer),
 		db:                   db,
+		executionEngines:     make(map[string]ExecutionEngine),
 	}
+}
+
+func (o *Orchestrator) AddExecutionEngine(contentType string, engine ExecutionEngine) {
+	o.executionEngines[contentType] = engine
 }
 
 type FunctionExecutionContext struct {
@@ -104,34 +119,18 @@ func (fctx *FunctionExecutionContext) Run() error {
 
 	fctx.CodeBytes = codeBytes
 
-	switch pluggedFunctionAbstract.ContentType {
-	case "application/wasm":
-		wctx, err := PorcelainPrepareWasm(fctx)
-		if err != nil || wctx == nil {
-			return fmt.Errorf("cannot create wasm context for function: %v", err)
+	engine, hasEngine := fctx.Orchestrator.executionEngines[pluggedFunctionAbstract.ContentType]
+	if hasEngine {
+		ectx, err := engine.PrepareContext(fctx)
+		if err != nil || ectx == nil {
+			return fmt.Errorf("cannot create %s context for function: %v", pluggedFunctionAbstract.ContentType, err)
 		}
 
-		err = wctx.Run()
+		err = ectx.Run()
 		if err != nil {
-			return fmt.Errorf("execution error in function: %v", err)
+			return fmt.Errorf("execution %s error in function: %v", pluggedFunctionAbstract.ContentType, err)
 		}
-
-		break
-
-	case "text/javascript":
-		jsctx, err := PorcelainPrepareJs(fctx)
-		if err != nil || jsctx == nil {
-			return fmt.Errorf("cannot create js context for function: %v", err)
-		}
-
-		err = jsctx.Run()
-		if err != nil {
-			return fmt.Errorf("execution error in function: %v", err)
-		}
-
-		break
-
-	default:
+	} else {
 		return fmt.Errorf("unknown function type '%s'", pluggedFunctionAbstract.ContentType)
 	}
 

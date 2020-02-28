@@ -68,6 +68,13 @@ type VirtualFile interface {
 	Close() int
 }
 
+type WasmWasm3Engine struct {
+}
+
+func NewWasmWasm3Engine() *WasmWasm3Engine {
+	return &WasmWasm3Engine{}
+}
+
 func CreateWasmContext(fctx *FunctionExecutionContext) *WasmProcessContext {
 	wctx := &WasmProcessContext{
 		Fctx:       fctx,
@@ -269,7 +276,7 @@ func (wctx *WasmProcessContext) AddAPIPlugin(plugin WASMAPIPlugin) {
 	wctx.APIPlugins = append(wctx.APIPlugins, plugin)
 }
 
-func PorcelainPrepareWasm(fctx *FunctionExecutionContext) (*WasmProcessContext, error) {
+func (e *WasmWasm3Engine) PrepareContext(fctx *FunctionExecutionContext) (ExecutionEngineContext, error) {
 	wctx := CreateWasmContext(fctx)
 	if wctx == nil {
 		return nil, errors.New("cannot create wasm context")
@@ -374,14 +381,15 @@ func (wctx *WasmProcessContext) Run() error {
 							Arguments:              parameters,
 						}
 
-						subWctx, err := PorcelainPrepareWasm(subFctx)
+						e := NewWasmWasm3Engine()
+						subWctx, err := e.PrepareContext(subFctx)
 						if err != nil {
 							return 0xffff, err
 						}
 
 						subWctx.Run()
 
-						return uint32(subWctx.Fctx.Result), nil
+						return uint32(subFctx.Result), nil
 					})
 				}
 			}

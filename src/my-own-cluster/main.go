@@ -128,6 +128,10 @@ func main() {
 
 		orchestrator := common.NewOrchestrator(db)
 
+		// register execution engines
+		orchestrator.AddExecutionEngine("text/javascript", common.NewJavascriptDuktapeEngine())
+		orchestrator.AddExecutionEngine("application/wasm", common.NewWasmWasm3Engine())
+
 		// init core-api
 		coreAPILibrary, err := assetsgen.Asset("assets/core-api.js")
 		if err == nil {

@@ -13,7 +13,14 @@ type JSProcessContext struct {
 	Context *duktape.Context
 }
 
-func PorcelainPrepareJs(fctx *FunctionExecutionContext) (*JSProcessContext, error) {
+type JavascriptDuktapeEngine struct {
+}
+
+func NewJavascriptDuktapeEngine() *JavascriptDuktapeEngine {
+	return &JavascriptDuktapeEngine{}
+}
+
+func (e *JavascriptDuktapeEngine) PrepareContext(fctx *FunctionExecutionContext) (ExecutionEngineContext, error) {
 	ctx := duktape.New()
 
 	ctx.PushGlobalObject()
