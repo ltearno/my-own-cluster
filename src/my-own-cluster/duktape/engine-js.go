@@ -219,6 +219,13 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 	ctx.PutPropString(-2, "plugFile")
 
 	ctx.PushGoFunction(func(c *duktape.Context) int {
+		c.PushInt(fctx.Orchestrator.CreateExchangeBuffer())
+
+		return 1
+	})
+	ctx.PutPropString(-2, "createExchangeBuffer")
+
+	ctx.PushGoFunction(func(c *duktape.Context) int {
 		name := c.SafeToString(-7)
 		startFunction := c.SafeToString(-6)
 		arguments := []int{}
@@ -230,7 +237,7 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 		}
 		c.Pop()
 		mode := c.SafeToString(-4)
-		input := SafeToBytes(c, -3)
+		inputExchangeBufferID := c.GetInt(-3)
 		posixFileName := c.SafeToString(-2)
 		// #define DUK_ENUM_ARRAY_INDICES_ONLY       (1U << 5)    /* only enumerate array indices */
 		posixArguments := []string{}
@@ -242,9 +249,6 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 		}
 		c.Pop()
 
-		inputExchangeBufferID := fctx.Orchestrator.CreateExchangeBuffer()
-		inputExchangeBuffer := fctx.Orchestrator.GetExchangeBuffer(inputExchangeBufferID)
-		inputExchangeBuffer.Write(input)
 		outputExchangeBufferID := fctx.Orchestrator.CreateExchangeBuffer()
 
 		newCtx := fctx.Orchestrator.NewFunctionExecutionContext(

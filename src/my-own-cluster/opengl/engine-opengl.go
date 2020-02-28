@@ -131,10 +131,8 @@ int runShader(const char *inputData, int inputDataLen, char *outputData, int out
   if(checkErrors("creating and binding buffers")!=0) return -1;
 
   // setup a compute shader
-  printf("compute_shader creating...\n");
   GLuint compute_shader = glCreateShader (GL_COMPUTE_SHADER);
   if(checkErrors("creating shader")!=0) return -1;
-  printf("compute_shader created\n");
 
   glShaderSource (compute_shader, 1, &shader_source, NULL);
   if(checkErrors("giving shader source")!=0) return -1;
@@ -168,9 +166,7 @@ int runShader(const char *inputData, int inputDataLen, char *outputData, int out
 */
 import "C"
 import (
-	"encoding/binary"
 	"fmt"
-	"math"
 	"my-own-cluster/common"
 	"unsafe"
 )
@@ -202,19 +198,19 @@ func (c *GLSLOpenGLProcessContext) Run() error {
 
 	inputBuffer := c.Fctx.Orchestrator.GetExchangeBuffer(c.Fctx.InputExchangeBufferID).GetBuffer()
 
-	fmt.Println(inputBuffer)
+	//fmt.Println(inputBuffer)
 	//floats := (*[1 << 30]float32)(unsafe.Pointer(&inputBuffer[0]))[:1024:1024]
-	for i := 0; i < 10; i++ {
+	/*for i := 0; i < 10; i++ {
 		//fmt.Printf("%f\n", floats[i])
 
 		bits := binary.LittleEndian.Uint32(inputBuffer[i*4 : (i+1)*4])
 		fl := math.Float32frombits(bits)
-		fmt.Println(fl)
-	}
+		//fmt.Println(fl)
+	}*/
 
 	// by default we use input buffer size, but that should be changed
 	outputData := make([]byte, len(inputBuffer))
-	fmt.Printf("output length : %d\n", len(outputData))
+	//fmt.Printf("output length : %d\n", len(outputData))
 
 	C.runShader(
 		(*C.char)(unsafe.Pointer(&inputBuffer[0])), C.int(len(inputBuffer)),
@@ -222,12 +218,12 @@ func (c *GLSLOpenGLProcessContext) Run() error {
 		C.CString(string(c.Fctx.CodeBytes)),
 		C.int(len(inputBuffer)/4 /*float size, hardcoded*/), C.int(1), C.int(1))
 
-	fmt.Println(outputData)
-	for i := 0; i < 10; i++ {
+	//fmt.Println(outputData)
+	/*for i := 0; i < 10; i++ {
 		bits := binary.LittleEndian.Uint32(outputData[i*4 : (i+1)*4])
 		fl := math.Float32frombits(bits)
-		fmt.Println(fl)
-	}
+		//fmt.Println(fl)
+	}*/
 
 	c.Fctx.Orchestrator.GetExchangeBuffer(c.Fctx.OutputExchangeBufferID).Write(outputData)
 	return nil

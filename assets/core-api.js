@@ -78,14 +78,16 @@ function registerBlob() {
 function callFunction() {
     var req = JSON.parse(moc.readExchangeBufferAsString(moc.getInputBufferId()))
 
-    var input = req.input ? moc.base64Decode(req.input) : null
+    var inputExchangeBufferId = moc.createExchangeBuffer()
+    if (req.input)
+        moc.writeExchangeBuffer(inputExchangeBufferId, moc.base64Decode(req.input))
 
     var result = moc.callFunction(
         req.name,
         req.start_function || "_start",
         req.arguments || [],
         req.mode || "direct",
-        input,
+        inputExchangeBufferId,
         req.posix_file_name || "",
         req.posix_arguments || [""]
     )
