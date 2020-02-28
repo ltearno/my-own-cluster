@@ -1,4 +1,4 @@
-package common
+package wasm
 
 type AutoLinkWASMAPIPlugin struct{}
 

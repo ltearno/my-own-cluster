@@ -1,14 +1,15 @@
-package common
+package duktape
 
 import (
 	"encoding/base64"
 	"fmt"
+	"my-own-cluster/common"
 
 	"gopkg.in/olebedev/go-duktape.v3"
 )
 
 type JSProcessContext struct {
-	Fctx *FunctionExecutionContext
+	Fctx *common.FunctionExecutionContext
 
 	Context *duktape.Context
 }
@@ -20,14 +21,14 @@ func NewJavascriptDuktapeEngine() *JavascriptDuktapeEngine {
 	return &JavascriptDuktapeEngine{}
 }
 
-func (e *JavascriptDuktapeEngine) PrepareContext(fctx *FunctionExecutionContext) (ExecutionEngineContext, error) {
+func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionContext) (common.ExecutionEngineContext, error) {
 	ctx := duktape.New()
 
 	ctx.PushGlobalObject()
 	ctx.PushObject()
 
 	ctx.PushGoFunction(func(c *duktape.Context) int {
-		res, err := GetInputBufferID(fctx)
+		res, err := common.GetInputBufferID(fctx)
 		if err != nil {
 			c.PushInt(-1)
 		} else {
@@ -39,7 +40,7 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *FunctionExecutionContext)
 	ctx.PutPropString(-2, "getInputBufferId")
 
 	ctx.PushGoFunction(func(c *duktape.Context) int {
-		res, err := GetOutputBufferID(fctx)
+		res, err := common.GetOutputBufferID(fctx)
 		if err != nil {
 			c.PushInt(-1)
 		} else {
@@ -110,7 +111,7 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *FunctionExecutionContext)
 
 	ctx.PushGoFunction(func(c *duktape.Context) int {
 		encoded := c.SafeToString(-1)
-		decoded, err := Base64Decode(fctx, encoded)
+		decoded, err := common.Base64Decode(fctx, encoded)
 		if err != nil {
 			fmt.Printf("cannot decode base64\n")
 			return 0
@@ -130,7 +131,7 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *FunctionExecutionContext)
 		contentType := c.SafeToString(-2)
 		name := c.SafeToString(-3)
 
-		techID, err := RegisterBlobWithName(fctx, name, contentType, contentBytes)
+		techID, err := common.RegisterBlobWithName(fctx, name, contentType, contentBytes)
 		if err != nil {
 			fmt.Printf("[ERROR] registerBlobWithName failed\n")
 			return 0
@@ -146,7 +147,7 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *FunctionExecutionContext)
 		contentBytes := (*[1 << 30]byte)(contentBytesPtr)[:contentBytesLength:contentBytesLength]
 		contentType := c.SafeToString(-2)
 
-		techID, err := RegisterBlob(fctx, contentType, contentBytes)
+		techID, err := common.RegisterBlob(fctx, contentType, contentBytes)
 		if err != nil {
 			fmt.Printf("[ERROR] registerBlob failed\n")
 			return 0
@@ -191,7 +192,7 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *FunctionExecutionContext)
 		path := c.SafeToString(-3)
 		method := c.SafeToString(-4)
 
-		err := PlugFunction(fctx, method, path, name, startFunction)
+		err := common.PlugFunction(fctx, method, path, name, startFunction)
 		if err != nil {
 			fmt.Printf("[ERROR] plugFunction failed\n")
 			return 0
@@ -206,7 +207,7 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *FunctionExecutionContext)
 		path := c.SafeToString(-2)
 		method := c.SafeToString(-3)
 
-		err := PlugFile(fctx, method, path, name)
+		err := common.PlugFile(fctx, method, path, name)
 		if err != nil {
 			fmt.Printf("[ERROR] plugFile failed\n")
 			return 0

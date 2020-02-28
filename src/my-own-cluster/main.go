@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"my-own-cluster/assetsgen"
 	"my-own-cluster/common"
+	"my-own-cluster/duktape"
+	"my-own-cluster/wasm"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -129,8 +131,8 @@ func main() {
 		orchestrator := common.NewOrchestrator(db)
 
 		// register execution engines
-		orchestrator.AddExecutionEngine("text/javascript", common.NewJavascriptDuktapeEngine())
-		orchestrator.AddExecutionEngine("application/wasm", common.NewWasmWasm3Engine())
+		orchestrator.AddExecutionEngine("text/javascript", duktape.NewJavascriptDuktapeEngine())
+		orchestrator.AddExecutionEngine("application/wasm", wasm.NewWasmWasm3Engine())
 
 		// init core-api
 		coreAPILibrary, err := assetsgen.Asset("assets/core-api.js")

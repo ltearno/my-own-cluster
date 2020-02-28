@@ -1,4 +1,4 @@
-package common
+package wasm
 
 /*
 #cgo CFLAGS: -Iinclude
@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"my-own-cluster/common"
 	"net/http"
 	"unsafe"
 
@@ -50,7 +51,7 @@ func setWasiStat(fd int, fdStatAddr unsafe.Pointer) {
 
 // WasmProcessContext represents a running WASM context
 type WasmProcessContext struct {
-	Fctx *FunctionExecutionContext
+	Fctx *common.FunctionExecutionContext
 
 	Runtime *wasm3.Runtime
 	Module  *wasm3.Module
@@ -75,7 +76,7 @@ func NewWasmWasm3Engine() *WasmWasm3Engine {
 	return &WasmWasm3Engine{}
 }
 
-func CreateWasmContext(fctx *FunctionExecutionContext) *WasmProcessContext {
+func CreateWasmContext(fctx *common.FunctionExecutionContext) *WasmProcessContext {
 	wctx := &WasmProcessContext{
 		Fctx:       fctx,
 		APIPlugins: []WASMAPIPlugin{},
@@ -110,7 +111,7 @@ func CreateStdErrVirtualFile(wctx *WasmProcessContext) VirtualFile {
 }
 
 func (vf *StdAccess) Read(buffer []byte) int {
-	l := Min(len(buffer), len(vf.ReadBuffer)-vf.ReadPos)
+	l := common.Min(len(buffer), len(vf.ReadBuffer)-vf.ReadPos)
 	copy(buffer, (vf.ReadBuffer)[vf.ReadPos:][:l])
 	vf.ReadPos = vf.ReadPos + l
 
@@ -141,7 +142,7 @@ func CreateInputVirtualFile(wctx *WasmProcessContext) VirtualFile {
 func (vf *InputAccessState) Read(buffer []byte) int {
 	inputBuffer := vf.Wctx.Fctx.Orchestrator.GetExchangeBuffer(vf.Wctx.Fctx.InputExchangeBufferID)
 
-	l := Min(len(buffer), len(inputBuffer.GetBuffer())-vf.ReadPos)
+	l := common.Min(len(buffer), len(inputBuffer.GetBuffer())-vf.ReadPos)
 	copy(buffer, (inputBuffer.GetBuffer())[vf.ReadPos:][:l])
 	vf.ReadPos = vf.ReadPos + l
 
@@ -210,7 +211,7 @@ func (vf *WebAccessState) Write(buffer []byte) int {
 func (vf *WebAccessState) Read(buffer []byte) int {
 	vf.readAll()
 
-	l := Min(len(buffer), len(*vf.Response)-vf.ReadPos)
+	l := common.Min(len(buffer), len(*vf.Response)-vf.ReadPos)
 	copy(buffer, (*vf.Response)[vf.ReadPos:][:l])
 	vf.ReadPos = vf.ReadPos + l
 
@@ -276,7 +277,7 @@ func (wctx *WasmProcessContext) AddAPIPlugin(plugin WASMAPIPlugin) {
 	wctx.APIPlugins = append(wctx.APIPlugins, plugin)
 }
 
-func (e *WasmWasm3Engine) PrepareContext(fctx *FunctionExecutionContext) (ExecutionEngineContext, error) {
+func (e *WasmWasm3Engine) PrepareContext(fctx *common.FunctionExecutionContext) (common.ExecutionEngineContext, error) {
 	wctx := CreateWasmContext(fctx)
 	if wctx == nil {
 		return nil, errors.New("cannot create wasm context")
@@ -368,7 +369,7 @@ func (wctx *WasmProcessContext) Run() error {
 						outputExchangeBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
 						inputExchangeBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
 
-						subFctx := &FunctionExecutionContext{
+						subFctx := &common.FunctionExecutionContext{
 							Name:                   m,
 							StartFunction:          *iField,
 							HasFinishedRunning:     false,

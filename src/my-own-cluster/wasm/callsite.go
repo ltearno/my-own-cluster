@@ -1,7 +1,8 @@
-package common
+package wasm
 
 import (
 	"fmt"
+	"my-own-cluster/common"
 	"unsafe"
 )
 
@@ -57,7 +58,7 @@ func (cs *CallSite) Print() {
 
 		b := *(*byte)(unsafe.Pointer(uintptr(cs.sp) + uintptr(i)))
 		fmt.Printf("%02x ", b)
-		if IsLetter(string(b)) {
+		if common.IsLetter(string(b)) {
 			chars = chars + string(b)
 		} else {
 			chars = chars + "."
