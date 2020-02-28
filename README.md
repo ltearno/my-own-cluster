@@ -68,6 +68,7 @@ My-own-cluster executes :
 
 - `web assembly` byte code thanks to the [wasm3](https://github.com/wasm3/wasm3) interpreter,
 - `javascript` code thanks to the [duktape](https://github.com/svaarala/duktape) interpreter (there is no nodejs runtime).
+- `glsl` OpenGL shader language, by using OpenGL NVidia/AMD drivers loaded by EGL.
 
 Each function is executed in a jailed and sandboxed very light VM instance (requires KVM, not yet fully implemented, code in [experiments/kvm](experiments/kvm/)).
 
@@ -183,6 +184,17 @@ cd samples/wasi-rust-demo
 make
 ```
 
+### OpenGL compute shader demo
+
+This is a demo using the OpenGL GLSL compute shader language. The shader simply squares float elements of an input array.
+
+This will only work woth a real GPU (tested with NVIDIA GTX960M and GTX1060).
+
+```bash
+cd samples/gpu-compute
+make
+```
+
 ### Other demos
 
 Other demos are available in the `samples/other` directory.
@@ -220,6 +232,14 @@ Run `make clean-db` to remove all persistence files. Your state will be lost.
 
 ## TODO
 
+- multi input buffers
+- sequencer/orchestrator
+- upgrading, hot-reloading
+- demo of ACL filter
+- begin distribution of nodes
+- finish a mandelbrot sample with opengl
+- integrate esgl3 for broader compatibility
+- sqlite engine
 - include project templates in the CLI : rust, c, js, ...
 - isolate wasm3 execution in KVM
 - run code: compile GNU core-utils and run them to see improve WASI POSIX compatibility issues (https://github.com/coreutils/coreutils)
