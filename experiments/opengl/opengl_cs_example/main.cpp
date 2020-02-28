@@ -33,7 +33,7 @@ GLuint computeHandle;
 void updateTex(int);
 void draw();
 
-int main() {
+int mddain() {
    initGL();
 
 /* setup a compute shader */
@@ -115,7 +115,7 @@ int main() {
    printf ("Compute shader dispatched and finished successfully\n");
 }
 
-int maddin() {
+int main() {
 	initGL();
 
 	GLuint texHandle = genTexture();

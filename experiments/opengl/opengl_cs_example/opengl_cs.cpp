@@ -30,7 +30,7 @@ GLuint genComputeProg(GLuint texHandle) {
 	// gl_GlobalInvocationID is a uvec3 variable giving the global ID of the thread,
 	// gl_LocalInvocationID is the local index within the work group, and
 	// gl_WorkGroupID is the work group's index
-    //const char *csSrc[] = loadTextd("shader_430.glsl");
+    //const char *csSrc[] = { loadTextd("shader_430.glsl") };
 	const char *csSrc[] = {
 		"#version 430\n",
 		"uniform float roll;\

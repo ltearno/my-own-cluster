@@ -96,7 +96,6 @@ int main(int argc, char *argv[])
 
 
    /* prepare input and output */
-   /*
    const int dataSize = 1024;
    float *in1 = malloc(sizeof(float) * dataSize);
    float *in2 = malloc(sizeof(float) * dataSize);
@@ -121,15 +120,7 @@ int main(int argc, char *argv[])
    printf("buffers: %d %d %d\n", in1Index, in2Index, outIndex);
 
 
-   glBindBuffer(GL_SHADER_STORAGE_BUFFER, outIndex);
-   checkErrors();
-   float *outBound = (float*) glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
-   checkErrors();
-   printf("outBound buffer: %p\n", outBound);
-   for(int i=8;i<10;i++)
-      printf("outBound[%d] = %f\n", i, outBound[i]);
-   glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-*/
+   
 
 
 
@@ -139,7 +130,7 @@ int main(int argc, char *argv[])
    checkErrors();
    printf("compute_shader created\n");
 
-   const char *shader_source = loadText("shader_101.glsl");
+   const char *shader_source = loadText("shader_430.glsl");
 
    glShaderSource (compute_shader, 1, &shader_source, NULL);
    checkErrors();
@@ -159,6 +150,27 @@ int main(int argc, char *argv[])
 
    glUseProgram (shader_program);
    checkErrors();
+
+
+   /* dispatch computation */
+   glDispatchCompute (dataSize, 1, 1);
+   checkErrors();
+
+
+   glBindBuffer(GL_SHADER_STORAGE_BUFFER, outIndex);
+   checkErrors();
+   float* tmp = malloc(sizeof(float) * dataSize);
+   glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(float) * dataSize, tmp);
+   printf("tmp buffer: %p\n", tmp);
+   for(int i=0;i<10;i++)
+      printf("tmp[%d] = %f\n", i, tmp[i]);
+
+   /*float *outBound = (float*) glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+   checkErrors();
+   printf("outBound buffer: %p\n", outBound);
+   for(int i=8;i<10;i++)
+      printf("outBound[%d] = %f\n", i, outBound[i]);
+   glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);*/
 
 
 

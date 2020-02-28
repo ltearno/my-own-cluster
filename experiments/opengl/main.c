@@ -236,7 +236,8 @@ int main() {
    float *in1 = malloc(sizeof(float) * dataSize);
    float *in2 = malloc(sizeof(float) * dataSize);
    for(int i=0;i<dataSize; i++ ){
-      in1[i] = in2[i] = i;
+      in1[i] = 0;
+      in2[i] = 1;
    }
    GLuint in1Index, in2Index, outIndex;
    glGenBuffers(1, &in1Index);
@@ -257,13 +258,19 @@ int main() {
    glDispatchCompute (dataSize, 1, 1);
    checkErrors();
 
-   //glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
-   //checkErrors();
+   glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+   checkErrors();
 
    printf ("Compute shader dispatched and finished successfully\n");
 
    glBindBuffer(GL_SHADER_STORAGE_BUFFER, outIndex);
    checkErrors();
+   float* tmp = malloc(sizeof(float) * dataSize);
+   glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(float) * dataSize, tmp);
+   printf("tmp buffer: %p\n", tmp);
+   for(int i=0;i<10;i++)
+      printf("tmp[%d] = %f\n", i, tmp[i]);
+
    float *outBound = (float*) glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
    checkErrors();
    printf("outBound buffer: %p\n", outBound);
