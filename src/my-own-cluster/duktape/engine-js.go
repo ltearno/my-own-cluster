@@ -6,7 +6,7 @@ import (
 	"my-own-cluster/common"
 	"my-own-cluster/coreapi"
 
-	"gopkg.in/olebedev/go-duktape.v3"
+	"gopkg.in/ltearno/go-duktape.v3"
 )
 
 type JSProcessContext struct {
@@ -255,6 +255,19 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 		case duktape.TypeBuffer:
 			inputPtr, inputLength := c.GetBuffer(-3)
 			input = (*[1 << 30]byte)(inputPtr)[:inputLength:inputLength]
+		case duktape.TypeObject:
+			fmt.Printf("TYPE OBJECT")
+			if c.IsBufferData(-3) {
+				fmt.Printf("TYPE BUFFERDATA")
+				inputPtr, inputLength := c.GetBufferData(-3)
+				input = (*[1 << 30]byte)(inputPtr)[:inputLength:inputLength]
+			} else {
+				fmt.Printf("cannot handle TypeObject content type of input param when calling function from js\n")
+				return 0
+			}
+		case duktape.TypePointer:
+			fmt.Printf("cannot handle TypePointer content type of input param when calling function from js\n")
+			return 0
 		default:
 			fmt.Printf("cannot guess content type of input param when calling function from js\n")
 			return 0
