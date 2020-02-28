@@ -6,12 +6,15 @@ function test() {
     var inputExchangeBufferId = moc.createExchangeBuffer()
     moc.writeExchangeBuffer(inputExchangeBufferId, input)
 
+    var outputExchangeBufferId = moc.createExchangeBuffer()
+
     var res = moc.callFunction(
         "gpu-compute-shader",
         "",
         [],
         "direct",
         inputExchangeBufferId,
+        outputExchangeBufferId,
         "",
         [""]
     )

@@ -81,6 +81,8 @@ function callFunction() {
     var inputExchangeBufferId = moc.createExchangeBuffer()
     if (req.input)
         moc.writeExchangeBuffer(inputExchangeBufferId, moc.base64Decode(req.input))
+    
+    var outputExchangeBufferId = moc.createExchangeBuffer()
 
     var result = moc.callFunction(
         req.name,
@@ -88,6 +90,7 @@ function callFunction() {
         req.arguments || [],
         req.mode || "direct",
         inputExchangeBufferId,
+        outputExchangeBufferId,
         req.posix_file_name || "",
         req.posix_arguments || [""]
     )
