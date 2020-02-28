@@ -178,6 +178,8 @@ type GLSLOpenGLProcessContext struct {
 type GLSLOpenGLEngine struct {
 }
 
+// TODO manage EGL contexts and free resources when used !! This is highly not done here (dirty crap code)
+
 func NewGLSLOpenGLEngine() (*GLSLOpenGLEngine, error) {
 	if 0 != 0 {
 		fmt.Printf("WARNING OpenGL engine not ready !")

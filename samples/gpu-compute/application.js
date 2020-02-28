@@ -1,4 +1,4 @@
-function test() {
+function launchShader() {
     var size = 1024
     var input = new Float32Array(size)
     for (var i = 0; i < size; i++)
