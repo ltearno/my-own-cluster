@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"my-own-cluster/common"
+	"my-own-cluster/tools"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -284,7 +284,7 @@ func detectContentTypeFromFileName(name string) string {
 
 	extension := name[i+1:]
 
-	mimeType, ok := common.MimeTypes[extension]
+	mimeType, ok := tools.MimeTypes[extension]
 	if !ok {
 		return "application/octet-stream"
 	}
