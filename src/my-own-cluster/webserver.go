@@ -8,6 +8,7 @@ import (
 	"my-own-cluster/common"
 	"net/http"
 	"path/filepath"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -165,7 +166,11 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 		}
 
 		// TODO add the ETag header corresponding to the sha
-		w.Header().Set("Content-Type", fileAbstract.ContentType)
+		contentType := fileAbstract.ContentType
+		if strings.HasPrefix(contentType, "text/") {
+			contentType = contentType + "; charset=utf-8"
+		}
+		w.Header().Set("Content-Type", contentType)
 		w.WriteHeader(200)
 		w.Write(fileBytes)
 

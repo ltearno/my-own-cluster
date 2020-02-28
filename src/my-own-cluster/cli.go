@@ -156,14 +156,7 @@ func CliPushFunction(verbs []Verb) {
 	functionName := verbs[0].Name
 	wasmFileName := verbs[1].Name
 
-	var codeType string
-	if strings.HasSuffix(wasmFileName, ".wasm") {
-		codeType = "application/wasm"
-	} else if strings.HasSuffix(wasmFileName, ".js") {
-		codeType = "text/javascript"
-	} else {
-		codeType = detectContentTypeFromFileName(wasmFileName)
-	}
+	codeType := detectContentTypeFromFileName(wasmFileName)
 
 	registerBlobWithName(baseURL, functionName, codeType, wasmFileName)
 }
@@ -231,7 +224,10 @@ func CliPlugFunction(verbs []Verb) {
 
 	path := verbs[0].Name
 	name := verbs[1].Name
-	startFunction := verbs[2].Name
+	startFunction := ""
+	if len(verbs) >= 3 {
+		startFunction = verbs[2].Name
+	}
 
 	reqBody := &PlugFunctionRequest{
 		Method:        method,
@@ -287,10 +283,6 @@ func detectContentTypeFromFileName(name string) string {
 	mimeType, ok := tools.MimeTypes[extension]
 	if !ok {
 		return "application/octet-stream"
-	}
-
-	if strings.HasPrefix(mimeType, "text/") {
-		mimeType = mimeType + "; charset=utf-8"
 	}
 
 	return mimeType

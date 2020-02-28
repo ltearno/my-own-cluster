@@ -40,6 +40,7 @@ func NewOrchestrator(db *leveldb.DB) *Orchestrator {
 
 func (o *Orchestrator) AddExecutionEngine(contentType string, engine ExecutionEngine) {
 	o.executionEngines[contentType] = engine
+	fmt.Printf("added execution engine for '%s'\n", contentType)
 }
 
 type FunctionExecutionContext struct {
@@ -106,10 +107,6 @@ func (fctx *FunctionExecutionContext) Run() error {
 	pluggedFunctionAbstract, err := fctx.Orchestrator.GetBlobAbstractByTechID(pluggedFunctionTechID)
 	if err != nil {
 		return fmt.Errorf("can't find plugged function abstract (%s)", fctx.Name)
-	}
-
-	if pluggedFunctionAbstract.ContentType != "application/wasm" && pluggedFunctionAbstract.ContentType != "text/javascript" {
-		return fmt.Errorf("not supported function code type '%s'", pluggedFunctionAbstract.ContentType)
 	}
 
 	codeBytes, err := fctx.Orchestrator.GetBlobBytesByTechID(pluggedFunctionTechID)

@@ -288,6 +288,7 @@ var MimeTypes map[string]string = map[string]string{
 	"ghf":         "application/vnd.groove-help",
 	"gif":         "image/gif",
 	"gim":         "application/vnd.groove-identity-message",
+	"glsl":        "text/glsl",
 	"gml":         "application/gml+xml",
 	"gmx":         "application/vnd.gmx",
 	"gnumeric":    "application/x-gnumeric",

@@ -1,4 +1,4 @@
-package main
+package opengl
 
 /*
 #cgo LDFLAGS: -lOpenGL -lGLU -lEGL
@@ -16,16 +16,17 @@ package main
 
 void err(int n, char* s){
 	printf("err %d %s\n", n, s);
-	exit(n);
 }
 
-void checkErrors(const char* when) {
+int checkErrors(const char* when) {
 	GLenum e = glGetError();
 	if (e != GL_NO_ERROR) {
 		//fprintf(stderr, "OpenGL error: %s (%d)\n", gluErrorString(e), e);
         fprintf(stderr, "OpenGL error when %s: (0x%x)\n", when, e);
-		exit(20);
-	}
+		return -1;
+  }
+
+  return 0;
 }
 
   static const EGLint configAttribs[] = {
@@ -44,8 +45,8 @@ void checkErrors(const char* when) {
         EGL_NONE,
   };
 
-int runOpenGLDemo(const char *shader_source)
-{
+
+int initGL() {
   // 1. Initialize EGL
   unsetenv("DISPLAY");
   EGLDisplay eglDpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
@@ -55,8 +56,14 @@ int runOpenGLDemo(const char *shader_source)
   printf("EGL_VENDOR: '%s'\n", eglQueryString(eglDpy, EGL_VENDOR));
   printf("EGL_VERSION: '%s'\n", eglQueryString(eglDpy, EGL_VERSION));
 
+  EGLBoolean res;
+
   EGLint major, minor;
-  eglInitialize(eglDpy, &major, &minor);
+  res = eglInitialize(eglDpy, &major, &minor);
+  if(res!=EGL_TRUE) {
+    printf("cannot get egl version\n");
+    return -1;
+  }
   printf("egl version %d.%d\n", major, minor);
 
   // 2. Select an appropriate configuration
@@ -92,109 +99,109 @@ int runOpenGLDemo(const char *shader_source)
   printf("GL_RENDERER: '%s'\n", glGetString(GL_RENDERER));
   printf("GL_EXTENSIONS: '%s'\n", glGetString(GL_EXTENSIONS));
 
-  // prepare input and output
-  const int dataSize = 1024;
-  float *in1 = malloc(sizeof(float) * dataSize);
-  float *in2 = malloc(sizeof(float) * dataSize);
-  for(int i=0;i<dataSize; i++ ){
-    in1[i] = in2[i] = i;
-  }
-  GLuint in1Index, in2Index, outIndex;
-  glGenBuffers(1, &in1Index);
-  checkErrors("gen buffers");
-  glBindBuffer(GL_SHADER_STORAGE_BUFFER, in1Index);
-  checkErrors("bind buffer");
-  glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * dataSize, in1, GL_DYNAMIC_COPY);
-  checkErrors("buffer data");
-  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, in1Index);
-  checkErrors("bind buffer base");
-  glGenBuffers(1, &in2Index);
-  glBindBuffer(GL_SHADER_STORAGE_BUFFER, in2Index);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * dataSize, in2, GL_DYNAMIC_COPY);
-  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, in2Index);
+  // TODO should do that at the end
+  //eglTerminate(eglDpy);
+}
+
+int runShader(const char *inputData, int inputDataLen, char *outputData, int outputDataLen, const char *shader_source, int dispatchSizeX, int dispatchSizeY, int dispatchSizeZ)
+{
+  GLuint inIndex;
+  glGenBuffers(1, &inIndex);
+  if(checkErrors("gen buffers")!=0) return -1;
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, inIndex);
+  if(checkErrors("bind buffer")!=0) return -1;
+  glBufferData(GL_SHADER_STORAGE_BUFFER, inputDataLen, inputData, GL_DYNAMIC_COPY);
+  if(checkErrors("buffer data")!=0) return -1;
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, inIndex);
+  if(checkErrors("bind buffer base")!=0) return -1;
+
+  GLuint outIndex;
   glGenBuffers(1, &outIndex);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, outIndex);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * dataSize, NULL, GL_DYNAMIC_COPY);
-  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, outIndex);
-  checkErrors("creating and binding buffers");
+  if(checkErrors("bind buffer")!=0) return -1;
+  glBufferData(GL_SHADER_STORAGE_BUFFER, outputDataLen, NULL, GL_DYNAMIC_COPY);
+  glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, outIndex);
+  if(checkErrors("creating and binding buffers")!=0) return -1;
 
-  printf("buffers: %d %d %d\n", in1Index, in2Index, outIndex);
+  printf("buffers: %d %d\n", inIndex, outIndex);
 
   // setup a compute shader
   printf("compute_shader creating...\n");
   GLuint compute_shader = glCreateShader (GL_COMPUTE_SHADER);
-  checkErrors("creating shader");
+  if(checkErrors("creating shader")!=0) return -1;
   printf("compute_shader created\n");
 
   glShaderSource (compute_shader, 1, &shader_source, NULL);
-  checkErrors("giving shader source");
+  if(checkErrors("giving shader source")!=0) return -1;
 
   glCompileShader (compute_shader);
-  checkErrors("compiling shader");
+  if(checkErrors("compiling shader")!=0) return -1;
 
   GLuint shader_program = glCreateProgram ();
 
   glAttachShader (shader_program, compute_shader);
-  checkErrors("attaching shader");
+  if(checkErrors("attaching shader")!=0) return -1;
 
   glLinkProgram (shader_program);
-  checkErrors("linking shader");
+  if(checkErrors("linking shader")!=0) return -1;
 
   glDeleteShader (compute_shader);
 
   glUseProgram (shader_program);
-  checkErrors("using shader in program");
+  if(checkErrors("using shader in program")!=0) return -1;
 
   // dispatch computation
-  glDispatchCompute (dataSize, 1, 1);
-  checkErrors("dispatching compute");
+  glDispatchCompute (dispatchSizeX, dispatchSizeY, dispatchSizeZ);
+  if(checkErrors("dispatching compute")!=0) return -1;
 
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, outIndex);
-  checkErrors("binding buffer");
-  float* tmp = malloc(sizeof(float) * dataSize);
-  glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(float) * dataSize, tmp);
-  checkErrors("getting buffer sub data");
-  printf("tmp buffer: %p\n", tmp);
-  for(int i=0;i<10;i++)
-    printf("tmp[%d] = %f\n", i, tmp[i]);
-
-  // 6. Terminate EGL when finished
-  eglTerminate(eglDpy);
-  printf("ok\n");
+  if(checkErrors("binding buffer")!=0) return -1;
+  glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, outputDataLen, outputData);
+  if(checkErrors("getting buffer sub data")!=0) return -1;
   return 0;
 }
 */
 import "C"
+import (
+	"errors"
+	"my-own-cluster/common"
+	"unsafe"
+)
 
-var shaderCode string = `
-#version 430
-
-layout(std430) buffer;
-layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
-
-layout(binding = 0) readonly buffer Input0 {
-    float elements[];
-} input_data0;
-
-layout(binding = 1) readonly buffer Input1 {
-    float elements[];
-} input_data1;
-
-layout(binding = 2) writeonly buffer Output {
-    float elements[];
-} output_data;
-
-void main() {
-    uint ident = gl_GlobalInvocationID.x;
-    output_data.elements[ident] = input_data0.elements[ident] * input_data1.elements[ident];
-
-    //ivec2 storePos = ivec2(gl_GlobalInvocationID.xy);
-    //float localCoef = length(vec2(ivec2(gl_LocalInvocationID.xy)-8)/8.0);
-    //float globalCoef = sin(float(gl_WorkGroupID.x+gl_WorkGroupID.y)*0.1 + roll)*0.5;
-    //imageStore(destTex, storePos, vec4(1.0-globalCoef*localCoef, 0.0, 0.0, 0.0));
+type GLSLOpenGLProcessContext struct {
+	Fctx *common.FunctionExecutionContext
 }
-`
 
-func TestOpenGL() {
-	C.runOpenGLDemo(C.CString(shaderCode))
+type GLSLOpenGLEngine struct {
+}
+
+func NewGLSLOpenGLEngine() (*GLSLOpenGLEngine, error) {
+	if C.initGL() != 0 {
+		return nil, errors.New("cannot instantiate OpenGL")
+	}
+
+	return &GLSLOpenGLEngine{}, nil
+}
+
+func (e *GLSLOpenGLEngine) PrepareContext(fctx *common.FunctionExecutionContext) (common.ExecutionEngineContext, error) {
+	return &GLSLOpenGLProcessContext{
+		Fctx: fctx,
+	}, nil
+}
+
+func (c *GLSLOpenGLProcessContext) Run() error {
+	C.initGL()
+
+	inputBuffer := c.Fctx.Orchestrator.GetExchangeBuffer(c.Fctx.InputExchangeBufferID).GetBuffer()
+	// by default we use input buffer size, but that should be changed
+	outputData := make([]byte, len(inputBuffer))
+
+	C.runShader(
+		(*C.char)(unsafe.Pointer(&inputBuffer[0])), C.int(len(inputBuffer)),
+		(*C.char)(unsafe.Pointer(&outputData[0])), C.int(len(outputData)),
+		C.CString(string(c.Fctx.CodeBytes)),
+		C.int(len(inputBuffer)), C.int(1), C.int(1))
+
+	c.Fctx.Orchestrator.GetExchangeBuffer(c.Fctx.OutputExchangeBufferID).Write(outputData)
+	return nil
 }

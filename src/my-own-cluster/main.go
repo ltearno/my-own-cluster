@@ -5,6 +5,7 @@ import (
 	"my-own-cluster/assetsgen"
 	"my-own-cluster/common"
 	"my-own-cluster/duktape"
+	"my-own-cluster/opengl"
 	"my-own-cluster/wasm"
 	"os"
 	"os/signal"
@@ -133,6 +134,12 @@ func main() {
 		// register execution engines
 		orchestrator.AddExecutionEngine("text/javascript", duktape.NewJavascriptDuktapeEngine())
 		orchestrator.AddExecutionEngine("application/wasm", wasm.NewWasmWasm3Engine())
+		openGLEngine, err := opengl.NewGLSLOpenGLEngine()
+		if err == nil {
+			orchestrator.AddExecutionEngine("text/glsl", openGLEngine)
+		} else {
+			fmt.Printf("cannot instantiate OpenGL engine\n")
+		}
 
 		// init core-api
 		coreAPILibrary, err := assetsgen.Asset("assets/core-api.js")
@@ -199,10 +206,6 @@ func main() {
 
 	case "kvm_test":
 		TestKVM()
-		break
-
-	case "opengl_test":
-		TestOpenGL()
 		break
 
 	default:
