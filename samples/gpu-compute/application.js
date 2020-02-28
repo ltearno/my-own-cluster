@@ -2,11 +2,11 @@ function test() {
     console.log("test openGL")
     var size = 1024
     var input = new Float32Array(size)
-    console.log(input)
     for (var i = 0; i < size; i++)
-        input[i] = i
+    input[i] = i
+    console.log(input)
 
-    moc.callFunction(
+    var res = moc.callFunction(
         "gpu-compute-shader",
         "",
         [],
@@ -15,4 +15,6 @@ function test() {
         "",
         [""]
     )
+
+    moc.writeExchangeBuffer(moc.getOutputBufferId(), res.output)
 }

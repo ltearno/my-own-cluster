@@ -1,7 +1,6 @@
 package duktape
 
 import (
-	"encoding/base64"
 	"fmt"
 	"my-own-cluster/common"
 	"my-own-cluster/coreapi"
@@ -69,16 +68,7 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 
 	ctx.PushGoFunction(func(c *duktape.Context) int {
 		bufferID := int(c.GetNumber(-2))
-
-		var contentBytes []byte
-		switch c.GetType(-1) {
-		case duktape.TypeString:
-			contentBytes = []byte(c.SafeToString(-1))
-			break
-		default:
-			fmt.Printf("cannot guess content type when writing on buffer %d\n", bufferID)
-			return 0
-		}
+		contentBytes := SafeToBytes(c, -1)
 
 		buffer := fctx.Orchestrator.GetExchangeBuffer(bufferID)
 		if buffer == nil {
@@ -91,7 +81,7 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 		c.PushInt(len(contentBytes))
 		return 1
 	})
-	ctx.PutPropString(-2, "writeExchangeBufferFromString")
+	ctx.PutPropString(-2, "writeExchangeBuffer")
 
 	ctx.PushGoFunction(func(c *duktape.Context) int {
 		bufferID := int(c.GetNumber(-3))
@@ -125,6 +115,16 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 		return 1
 	})
 	ctx.PutPropString(-2, "base64Decode")
+
+	ctx.PushGoFunction(func(c *duktape.Context) int {
+		decoded := SafeToBytes(c, -1)
+		encoded := coreapi.Base64Encode(fctx, decoded)
+
+		c.PushString(encoded)
+
+		return 1
+	})
+	ctx.PutPropString(-2, "base64Encode")
 
 	ctx.PushGoFunction(func(c *duktape.Context) int {
 		contentBytesPtr, contentBytesLength := c.GetBuffer(-1)
@@ -230,6 +230,7 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 		}
 		c.Pop()
 		mode := c.SafeToString(-4)
+		input := SafeToBytes(c, -3)
 		posixFileName := c.SafeToString(-2)
 		// #define DUK_ENUM_ARRAY_INDICES_ONLY       (1U << 5)    /* only enumerate array indices */
 		posixArguments := []string{}
@@ -240,38 +241,6 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 			c.Pop()
 		}
 		c.Pop()
-
-		var input []byte
-		switch c.GetType(-3) {
-		case duktape.TypeString:
-			encoded := c.SafeToString(-3)
-			decoded, err := base64.StdEncoding.WithPadding(base64.StdPadding).DecodeString(encoded)
-			if err != nil {
-				fmt.Printf("cannot decode input string\n")
-				return 0
-			}
-			input = decoded
-			break
-		case duktape.TypeBuffer:
-			inputPtr, inputLength := c.GetBuffer(-3)
-			input = (*[1 << 30]byte)(inputPtr)[:inputLength:inputLength]
-		case duktape.TypeObject:
-			fmt.Printf("TYPE OBJECT")
-			if c.IsBufferData(-3) {
-				fmt.Printf("TYPE BUFFERDATA")
-				inputPtr, inputLength := c.GetBufferData(-3)
-				input = (*[1 << 30]byte)(inputPtr)[:inputLength:inputLength]
-			} else {
-				fmt.Printf("cannot handle TypeObject content type of input param when calling function from js\n")
-				return 0
-			}
-		case duktape.TypePointer:
-			fmt.Printf("cannot handle TypePointer content type of input param when calling function from js\n")
-			return 0
-		default:
-			fmt.Printf("cannot guess content type of input param when calling function from js\n")
-			return 0
-		}
 
 		inputExchangeBufferID := fctx.Orchestrator.CreateExchangeBuffer()
 		inputExchangeBuffer := fctx.Orchestrator.GetExchangeBuffer(inputExchangeBufferID)
@@ -297,6 +266,7 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 		}
 
 		outputExchangeBuffer := fctx.Orchestrator.GetExchangeBuffer(outputExchangeBufferID)
+		outputBytes := outputExchangeBuffer.GetBuffer()
 
 		// push a json with status result and output
 		c.PushObject()
@@ -304,7 +274,8 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 		c.PutPropString(-2, "status")
 		c.PushInt(newCtx.Result)
 		c.PutPropString(-2, "result")
-		c.PushString(base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(outputExchangeBuffer.GetBuffer()))
+		dest := (*[1 << 30]byte)(c.PushBuffer(len(outputBytes), false))[:len(outputBytes):len(outputBytes)]
+		copy(dest, outputBytes)
 		c.PutPropString(-2, "output")
 
 		// release exchange buffers
@@ -328,6 +299,33 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 		Fctx:    fctx,
 		Context: ctx,
 	}, nil
+}
+
+func SafeToBytes(c *duktape.Context, index int) []byte {
+	var input []byte = nil
+	switch c.GetType(index) {
+	case duktape.TypeString:
+		input = []byte(c.SafeToString(index))
+		break
+	case duktape.TypeBuffer:
+		inputPtr, inputLength := c.GetBuffer(index)
+		input = (*[1 << 30]byte)(inputPtr)[:inputLength:inputLength]
+	case duktape.TypeObject:
+		if c.IsBufferData(index) {
+			inputPtr, inputLength := c.GetBufferData(index)
+			input = (*[1 << 30]byte)(inputPtr)[:inputLength:inputLength]
+		} else {
+			fmt.Printf("cannot handle TypeObject content type of input param when SafeToBytes\n")
+			return nil
+		}
+	case duktape.TypePointer:
+		fmt.Printf("cannot handle TypePointer content type of input param when SafeToBytes\n")
+		return nil
+	default:
+		fmt.Printf("cannot guess content type of input param when SafeToBytes\n")
+		return nil
+	}
+	return input
 }
 
 func (jsctx *JSProcessContext) Run() error {

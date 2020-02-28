@@ -24,7 +24,7 @@ function plugFunction() {
         req.start_function
     )
 
-    moc.writeExchangeBufferFromString(moc.getOutputBufferId(), JSON.stringify({
+    moc.writeExchangeBuffer(moc.getOutputBufferId(), JSON.stringify({
         status: true,
     }))
 
@@ -40,7 +40,7 @@ function plugFile() {
         req.name
     )
 
-    moc.writeExchangeBufferFromString(moc.getOutputBufferId(), JSON.stringify({
+    moc.writeExchangeBuffer(moc.getOutputBufferId(), JSON.stringify({
         status: true,
     }))
 
@@ -67,7 +67,7 @@ function registerBlob() {
         );
     }
 
-    moc.writeExchangeBufferFromString(moc.getOutputBufferId(), JSON.stringify({
+    moc.writeExchangeBuffer(moc.getOutputBufferId(), JSON.stringify({
         status: true,
         tech_id: techID
     }))
@@ -78,17 +78,22 @@ function registerBlob() {
 function callFunction() {
     var req = JSON.parse(moc.readExchangeBufferAsString(moc.getInputBufferId()))
 
+    var input = req.input ? moc.base64Decode(req.input) : null
+
     var result = moc.callFunction(
         req.name,
         req.start_function || "_start",
         req.arguments || [],
         req.mode || "direct",
-        req.input || "",
+        input,
         req.posix_file_name || "",
         req.posix_arguments || [""]
     )
 
-    moc.writeExchangeBufferFromString(moc.getOutputBufferId(), JSON.stringify(result))
+    // read output buffer and base 64 encode it
+    result.output = moc.base64Encode(result.output)
+
+    moc.writeExchangeBuffer(moc.getOutputBufferId(), JSON.stringify(result))
 
     return 200
 }

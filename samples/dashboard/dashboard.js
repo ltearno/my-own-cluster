@@ -167,7 +167,7 @@ function getDashboardHtml() {
     var resultText = tempFn(status);
 
     moc.writeExchangeBufferHeader(moc.getOutputBufferId(), "Content-Type", "text/html");
-    moc.writeExchangeBufferFromString(moc.getOutputBufferId(), resultText);
+    moc.writeExchangeBuffer(moc.getOutputBufferId(), resultText);
 
     return 200
 }

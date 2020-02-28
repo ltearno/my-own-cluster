@@ -64,3 +64,7 @@ func Base64Decode(ctx *common.FunctionExecutionContext, encoded string) ([]byte,
 
 	return decoded, nil
 }
+
+func Base64Encode(ctx *common.FunctionExecutionContext, b []byte) string {
+	return base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(b)
+}

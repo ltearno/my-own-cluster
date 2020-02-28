@@ -60,7 +60,7 @@ int initGL() {
 
   EGLint major, minor;
   res = eglInitialize(eglDpy, &major, &minor);
-  if(res!=EGL_TRUE) {
+  if(major!=1) {
     printf("cannot get egl version\n");
     return -1;
   }
@@ -77,8 +77,8 @@ int initGL() {
   EGLConfig eglCfg = eglConfigs[0];
   //eglChooseConfig(eglDpy, configAttribs, &eglCfg, 1, &configCount);
 
-  // 3. Create a surface
-  EGLSurface eglSurf = eglCreatePbufferSurface(eglDpy, eglCfg, pbufferAttribs);
+  // 3. Create a surface (used in eglMakeCurrent but not required since we only work with SSBO for now...)
+  //EGLSurface eglSurf = eglCreatePbufferSurface(eglDpy, eglCfg, pbufferAttribs);
 
   // 4. Bind the API
   eglBindAPI(EGL_OPENGL_API);
@@ -92,7 +92,7 @@ int initGL() {
 
   EGLContext eglCtx = eglCreateContext(eglDpy, eglCfg, EGL_NO_CONTEXT, eglAttrs);
 
-  eglMakeCurrent(eglDpy, eglSurf, eglSurf, eglCtx);
+  eglMakeCurrent(eglDpy, EGL_NO_SURFACE, EGL_NO_SURFACE, eglCtx);
 
   printf("GL_VERSION: '%s'\n", glGetString(GL_VERSION));
   printf("GL_VENDOR: '%s'\n", glGetString(GL_VENDOR));
@@ -101,6 +101,8 @@ int initGL() {
 
   // TODO should do that at the end
   //eglTerminate(eglDpy);
+
+  return 0;
 }
 
 int runShader(const char *inputData, int inputDataLen, char *outputData, int outputDataLen, const char *shader_source, int dispatchSizeX, int dispatchSizeY, int dispatchSizeZ)
@@ -108,6 +110,13 @@ int runShader(const char *inputData, int inputDataLen, char *outputData, int out
   GLuint inIndex;
   glGenBuffers(1, &inIndex);
   if(checkErrors("gen buffers")!=0) return -1;
+
+  GLuint outIndex;
+  glGenBuffers(1, &outIndex);
+  if(checkErrors("gen buffers")!=0) return -1;
+
+  printf("buffers: %d %d\n", inIndex, outIndex);
+
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, inIndex);
   if(checkErrors("bind buffer")!=0) return -1;
   glBufferData(GL_SHADER_STORAGE_BUFFER, inputDataLen, inputData, GL_DYNAMIC_COPY);
@@ -115,15 +124,11 @@ int runShader(const char *inputData, int inputDataLen, char *outputData, int out
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, inIndex);
   if(checkErrors("bind buffer base")!=0) return -1;
 
-  GLuint outIndex;
-  glGenBuffers(1, &outIndex);
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, outIndex);
   if(checkErrors("bind buffer")!=0) return -1;
   glBufferData(GL_SHADER_STORAGE_BUFFER, outputDataLen, NULL, GL_DYNAMIC_COPY);
   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, outIndex);
   if(checkErrors("creating and binding buffers")!=0) return -1;
-
-  printf("buffers: %d %d\n", inIndex, outIndex);
 
   // setup a compute shader
   printf("compute_shader creating...\n");
@@ -163,7 +168,9 @@ int runShader(const char *inputData, int inputDataLen, char *outputData, int out
 */
 import "C"
 import (
-	"errors"
+	"encoding/binary"
+	"fmt"
+	"math"
 	"my-own-cluster/common"
 	"unsafe"
 )
@@ -176,8 +183,9 @@ type GLSLOpenGLEngine struct {
 }
 
 func NewGLSLOpenGLEngine() (*GLSLOpenGLEngine, error) {
-	if C.initGL() != 0 {
-		return nil, errors.New("cannot instantiate OpenGL")
+	if 0 != 0 {
+		fmt.Printf("WARNING OpenGL engine not ready !")
+		// return nil, errors.New("cannot instantiate OpenGL")
 	}
 
 	return &GLSLOpenGLEngine{}, nil
@@ -193,14 +201,33 @@ func (c *GLSLOpenGLProcessContext) Run() error {
 	C.initGL()
 
 	inputBuffer := c.Fctx.Orchestrator.GetExchangeBuffer(c.Fctx.InputExchangeBufferID).GetBuffer()
+
+	fmt.Println(inputBuffer)
+	//floats := (*[1 << 30]float32)(unsafe.Pointer(&inputBuffer[0]))[:1024:1024]
+	for i := 0; i < 10; i++ {
+		//fmt.Printf("%f\n", floats[i])
+
+		bits := binary.LittleEndian.Uint32(inputBuffer[i*4 : (i+1)*4])
+		fl := math.Float32frombits(bits)
+		fmt.Println(fl)
+	}
+
 	// by default we use input buffer size, but that should be changed
 	outputData := make([]byte, len(inputBuffer))
+	fmt.Printf("output length : %d\n", len(outputData))
 
 	C.runShader(
 		(*C.char)(unsafe.Pointer(&inputBuffer[0])), C.int(len(inputBuffer)),
 		(*C.char)(unsafe.Pointer(&outputData[0])), C.int(len(outputData)),
 		C.CString(string(c.Fctx.CodeBytes)),
-		C.int(len(inputBuffer)), C.int(1), C.int(1))
+		C.int(len(inputBuffer)/4 /*float size, hardcoded*/), C.int(1), C.int(1))
+
+	fmt.Println(outputData)
+	for i := 0; i < 10; i++ {
+		bits := binary.LittleEndian.Uint32(outputData[i*4 : (i+1)*4])
+		fl := math.Float32frombits(bits)
+		fmt.Println(fl)
+	}
 
 	c.Fctx.Orchestrator.GetExchangeBuffer(c.Fctx.OutputExchangeBufferID).Write(outputData)
 	return nil
