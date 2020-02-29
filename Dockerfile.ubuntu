@@ -22,6 +22,8 @@ RUN cp /wasm3/wasm3/build/source/libm3.a /my-own-cluster/src/github.com/ltearno/
 
 RUN make build-embed-assets
 
+RUN apt install -y libgbm-dev
+
 RUN make build
 
 RUN mkdir /data

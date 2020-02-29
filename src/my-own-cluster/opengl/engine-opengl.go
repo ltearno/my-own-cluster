@@ -32,7 +32,7 @@ int checkErrors(const char* when) {
 }
 
   static const EGLint configAttribs[] = {
-          EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
+          //EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
           EGL_NONE
   };
 
@@ -45,35 +45,36 @@ int checkErrors(const char* when) {
 
 int initGLByEGL() {
   // 1. Initialize EGL
-  unsetenv("DISPLAY");
-  EGLDisplay eglDpy;
-  if(1){
-    int fd = open ("/dev/dri/renderD128", O_RDWR);
-      if (fd < 0) {
-        printf("cannot open /dev/dri/renderD128 device\n");
-        return -3;
-      }
-      printf("opened dri device %d\n", fd);
-
-      struct gbm_device *gbm = gbm_create_device (fd);
-      if (gbm == NULL) {
-        printf("cannot create gbm device\n");
-        return -4;
-      }
-      printf("opened gbm device %p\n", gbm);
-
-      eglDpy = eglGetPlatformDisplay (EGL_PLATFORM_GBM_MESA, gbm, NULL);
-  }
-  else {
-    eglDpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-  }
-
+  //unsetenv("DISPLAY");
+  EGLDisplay eglDpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
   EGLint major, minor;
   EGLBoolean res = eglInitialize(eglDpy, &major, &minor);
-  if(major!=EGL_TRUE) {
-    return -1;
+  if(major!=1) {
+    printf("trying initialize with gbm and dri\n");
+    int fd = open ("/dev/dri/renderD128", O_RDWR);
+    if (fd < 0) {
+      printf("cannot open /dev/dri/renderD128 device\n");
+      return -3;
+    }
+    printf("opened dri device %d\n", fd);
+
+    struct gbm_device *gbm = gbm_create_device (fd);
+    if (gbm == NULL) {
+      printf("cannot create gbm device\n");
+      return -4;
+    }
+    printf("opened gbm device %p\n", gbm);
+
+    eglDpy = eglGetPlatformDisplay (EGL_PLATFORM_GBM_MESA, gbm, NULL);
+
+    EGLBoolean res = eglInitialize(eglDpy, &major, &minor);
+    if(major!=1) {
+      return -11;
+    }
   }
   printf("egl version %d.%d\n", major, minor);
+
+
 
   printf("EGL_CLIENT_APIS: '%s'\n", eglQueryString(eglDpy, EGL_CLIENT_APIS));
   printf("EGL_EXTENSIONS: '%s'\n", eglQueryString(eglDpy, EGL_EXTENSIONS));
@@ -99,7 +100,7 @@ int initGLByEGL() {
 
   // 5. Create a context and make it current
   EGLint eglAttrs[] = {
-    EGL_CONTEXT_CLIENT_VERSION, 3,
+    //EGL_CONTEXT_CLIENT_VERSION, 3,
     EGL_NONE
   };
 
