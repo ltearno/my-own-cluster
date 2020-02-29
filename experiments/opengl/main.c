@@ -47,13 +47,35 @@ void checkErrors() {
 
 void initGL();
 
+static const EGLint defaultConfigAttrs[] = {
+   EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
+   /*EGL_BLUE_SIZE, 8,
+   EGL_GREEN_SIZE, 8,
+   EGL_RED_SIZE, 8,
+   EGL_DEPTH_SIZE, 8,*/
+   EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
+   EGL_NONE,
+};
+
+static const EGLint gbmConfigAttrs[] = {
+   //EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
+   /*EGL_BLUE_SIZE, 8,
+   EGL_GREEN_SIZE, 8,
+   EGL_RED_SIZE, 8,
+   EGL_DEPTH_SIZE, 8,*/
+   EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
+   EGL_NONE,
+};
+
 int main() {
    //initGL();
    //exit(0);
 
    EGLDisplay egl_dpy;
 
-   if(true) {
+   EGLint* configAttrs;
+
+   if(getenv("DISPLAY")!=NULL) {
       int fd = open ("/dev/dri/renderD128", O_RDWR);
       assert (fd > 0);
       printf("opened dri device %d\n", fd);
@@ -62,12 +84,20 @@ int main() {
       assert (gbm != NULL);
       printf("opened gbm device %p\n", gbm);
 
+      configAttrs = gbmConfigAttrs;
+
       /* setup EGL from the GBM device */
-      egl_dpy = eglGetPlatformDisplay (EGL_PLATFORM_GBM_MESA, gbm, NULL);
+      egl_dpy = eglGetPlatformDisplay (EGL_PLATFORM_GBM_KHR, gbm, NULL);
    }
    else {
-      Display* x_dpy = XOpenDisplay(NULL);
-      egl_dpy = eglGetPlatformDisplay(EGL_PLATFORM_X11_KHR, x_dpy, NULL);
+      unsetenv("DISPLAY");
+
+      configAttrs = defaultConfigAttrs;
+
+      egl_dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+
+      //Display* x_dpy = XOpenDisplay(NULL);
+      //egl_dpy = eglGetPlatformDisplay(EGL_PLATFORM_X11_KHR, x_dpy, NULL);
    }
 
    assert (egl_dpy != NULL);
@@ -86,19 +116,14 @@ int main() {
    printf("EGL_EXTENSIONS: '%s'\n", eglQueryString(egl_dpy, EGL_EXTENSIONS));
    printf("EGL_VENDOR: '%s'\n", eglQueryString(egl_dpy, EGL_VENDOR));
    printf("EGL_VERSION: '%s'\n", eglQueryString(egl_dpy, EGL_VERSION));
-
-   static const EGLint config_attribs[] = {
-      EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
-      EGL_NONE
-   };
    
    EGLint configCount;
-   res = eglChooseConfig (egl_dpy, config_attribs, NULL, 0, &configCount);
+   res = eglChooseConfig (egl_dpy, configAttrs, NULL, 0, &configCount);
    printf("config_count: %d\n", configCount);
+   fflush(stdout);
 
    EGLConfig *configs = (EGLConfig*) malloc(sizeof(EGLConfig) * configCount);
-
-   res = eglChooseConfig (egl_dpy, config_attribs, configs, configCount, &configCount);
+   res = eglChooseConfig (egl_dpy, configAttrs, configs, configCount, &configCount);
    assert (res);
 
    for(int i=0; i<configCount; i++) {
@@ -113,7 +138,7 @@ int main() {
    assert (res);
 
    static const EGLint attribs[] = {
-      EGL_CONTEXT_CLIENT_VERSION, 3,
+      //EGL_CONTEXT_CLIENT_VERSION, 3,
       EGL_NONE
    };
 

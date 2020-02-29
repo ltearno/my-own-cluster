@@ -1,7 +1,7 @@
 package opengl
 
 /*
-#cgo LDFLAGS: -lOpenGL -lGLU -lgbm -lEGL
+#cgo LDFLAGS: -lOpenGL -lEGL
 #define GL_GLEXT_PROTOTYPES
 #include <fcntl.h>
 #include <EGL/egl.h>
@@ -12,8 +12,6 @@ package opengl
 
 #include "glext.h"
 
-#include <gbm.h>
-
 #include <stdio.h>
 
 void err(int n, char* s){
@@ -23,82 +21,41 @@ void err(int n, char* s){
 int checkErrors(const char* when) {
 	GLenum e = glGetError();
 	if (e != GL_NO_ERROR) {
-		//fprintf(stderr, "OpenGL error: %s (%d)\n", gluErrorString(e), e);
-        fprintf(stderr, "OpenGL error when %s: (0x%x)\n", when, e);
+		fprintf(stderr, "OpenGL error when %s: (0x%x)\n", when, e);
 		return -1;
   }
 
   return 0;
 }
 
-  static const EGLint configAttribs[] = {
-          //EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
-          EGL_NONE
-  };
-
-  static const EGLint pbufferAttribs[] = {
-        EGL_WIDTH, 9,
-        EGL_HEIGHT, 9,
-        EGL_NONE,
-  };
-
+static const EGLint configAttribs[] = {
+  //EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
+  EGL_NONE
+};
 
 int initGLByEGL() {
-  // 1. Initialize EGL
-  //unsetenv("DISPLAY");
   EGLDisplay eglDpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+
   EGLint major, minor;
   EGLBoolean res = eglInitialize(eglDpy, &major, &minor);
   if(major!=1) {
-    printf("trying initialize with gbm and dri\n");
-    int fd = open ("/dev/dri/renderD128", O_RDWR);
-    if (fd < 0) {
-      printf("cannot open /dev/dri/renderD128 device\n");
-      return -3;
-    }
-    printf("opened dri device %d\n", fd);
-
-    struct gbm_device *gbm = gbm_create_device (fd);
-    if (gbm == NULL) {
-      printf("cannot create gbm device\n");
-      return -4;
-    }
-    printf("opened gbm device %p\n", gbm);
-
-    eglDpy = eglGetPlatformDisplay (EGL_PLATFORM_GBM_MESA, gbm, NULL);
-
-    EGLBoolean res = eglInitialize(eglDpy, &major, &minor);
-    if(major!=1) {
-      return -11;
-    }
+    printf("cannot init egl\n");
+    return -11;
   }
   printf("egl version %d.%d\n", major, minor);
-
-
 
   printf("EGL_CLIENT_APIS: '%s'\n", eglQueryString(eglDpy, EGL_CLIENT_APIS));
   printf("EGL_EXTENSIONS: '%s'\n", eglQueryString(eglDpy, EGL_EXTENSIONS));
   printf("EGL_VENDOR: '%s'\n", eglQueryString(eglDpy, EGL_VENDOR));
   printf("EGL_VERSION: '%s'\n", eglQueryString(eglDpy, EGL_VERSION));
 
-  // 2. Select an appropriate configuration
   EGLint configCount;
-  eglChooseConfig (eglDpy, configAttribs, NULL, 0, &configCount);
+  EGLConfig eglCfg;
+  eglChooseConfig (eglDpy, configAttribs, &eglCfg, 1, &configCount);
   printf("config_count: %d\n", configCount);
 
-  EGLConfig *eglConfigs = (EGLConfig*) malloc(sizeof(EGLConfig) * configCount);
-  eglChooseConfig (eglDpy, configAttribs, eglConfigs, configCount, &configCount);
-
-  EGLConfig eglCfg = eglConfigs[0];
-  //eglChooseConfig(eglDpy, configAttribs, &eglCfg, 1, &configCount);
-
-  // 3. Create a surface (used in eglMakeCurrent but not required since we only work with SSBO for now...)
-  //EGLSurface eglSurf = eglCreatePbufferSurface(eglDpy, eglCfg, pbufferAttribs);
-
-  // 4. Bind the API
   eglBindAPI(EGL_OPENGL_API);
 
-  // 5. Create a context and make it current
   EGLint eglAttrs[] = {
     //EGL_CONTEXT_CLIENT_VERSION, 3,
     EGL_NONE
