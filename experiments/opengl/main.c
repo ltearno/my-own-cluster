@@ -88,7 +88,7 @@ int main() {
    printf("EGL_VERSION: '%s'\n", eglQueryString(egl_dpy, EGL_VERSION));
 
    static const EGLint config_attribs[] = {
-      EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR, //EGL_OPENGL_ES3_BIT_KHR,
+      EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
       EGL_NONE
    };
    

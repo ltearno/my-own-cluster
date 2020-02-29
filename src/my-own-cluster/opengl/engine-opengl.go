@@ -1,7 +1,7 @@
 package opengl
 
 /*
-#cgo LDFLAGS: -lOpenGL -lGLU -lEGL
+#cgo LDFLAGS: -lOpenGL -lGLU -lgbm -lEGL
 #define GL_GLEXT_PROTOTYPES
 #include <fcntl.h>
 #include <EGL/egl.h>
@@ -11,6 +11,8 @@ package opengl
 #include <stdlib.h>
 
 #include "glext.h"
+
+#include <gbm.h>
 
 #include <stdio.h>
 
@@ -30,12 +32,7 @@ int checkErrors(const char* when) {
 }
 
   static const EGLint configAttribs[] = {
-          EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
-          EGL_BLUE_SIZE, 8,
-          EGL_GREEN_SIZE, 8,
-          EGL_RED_SIZE, 8,
-          EGL_DEPTH_SIZE, 8,
-          EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+          EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
           EGL_NONE
   };
 
@@ -49,7 +46,27 @@ int checkErrors(const char* when) {
 int initGLByEGL() {
   // 1. Initialize EGL
   unsetenv("DISPLAY");
-  EGLDisplay eglDpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+  EGLDisplay eglDpy;
+  if(1){
+    int fd = open ("/dev/dri/renderD128", O_RDWR);
+      if (fd < 0) {
+        printf("cannot open /dev/dri/renderD128 device\n");
+        return -3;
+      }
+      printf("opened dri device %d\n", fd);
+
+      struct gbm_device *gbm = gbm_create_device (fd);
+      if (gbm == NULL) {
+        printf("cannot create gbm device\n");
+        return -4;
+      }
+      printf("opened gbm device %p\n", gbm);
+
+      eglDpy = eglGetPlatformDisplay (EGL_PLATFORM_GBM_MESA, gbm, NULL);
+  }
+  else {
+    eglDpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+  }
 
   EGLint major, minor;
   EGLBoolean res = eglInitialize(eglDpy, &major, &minor);
@@ -82,8 +99,7 @@ int initGLByEGL() {
 
   // 5. Create a context and make it current
   EGLint eglAttrs[] = {
-    //EGL_CONTEXT_CLIENT_VERSION, 4,
-    //EGL_CONTEXT_MINOR_VERSION, 6,
+    EGL_CONTEXT_CLIENT_VERSION, 3,
     EGL_NONE
   };
 
