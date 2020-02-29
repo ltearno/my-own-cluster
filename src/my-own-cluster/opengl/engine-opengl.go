@@ -46,25 +46,22 @@ int checkErrors(const char* when) {
   };
 
 
-int initGL() {
+int initGLByEGL() {
   // 1. Initialize EGL
   unsetenv("DISPLAY");
   EGLDisplay eglDpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+
+  EGLint major, minor;
+  EGLBoolean res = eglInitialize(eglDpy, &major, &minor);
+  if(major!=EGL_TRUE) {
+    return -1;
+  }
+  printf("egl version %d.%d\n", major, minor);
 
   printf("EGL_CLIENT_APIS: '%s'\n", eglQueryString(eglDpy, EGL_CLIENT_APIS));
   printf("EGL_EXTENSIONS: '%s'\n", eglQueryString(eglDpy, EGL_EXTENSIONS));
   printf("EGL_VENDOR: '%s'\n", eglQueryString(eglDpy, EGL_VENDOR));
   printf("EGL_VERSION: '%s'\n", eglQueryString(eglDpy, EGL_VERSION));
-
-  EGLBoolean res;
-
-  EGLint major, minor;
-  res = eglInitialize(eglDpy, &major, &minor);
-  if(major!=1) {
-    printf("cannot get egl version\n");
-    return -1;
-  }
-  printf("egl version %d.%d\n", major, minor);
 
   // 2. Select an appropriate configuration
   EGLint configCount;
@@ -94,11 +91,6 @@ int initGL() {
 
   eglMakeCurrent(eglDpy, EGL_NO_SURFACE, EGL_NO_SURFACE, eglCtx);
 
-  printf("GL_VERSION: '%s'\n", glGetString(GL_VERSION));
-  printf("GL_VENDOR: '%s'\n", glGetString(GL_VENDOR));
-  printf("GL_RENDERER: '%s'\n", glGetString(GL_RENDERER));
-  printf("GL_EXTENSIONS: '%s'\n", glGetString(GL_EXTENSIONS));
-
   // TODO should do that at the end
   //eglTerminate(eglDpy);
 
@@ -107,6 +99,11 @@ int initGL() {
 
 int runShader(const char *inputData, int inputDataLen, char *outputData, int outputDataLen, const char *shader_source, int dispatchSizeX, int dispatchSizeY, int dispatchSizeZ)
 {
+  printf("GL_VERSION: '%s'\n", glGetString(GL_VERSION));
+  printf("GL_VENDOR: '%s'\n", glGetString(GL_VENDOR));
+  printf("GL_RENDERER: '%s'\n", glGetString(GL_RENDERER));
+  printf("GL_EXTENSIONS: '%s'\n", glGetString(GL_EXTENSIONS));
+
   GLuint inIndex;
   glGenBuffers(1, &inIndex);
   if(checkErrors("gen buffers")!=0) return -1;
@@ -138,6 +135,22 @@ int runShader(const char *inputData, int inputDataLen, char *outputData, int out
   if(checkErrors("giving shader source")!=0) return -1;
 
   glCompileShader (compute_shader);
+  GLint isCompiled = 0;
+  glGetShaderiv(compute_shader, GL_COMPILE_STATUS, &isCompiled);
+  if(isCompiled == GL_FALSE)
+  {
+    GLint maxLength = 0;
+    glGetShaderiv(compute_shader, GL_INFO_LOG_LENGTH, &maxLength);
+
+    // The maxLength includes the NULL character
+    GLchar *errorLog = malloc(maxLength);
+    glGetShaderInfoLog(compute_shader, maxLength, &maxLength, &errorLog[0]);
+
+    printf("error: %s\n", errorLog);
+
+    glDeleteShader(compute_shader);
+    return -1;
+  }
   if(checkErrors("compiling shader")!=0) return -1;
 
   GLuint shader_program = glCreateProgram ();
@@ -166,7 +179,7 @@ int runShader(const char *inputData, int inputDataLen, char *outputData, int out
 */
 import "C"
 import (
-	"fmt"
+	"errors"
 	"my-own-cluster/common"
 	"unsafe"
 )
@@ -181,9 +194,8 @@ type GLSLOpenGLEngine struct {
 // TODO manage EGL contexts and free resources when used !! This is highly not done here (dirty crap code)
 
 func NewGLSLOpenGLEngine() (*GLSLOpenGLEngine, error) {
-	if 0 != 0 {
-		fmt.Printf("WARNING OpenGL engine not ready !")
-		// return nil, errors.New("cannot instantiate OpenGL")
+	if C.initGLByEGL() != 0 {
+		return nil, errors.New("cannot instantiate OpenGL")
 	}
 
 	return &GLSLOpenGLEngine{}, nil
@@ -196,7 +208,7 @@ func (e *GLSLOpenGLEngine) PrepareContext(fctx *common.FunctionExecutionContext)
 }
 
 func (c *GLSLOpenGLProcessContext) Run() error {
-	C.initGL()
+	C.initGLByEGL()
 
 	inputBuffer := c.Fctx.Orchestrator.GetExchangeBuffer(c.Fctx.InputExchangeBufferID).GetBuffer()
 

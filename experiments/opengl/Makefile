@@ -20,3 +20,6 @@ clean:
 
 egl: egl.c Makefile
 	gcc -o egl egl.c -lOpenGL -lGLU -lEGL
+
+egl-es: egl-es.c Makefile
+	gcc -o egl-es egl-es.c -lOpenGL -lGLU -lEGL
