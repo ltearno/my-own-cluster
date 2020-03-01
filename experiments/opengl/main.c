@@ -6,16 +6,12 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include <X11/Xlib.h>
-#include <X11/Xatom.h>
-
 #include <gbm.h>
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 
 #include <GL/gl.h>
-#include <GL/glx.h>
 #include <GL/glext.h>
 
 // loads a binary file, allocate and return the file content
@@ -45,8 +41,6 @@ void checkErrors() {
 	}
 }
 
-void initGL();
-
 static const EGLint defaultConfigAttrs[] = {
    EGL_SURFACE_TYPE, EGL_PBUFFER_BIT, // EGL_WINDOW_BIT is the default and we don't want that on headless config
    /*EGL_BLUE_SIZE, 8,
@@ -68,9 +62,6 @@ static const EGLint gbmConfigAttrs[] = {
 };
 
 int main() {
-   //initGL();
-   //exit(0);
-
    EGLDisplay egl_dpy;
 
    EGLint* configAttrs;
@@ -84,20 +75,14 @@ int main() {
       assert (gbm != NULL);
       printf("opened gbm device %p\n", gbm);
 
-      configAttrs = gbmConfigAttrs;
-
-      /* setup EGL from the GBM device */
       egl_dpy = eglGetPlatformDisplay (EGL_PLATFORM_GBM_KHR, gbm, NULL);
+
+      configAttrs = gbmConfigAttrs;
    }
    else {
-      unsetenv("DISPLAY");
-
-      configAttrs = defaultConfigAttrs;
-
       egl_dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
 
-      //Display* x_dpy = XOpenDisplay(NULL);
-      //egl_dpy = eglGetPlatformDisplay(EGL_PLATFORM_X11_KHR, x_dpy, NULL);
+      configAttrs = defaultConfigAttrs;
    }
 
    assert (egl_dpy != NULL);
@@ -126,13 +111,6 @@ int main() {
    res = eglChooseConfig (egl_dpy, configAttrs, configs, configCount, &configCount);
    assert (res);
 
-   for(int i=0; i<configCount; i++) {
-      printf("config %d\n", i);
-      EGLint configValue;
-      eglGetConfigAttrib(egl_dpy, configs[i], EGL_RENDERABLE_TYPE, &configValue);
-      printf("EGL_RENDERABLE_TYPE: %d\n", configValue);
-   }
-
    // EGL_OPENGL_API, EGL_OPENGL_ES_API, or EGL_OPENVG_API
    res = eglBindAPI (EGL_OPENGL_API);
    assert (res);
@@ -142,10 +120,7 @@ int main() {
       EGL_NONE
    };
 
-   EGLContext core_ctx = eglCreateContext (egl_dpy,
-                                           configs[0],
-                                           EGL_NO_CONTEXT,
-                                           attribs);
+   EGLContext core_ctx = eglCreateContext (egl_dpy, configs[0], EGL_NO_CONTEXT, attribs);
    assert (core_ctx != EGL_NO_CONTEXT);
    printf("egl context created\n");
    // EGL_CONFIG_ID, EGL_CONTEXT_CLIENT_TYPE, EGL_CONTEXT_CLIENT_VERSION, or EGL_RENDER_BUFFER
@@ -256,7 +231,7 @@ int main() {
    glUseProgram (shader_program);
    checkErrors();
 
-/* prepare input and output */
+   /* prepare input and output */
    const int dataSize = 4;
    float *in1 = malloc(sizeof(float) * dataSize);
    float *in2 = malloc(sizeof(float) * dataSize);
@@ -306,9 +281,6 @@ int main() {
    checkErrors();
    printf("buffers %d %d %d %d\n", in1Index, in2Index, outIndex, paramsIndex);
 
-   
-   
-
    /* dispatch computation */
    glDispatchCompute (dataSize, dataSize, 1);
    checkErrors();
@@ -334,124 +306,10 @@ int main() {
    for(int x=0;x<textureWidth*textureHeight*4;x+=4)
       printf("%d: %f %f %f %f\n",x,  pixels[x], pixels[x+1], pixels[x+2], pixels[x+3]);
 
-   /*for(int x=0;x<textureWidth*textureHeight*4;x++)
-         if(pixels[x] != 0){
-            printf(" not null pixel atr %d: %f\n", x, pixels[x]);
-         }
-   printf("test texture: %f\n", pixels[0]);*/
-
    /* free stuff */
    glDeleteProgram (shader_program);
    //eglDestroyContext (egl_dpy, core_ctx);
    eglTerminate (egl_dpy);
    //gbm_device_destroy (gbm);
    //close (fd);
-}
-
-
-
-
-void initGL() {
-   Display *d_dpy;
-   Window d_win;
-   GLXContext d_ctx;
-
-	if (!(d_dpy = XOpenDisplay(NULL))) {
-		fprintf(stderr, "Couldn't open X11 display\n");
-		exit(10);
-	}
-
-	int attr[] = {
-		GLX_RGBA,
-		GLX_RED_SIZE, 1,
-		GLX_GREEN_SIZE, 1,
-		GLX_BLUE_SIZE, 1,
-		GLX_DOUBLEBUFFER,
-		None
-	};
-
-	int scrnum = DefaultScreen(d_dpy);
-	Window root = RootWindow(d_dpy, scrnum);
-    
-	int elemc;
-	GLXFBConfig *fbcfg = glXChooseFBConfig(d_dpy, scrnum, NULL, &elemc);
-	if (!fbcfg) {
-		fprintf(stderr, "Couldn't get FB configs\n");
-		exit(11);
-	}
-
-	XVisualInfo *visinfo = glXChooseVisual(d_dpy, scrnum, attr);
-
-	if (!visinfo) {
-		fprintf(stderr, "Couldn't get a visual\n");
-		exit(12);
-	}
-
-	// Window parameters
-	XSetWindowAttributes winattr;
-	winattr.background_pixel = 0;
-	winattr.border_pixel = 0;
-	winattr.colormap = XCreateColormap(d_dpy, root, visinfo->visual, AllocNone);
-	winattr.event_mask = StructureNotifyMask | ExposureMask | KeyPressMask;
-	unsigned long mask = CWBackPixel | CWBorderPixel | CWColormap | CWEventMask;
-
-   const int WIN_WIDTH = 800;
-   const int WIN_HEIGHT = 600;
-	printf("Window depth %d, %dx%d\n", visinfo->depth, WIN_WIDTH, WIN_HEIGHT);
-	d_win = XCreateWindow(d_dpy, root, -1, -1, WIN_WIDTH, WIN_HEIGHT, 0, 
-			visinfo->depth, InputOutput, visinfo->visual, mask, &winattr);
-
-	// OpenGL version 4.3, forward compatible core profile
-	int gl3attr[] = {
-        GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
-        GLX_CONTEXT_MINOR_VERSION_ARB, 3,
-        GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
-        GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
-		None
-    };
-
-	d_ctx = glXCreateContextAttribsARB(d_dpy, fbcfg[0], NULL, true, gl3attr);
-
-	if (!d_ctx) {
-		fprintf(stderr, "Couldn't create an OpenGL context\n");
-		exit(13);
-	}
-
-	XFree(visinfo);
-
-	// Setting the window name
-	XTextProperty windowName;
-	windowName.value = (unsigned char *) "OpenGL compute shader demo";
-	windowName.encoding = XA_STRING;
-	windowName.format = 8;
-	windowName.nitems = strlen((char *) windowName.value);
-
-	XSetWMName(d_dpy, d_win, &windowName);
-
-	XMapWindow(d_dpy, d_win);
-	glXMakeCurrent(d_dpy, d_win, d_ctx);
-	
-	printf("OpenGL:\n\tvendor %s\n\trenderer %s\n\tversion %s\n\tshader language %s\n",
-			glGetString(GL_VENDOR), glGetString(GL_RENDERER), glGetString(GL_VERSION),
-			glGetString(GL_SHADING_LANGUAGE_VERSION));
-
-	// Finding the compute shader extension
-	int extCount;
-	glGetIntegerv(GL_NUM_EXTENSIONS, &extCount);
-	bool found = false;
-	for (int i = 0; i < extCount; ++i)
-		if (!strcmp((const char*)glGetStringi(GL_EXTENSIONS, i), "GL_ARB_compute_shader")) {
-			printf("Extension \"GL_ARB_compute_shader\" found\n");
-			found = true;
-			break;
-		}
-
-	if (!found) {
-		fprintf(stderr, "Extension \"GL_ARB_compute_shader\" not found\n");
-		exit(14);
-	}
-
-	glViewport(0, 0, WIN_WIDTH, WIN_HEIGHT);
-
-	checkErrors("Window init");
 }
