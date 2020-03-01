@@ -48,7 +48,7 @@ void checkErrors() {
 void initGL();
 
 static const EGLint defaultConfigAttrs[] = {
-   EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
+   EGL_SURFACE_TYPE, EGL_PBUFFER_BIT, // EGL_WINDOW_BIT is the default and we don't want that on headless config
    /*EGL_BLUE_SIZE, 8,
    EGL_GREEN_SIZE, 8,
    EGL_RED_SIZE, 8,
@@ -58,7 +58,7 @@ static const EGLint defaultConfigAttrs[] = {
 };
 
 static const EGLint gbmConfigAttrs[] = {
-   //EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
+   EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
    /*EGL_BLUE_SIZE, 8,
    EGL_GREEN_SIZE, 8,
    EGL_RED_SIZE, 8,
@@ -170,30 +170,6 @@ int main() {
 
 
 
-
-
-   // see that https://community.arm.com/developer/tools-software/graphics/b/blog/posts/get-started-with-compute-shaders
-
-   // OpenGL version 4.3, forward compatible core profile
-	/*int gl3attr[] = {
-      GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
-      GLX_CONTEXT_MINOR_VERSION_ARB, 3,
-      GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
-      GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
-   None
-   };
-   wglCreateContextAttribs();
-   GLXContext d_ctx = glXCreateContextAttribsARB(egl_dpy, cfg, NULL, true, gl3attr);
-
-	if (!d_ctx) {
-		fprintf(stderr, "Couldn't create an OpenGL context\n");
-		exit(13);
-	}*/
-
-
-
-
-
    printf("GL_VERSION: '%s'\n", glGetString(GL_VERSION));
    printf("GL_VENDOR: '%s'\n", glGetString(GL_VENDOR));
    printf("GL_RENDERER: '%s'\n", glGetString(GL_RENDERER));
@@ -262,6 +238,17 @@ int main() {
    checkErrors();
 
    glLinkProgram (shader_program);
+   GLint rvalue;
+   glGetProgramiv(shader_program, GL_LINK_STATUS, &rvalue);
+   if (!rvalue) {
+      fprintf(stderr, "Error in linking compute shader program\n");
+      GLchar log[10240];
+      GLsizei length;
+      glGetProgramInfoLog(shader_program, 10239, &length, log);
+      fprintf(stderr, "Linker log:\n%s\n", log);
+      return;
+   }   
+
    checkErrors();
 
    glDeleteShader (compute_shader);
@@ -270,47 +257,64 @@ int main() {
    checkErrors();
 
 /* prepare input and output */
-   const int dataSize = 1024;
+   const int dataSize = 4;
    float *in1 = malloc(sizeof(float) * dataSize);
    float *in2 = malloc(sizeof(float) * dataSize);
    for(int i=0;i<dataSize; i++ ){
       in1[i] = i;
       in2[i] = i;
    }
+
+   GLuint textureIndex;
+   int textureWidth = dataSize;
+   int textureHeight = dataSize;
+   glGenTextures(1, &textureIndex);
+   glBindTexture(GL_TEXTURE_2D, textureIndex);
+   glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+   glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+   //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, textureWidth, textureHeight, 0, GL_RGBA, GL_FLOAT, NULL);
+   glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, textureWidth, textureHeight);
+   checkErrors();
+   glBindImageTexture(0, textureIndex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+   glUniform1i(glGetUniformLocation(shader_program, "uImage"), 0);
    
    GLuint in1Index;
    glGenBuffers(1, &in1Index);
    glBindBuffer(GL_SHADER_STORAGE_BUFFER, in1Index);
    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * dataSize, in1,  GL_STATIC_DRAW);
-   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, in1Index);
+   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, in1Index);
    
    GLuint in2Index;
    glGenBuffers(1, &in2Index);
    glBindBuffer(GL_SHADER_STORAGE_BUFFER, in2Index);
    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * dataSize, in2,  GL_STATIC_DRAW);
-   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, in2Index);
+   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, in2Index);
    
    GLuint outIndex;
    glGenBuffers(1, &outIndex);
    glBindBuffer(GL_SHADER_STORAGE_BUFFER, outIndex);
    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * dataSize, NULL,  GL_STATIC_DRAW);
-   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, outIndex);
+   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, outIndex);
 
    GLuint paramsIndex;
    glGenBuffers(1, &paramsIndex);
    glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramsIndex);
    float fRatio = 1;
    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * 1, &fRatio,  GL_STATIC_DRAW);
-   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, paramsIndex);
+   glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, paramsIndex);
    
    checkErrors();
    printf("buffers %d %d %d %d\n", in1Index, in2Index, outIndex, paramsIndex);
 
+   
+   
+
    /* dispatch computation */
-   glDispatchCompute (dataSize, 1, 1);
+   glDispatchCompute (dataSize, dataSize, 1);
    checkErrors();
 
-   glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+   //glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+   glMemoryBarrier(GL_ALL_BARRIER_BITS);
    checkErrors();
 
    printf ("Compute shader dispatched and finished successfully\n");
@@ -323,6 +327,18 @@ int main() {
    printf("tmp buffer: %p\n", tmp);
    for(int i=0;i<10;i++)
       printf("tmp[%d] = %f\n", i, tmp[i]);
+   
+   glBindTexture(GL_TEXTURE_2D, textureIndex);
+   float *pixels = malloc(sizeof(float)*textureWidth*textureHeight*4);
+   glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, pixels);
+   for(int x=0;x<textureWidth*textureHeight*4;x+=4)
+      printf("%d: %f %f %f %f\n",x,  pixels[x], pixels[x+1], pixels[x+2], pixels[x+3]);
+
+   /*for(int x=0;x<textureWidth*textureHeight*4;x++)
+         if(pixels[x] != 0){
+            printf(" not null pixel atr %d: %f\n", x, pixels[x]);
+         }
+   printf("test texture: %f\n", pixels[0]);*/
 
    /* free stuff */
    glDeleteProgram (shader_program);
