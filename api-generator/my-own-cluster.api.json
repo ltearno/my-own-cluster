@@ -14,6 +14,11 @@
             "returnType": "int"
         },
         {
+            "name": "create_exchange_buffer",
+            "args": [],
+            "returnType": "int"
+        },
+        {
             "name": "write_exchange_buffer",
             "args": [
                 {
@@ -57,6 +62,16 @@
                 {
                     "name": "value",
                     "type": "buffer"
+                }
+            ],
+            "returnType": "int"
+        },
+        {
+            "name": "compute_shader",
+            "args": [
+                {
+                    "name": "specification",
+                    "type": "string"
                 }
             ],
             "returnType": "int"

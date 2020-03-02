@@ -1,4 +1,5 @@
-#include <assert.h>
+#define GL_GLEXT_PROTOTYPES
+
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -61,77 +62,20 @@ static const EGLint gbmConfigAttrs[] = {
    EGL_NONE,
 };
 
-int main() {
-   EGLDisplay egl_dpy;
+static const EGLint contextAttribList[] = {
+   //EGL_CONTEXT_CLIENT_VERSION, 3,
+   EGL_NONE
+};
 
-   EGLint* configAttrs;
-
-   if(getenv("DISPLAY")!=NULL) {
-      int fd = open ("/dev/dri/renderD128", O_RDWR);
-      assert (fd > 0);
-      printf("opened dri device %d\n", fd);
-
-      struct gbm_device *gbm = gbm_create_device (fd);
-      assert (gbm != NULL);
-      printf("opened gbm device %p\n", gbm);
-
-      egl_dpy = eglGetPlatformDisplay (EGL_PLATFORM_GBM_KHR, gbm, NULL);
-
-      configAttrs = gbmConfigAttrs;
-   }
-   else {
-      egl_dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-
-      configAttrs = defaultConfigAttrs;
-   }
-
-   assert (egl_dpy != NULL);
-   printf("opened egl platform display %p\n", egl_dpy);
-
-   EGLint major, minor;
-   EGLBoolean res = eglInitialize (egl_dpy, &major, &minor);
-   assert (res);
-   printf("egl version %d.%d\n", major, minor);
-
-   const char *egl_extension_st = eglQueryString (egl_dpy, EGL_EXTENSIONS);
-   assert (strstr (egl_extension_st, "EGL_KHR_create_context") != NULL);
-   assert (strstr (egl_extension_st, "EGL_KHR_surfaceless_context") != NULL);
-
-   printf("EGL_CLIENT_APIS: '%s'\n", eglQueryString(egl_dpy, EGL_CLIENT_APIS));
-   printf("EGL_EXTENSIONS: '%s'\n", eglQueryString(egl_dpy, EGL_EXTENSIONS));
-   printf("EGL_VENDOR: '%s'\n", eglQueryString(egl_dpy, EGL_VENDOR));
-   printf("EGL_VERSION: '%s'\n", eglQueryString(egl_dpy, EGL_VERSION));
-   
-   EGLint configCount;
-   res = eglChooseConfig (egl_dpy, configAttrs, NULL, 0, &configCount);
-   printf("config_count: %d\n", configCount);
-   fflush(stdout);
-
-   EGLConfig *configs = (EGLConfig*) malloc(sizeof(EGLConfig) * configCount);
-   res = eglChooseConfig (egl_dpy, configAttrs, configs, configCount, &configCount);
-   assert (res);
-
-   // EGL_OPENGL_API, EGL_OPENGL_ES_API, or EGL_OPENVG_API
-   res = eglBindAPI (EGL_OPENGL_API);
-   assert (res);
-
-   static const EGLint attribs[] = {
-      //EGL_CONTEXT_CLIENT_VERSION, 3,
-      EGL_NONE
-   };
-
-   EGLContext core_ctx = eglCreateContext (egl_dpy, configs[0], EGL_NO_CONTEXT, attribs);
-   assert (core_ctx != EGL_NO_CONTEXT);
-   printf("egl context created\n");
+void displayContextInfo(EGLDisplay egl_dpy, EGLContext core_ctx) {
    // EGL_CONFIG_ID, EGL_CONTEXT_CLIENT_TYPE, EGL_CONTEXT_CLIENT_VERSION, or EGL_RENDER_BUFFER
    EGLint contextValue;
-   res = eglQueryContext(egl_dpy, core_ctx, EGL_CONTEXT_CLIENT_TYPE, &contextValue);
-   assert (res);
-   printf("core_ctx EGL_CONTEXT_CLIENT_TYPE: %x\n", contextValue);
-   assert (contextValue == EGL_OPENGL_API);
+   EGLBoolean res = eglQueryContext(egl_dpy, core_ctx, EGL_CONTEXT_CLIENT_TYPE, &contextValue);
+   if (res)
+      printf("core_ctx EGL_CONTEXT_CLIENT_TYPE: %x\n", contextValue);
    res = eglQueryContext(egl_dpy, core_ctx, EGL_RENDER_BUFFER, &contextValue);
-   assert (res);
-   printf("core_ctx EGL_RENDER_BUFFER: %x = ", contextValue);
+   if (res);
+      printf("core_ctx EGL_RENDER_BUFFER: %x = ", contextValue);
    switch(contextValue) {
       case EGL_SINGLE_BUFFER: printf("EGL_SINGLE_BUFFER\n"); break;
       case EGL_BACK_BUFFER: printf("EGL_BACK_BUFFER\n"); break;
@@ -140,17 +84,12 @@ int main() {
    };
    printf("\n");
 
-   res = eglMakeCurrent (egl_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, core_ctx);
-   assert (res);
-
-
-
    printf("GL_VERSION: '%s'\n", glGetString(GL_VERSION));
    printf("GL_VENDOR: '%s'\n", glGetString(GL_VENDOR));
    printf("GL_RENDERER: '%s'\n", glGetString(GL_RENDERER));
    printf("GL_EXTENSIONS: '%s'\n", glGetString(GL_EXTENSIONS));
    
-   /* print some compute limits (not strictly necessary) */
+   // print some compute limits
    GLint work_group_count[3] = {0};
    for (unsigned i = 0; i < 3; i++)
       glGetIntegeri_v (GL_MAX_COMPUTE_WORK_GROUP_COUNT,
@@ -176,8 +115,116 @@ int main() {
    GLint mem_size;
    glGetIntegerv (GL_MAX_COMPUTE_SHARED_MEMORY_SIZE, &mem_size);
    printf ("GL_MAX_COMPUTE_SHARED_MEMORY_SIZE: %d\n", mem_size);
+}
+
+typedef struct {
+   EGLDisplay egl_dpy;
+   EGLContext core_ctx;
+   struct gbm_device *gbm;
+   int renderDeviceFd;
+} ContextInformation;
+
+int initOpenGLContext(ContextInformation *info) {
+   EGLDisplay egl_dpy;
+   EGLint* configAttrs;
+
+   info->egl_dpy = NULL;
+   info->core_ctx = EGL_NO_CONTEXT;
+   info->gbm = NULL;
+   info->renderDeviceFd = 0;
+
+   if(getenv("DISPLAY")!=NULL) {
+      info->renderDeviceFd = open ("/dev/dri/renderD128", O_RDWR);
+      if (info->renderDeviceFd <= 0)
+         return -1;
+
+      printf("opened dri device %d\n", info->renderDeviceFd);
+
+      info->gbm = gbm_create_device (info->renderDeviceFd);
+      if (info->gbm == NULL)
+         return -2;
+
+      printf("opened gbm device %p\n", info->gbm);
+
+      egl_dpy = eglGetPlatformDisplay (EGL_PLATFORM_GBM_KHR, info->gbm, NULL);
+      //egl_dpy = eglGetDisplay (info->gbm);
+
+      configAttrs = gbmConfigAttrs;
+   }
+   else {
+      egl_dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+
+      configAttrs = defaultConfigAttrs;
+   }
+
+   if (egl_dpy == NULL)
+      return -7;
+
+   printf("opened egl platform display %p\n", egl_dpy);
+
+   EGLint major, minor;
+   EGLBoolean res = eglInitialize (egl_dpy, &major, &minor);
+   if (! res)
+      return -4;
+
+   printf("egl version %d.%d\n", major, minor);
+
+   const char *egl_extension_st = eglQueryString (egl_dpy, EGL_EXTENSIONS);
+   if (strstr (egl_extension_st, "EGL_KHR_create_context") == NULL)
+      return -5;
+   if (strstr (egl_extension_st, "EGL_KHR_surfaceless_context") == NULL)
+      return -6;
+
+   printf("EGL_CLIENT_APIS: '%s'\n", eglQueryString(egl_dpy, EGL_CLIENT_APIS));
+   printf("EGL_EXTENSIONS: '%s'\n", eglQueryString(egl_dpy, EGL_EXTENSIONS));
+   printf("EGL_VENDOR: '%s'\n", eglQueryString(egl_dpy, EGL_VENDOR));
+   printf("EGL_VERSION: '%s'\n", eglQueryString(egl_dpy, EGL_VERSION));
+
+   EGLConfig config;
+   EGLint configCount;
+   res = eglChooseConfig (egl_dpy, configAttrs, &config, 1, &configCount);
+   if (!res)
+      return -8;
+
+   // EGL_OPENGL_API, EGL_OPENGL_ES_API, or EGL_OPENVG_API
+   res = eglBindAPI (EGL_OPENGL_API);
+   if (!res)
+      return -9;
+
+   EGLContext core_ctx = eglCreateContext (egl_dpy, config, EGL_NO_CONTEXT, contextAttribList);
+   if (core_ctx == EGL_NO_CONTEXT)
+      return -10;
+
+   printf("egl context created display:%p ctx:%p\n", egl_dpy, core_ctx);
+
    
-   /* setup a compute shader */
+
+   info->egl_dpy = egl_dpy;
+   info->core_ctx = core_ctx;
+
+   return 0;
+}
+
+int destroyContext(ContextInformation *ctx) {
+   printf("destorying context\n");
+   fflush(stdout);
+   eglDestroyContext (ctx->egl_dpy, ctx->core_ctx);
+   ctx->core_ctx = NULL;
+   eglTerminate (ctx->egl_dpy);
+   ctx->egl_dpy = NULL;
+   if(ctx->gbm != NULL){
+      gbm_device_destroy (ctx->gbm);
+      ctx->gbm = NULL;
+   }
+   if(ctx->renderDeviceFd > 0) {
+      close(ctx->renderDeviceFd);
+      ctx->renderDeviceFd = 0;
+   }
+}
+
+
+int run(ContextInformation * contextInfo) {   
+   // setup a compute shader
    printf("compute_shader creating...\n");
    GLuint compute_shader = glCreateShader (GL_COMPUTE_SHADER);
    checkErrors();
@@ -203,6 +250,7 @@ int main() {
       printf("error: %s\n", errorLog);
 
       glDeleteShader(compute_shader);
+      free(errorLog);
       return;
    }
    checkErrors();
@@ -231,7 +279,7 @@ int main() {
    glUseProgram (shader_program);
    checkErrors();
 
-   /* prepare input and output */
+   // prepare input and output
    const int dataSize = 4096;
    float *in1 = malloc(sizeof(float) * dataSize);
    float *in2 = malloc(sizeof(float) * dataSize);
@@ -284,9 +332,9 @@ int main() {
    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, paramsIndex);
    
    checkErrors();
-   printf("buffers %d %d %d %d\n", in1Index, in2Index, outIndex, paramsIndex);
+   printf("buffers %d %d %d %d %d\n", in1Index, in2Index, outIndex, paramsIndex, textureIndex);
 
-   /* dispatch computation */
+   // dispatch computation
    glDispatchCompute (dataSize, dataSize, 1);
    checkErrors();
 
@@ -304,17 +352,46 @@ int main() {
    printf("tmp buffer: %p\n", tmp);
    for(int i=0;i<10;i++)
       printf("tmp[%d] = %f\n", i, tmp[i]);
+   free(tmp);
    
    glBindTexture(GL_TEXTURE_2D, textureIndex);
    //float *pixels = malloc(sizeof(float)*textureWidth*textureHeight*4);
    //glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, pixels);
    //for(int x=0;x<textureWidth*textureHeight*4;x+=4)
    //   printf("%d: %f %f %f %f\n",x,  pixels[x], pixels[x+1], pixels[x+2], pixels[x+3]);
+   //free(pixels);
 
-   /* free stuff */
+   // free stuff
+   free(in1);
+   free(in2);
+   glDeleteBuffers(1, &in1Index);
+   glDeleteBuffers(1, &in2Index);
+   glDeleteBuffers(1, &outIndex);
+   glDeleteBuffers(1, &paramsIndex);
+   glDeleteTextures(1, &textureIndex);
    glDeleteProgram (shader_program);
-   //eglDestroyContext (egl_dpy, core_ctx);
-   eglTerminate (egl_dpy);
-   //gbm_device_destroy (gbm);
-   //close (fd);
+}
+
+int main() {
+   ContextInformation contextInfo;
+   int res = initOpenGLContext(&contextInfo);
+   if(res < 0)
+      return -1;
+      
+   for(int i=0;i<100;i++ ) {
+      res = eglMakeCurrent (contextInfo.egl_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, contextInfo.core_ctx);
+      if (!res)
+         return -11;
+
+      //displayContextInfo(contextInfo.egl_dpy, contextInfo.core_ctx);
+
+      run(&contextInfo);
+
+      res = eglMakeCurrent (contextInfo.egl_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, NULL);
+      if (!res)
+         return -12;
+
+   }
+
+   destroyContext(&contextInfo);
 }
