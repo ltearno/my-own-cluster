@@ -27,60 +27,68 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 	ctx.PushGlobalObject()
 	ctx.PushObject()
 
-	ctx.PushGoFunction(func(c *duktape.Context) int {
-		res, err := coreapi.GetInputBufferID(fctx)
-		if err != nil {
-			c.PushInt(-1)
+	// those wrappers are written by hand...
+	BindMocFunctionsMano(fctx, ctx)
+
+	// soon will be completely replaced by those ones, generated from 'my-own-cluster.api.json'
+	BindMyOwnClusterFunctionsJs(fctx, ctx)
+
+	ctx.PutPropString(-2, "moc")
+	ctx.Pop()
+
+	return &JSProcessContext{
+		Fctx:    fctx,
+		Context: ctx,
+	}, nil
+}
+
+func SafeToBytes(c *duktape.Context, index int) []byte {
+	var input []byte = nil
+	switch c.GetType(index) {
+	case duktape.TypeString:
+		input = []byte(c.SafeToString(index))
+		break
+	case duktape.TypeBuffer:
+		inputPtr, inputLength := c.GetBuffer(index)
+		input = (*[1 << 30]byte)(inputPtr)[:inputLength:inputLength]
+	case duktape.TypeObject:
+		if c.IsBufferData(index) {
+			inputPtr, inputLength := c.GetBufferData(index)
+			input = (*[1 << 30]byte)(inputPtr)[:inputLength:inputLength]
 		} else {
-			c.PushInt(res)
+			fmt.Printf("cannot handle TypeObject content type of input param when SafeToBytes\n")
+			return nil
 		}
+	case duktape.TypePointer:
+		fmt.Printf("cannot handle TypePointer content type of input param when SafeToBytes\n")
+		return nil
+	default:
+		fmt.Printf("cannot guess content type of input param when SafeToBytes\n")
+		return nil
+	}
+	return input
+}
 
-		return 1
-	})
-	ctx.PutPropString(-2, "getInputBufferId")
+func (jsctx *JSProcessContext) Run() error {
+	jsctx.Context.PushString(string(jsctx.Fctx.CodeBytes))
+	jsctx.Context.Eval()
+	jsctx.Context.Pop()
+	jsctx.Context.PushGlobalObject()
+	ok := jsctx.Context.GetPropString(-1, jsctx.Fctx.StartFunction)
+	if !ok {
+		return fmt.Errorf("cannot find start function %s", jsctx.Fctx.StartFunction)
+	}
 
-	ctx.PushGoFunction(func(c *duktape.Context) int {
-		res, err := coreapi.GetOutputBufferID(fctx)
-		if err != nil {
-			return 0
-		}
+	jsctx.Context.Call(0)
 
-		c.PushInt(res)
+	jsctx.Fctx.Result = jsctx.Context.GetInt(-1)
 
-		return 1
-	})
-	ctx.PutPropString(-2, "getOutputBufferId")
+	jsctx.Context.DestroyHeap()
 
-	ctx.PushGoFunction(func(c *duktape.Context) int {
-		bufferId := int(c.GetNumber(-1))
+	return nil
+}
 
-		res, err := coreapi.ReadExchangeBuffer(fctx, bufferId)
-		if err != nil {
-			return 0
-		}
-
-		dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
-		copy(dest, res)
-
-		return 1
-	})
-	ctx.PutPropString(-2, "readExchangeBuffer")
-
-	ctx.PushGoFunction(func(c *duktape.Context) int {
-		bufferID := int(c.GetNumber(-2))
-		contentBytes := SafeToBytes(c, -1)
-
-		res, err := coreapi.WriteExchangeBuffer(fctx, bufferID, contentBytes)
-		if err != nil {
-			return 0
-		}
-
-		c.PushInt(res)
-
-		return 1
-	})
-	ctx.PutPropString(-2, "writeExchangeBuffer")
-
+func BindMocFunctionsMano(fctx *common.FunctionExecutionContext, ctx *duktape.Context) {
 	ctx.PushGoFunction(func(c *duktape.Context) int {
 		bufferID := int(c.GetNumber(-3))
 		name := c.SafeToString(-2)
@@ -97,21 +105,6 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 		return 0
 	})
 	ctx.PutPropString(-2, "writeExchangeBufferHeader")
-
-	ctx.PushGoFunction(func(c *duktape.Context) int {
-		encoded := c.SafeToString(-1)
-
-		res, err := coreapi.Base64Decode(fctx, encoded)
-		if err != nil {
-			return 0
-		}
-
-		dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
-		copy(dest, res)
-
-		return 1
-	})
-	ctx.PutPropString(-2, "base64Decode")
 
 	ctx.PushGoFunction(func(c *duktape.Context) int {
 		decoded := SafeToBytes(c, -1)
@@ -291,58 +284,4 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 		return 1
 	})
 	ctx.PutPropString(-2, "getStatus")
-
-	ctx.PutPropString(-2, "moc")
-	ctx.Pop()
-
-	return &JSProcessContext{
-		Fctx:    fctx,
-		Context: ctx,
-	}, nil
-}
-
-func SafeToBytes(c *duktape.Context, index int) []byte {
-	var input []byte = nil
-	switch c.GetType(index) {
-	case duktape.TypeString:
-		input = []byte(c.SafeToString(index))
-		break
-	case duktape.TypeBuffer:
-		inputPtr, inputLength := c.GetBuffer(index)
-		input = (*[1 << 30]byte)(inputPtr)[:inputLength:inputLength]
-	case duktape.TypeObject:
-		if c.IsBufferData(index) {
-			inputPtr, inputLength := c.GetBufferData(index)
-			input = (*[1 << 30]byte)(inputPtr)[:inputLength:inputLength]
-		} else {
-			fmt.Printf("cannot handle TypeObject content type of input param when SafeToBytes\n")
-			return nil
-		}
-	case duktape.TypePointer:
-		fmt.Printf("cannot handle TypePointer content type of input param when SafeToBytes\n")
-		return nil
-	default:
-		fmt.Printf("cannot guess content type of input param when SafeToBytes\n")
-		return nil
-	}
-	return input
-}
-
-func (jsctx *JSProcessContext) Run() error {
-	jsctx.Context.PushString(string(jsctx.Fctx.CodeBytes))
-	jsctx.Context.Eval()
-	jsctx.Context.Pop()
-	jsctx.Context.PushGlobalObject()
-	ok := jsctx.Context.GetPropString(-1, jsctx.Fctx.StartFunction)
-	if !ok {
-		return fmt.Errorf("cannot find start function %s", jsctx.Fctx.StartFunction)
-	}
-
-	jsctx.Context.Call(0)
-
-	jsctx.Fctx.Result = jsctx.Context.GetInt(-1)
-
-	jsctx.Context.DestroyHeap()
-
-	return nil
 }

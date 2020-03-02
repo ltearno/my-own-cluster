@@ -1,4 +1,5 @@
 {
+    "bindFunctionName": "BindMyOwnClusterFunctions",
     "wasmDeclaredModule": "my-own-cluster",
     "targetGoPackage": "coreapi",
     "functions": [
