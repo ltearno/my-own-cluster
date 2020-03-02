@@ -1,4 +1,10 @@
+package wasm
 
+    import (
+        "my-own-cluster/coreapi"
+    )
+
+func BindMyOwnClusterFunctionsWASM(wctx *WasmProcessContext) {
     // wasm params :  
 	wctx.BindAPIFunction("my-own-cluster", "get_input_buffer_id", "i()", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
         
@@ -76,4 +82,4 @@ value := cs.GetParamByteBuffer(2, 3)
         
         return uint32(res), err
     })
-    
+    }

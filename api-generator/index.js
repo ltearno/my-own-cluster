@@ -150,6 +150,12 @@ function getJsReturnCode(type) {
 // output code for binding wasm engine to core api
 // output code for binding js engine to core api
 function generateWasmBindings(apiDescription, out) {
+    out(`package wasm
+
+    import (
+        "my-own-cluster/coreapi"
+    )\n\n`)
+    out(`func ${apiDescription.bindFunctionName}WASM(wctx *WasmProcessContext) {`)
     for (let fct of apiDescription.functions) {
         let wasmName = fct.name
         let goName = mapGoName(fct.name)
@@ -170,6 +176,7 @@ function generateWasmBindings(apiDescription, out) {
     })
     `)
     }
+    out(`}`)
 }
 
 function generateJsBindings(apiDescription, out) {
@@ -219,4 +226,4 @@ function makeOut(fileName) {
 // read api description
 let apiDescription = JSON.parse(fs.readFileSync("my-own-cluster.api.json"))
 generateJsBindings(apiDescription, makeOut("my-own-cluster-api-js.go"))
-generateWasmBindings(apiDescription, makeOut("my-own-cluster.api.wasm.go"))
+generateWasmBindings(apiDescription, makeOut("my-own-cluster-api-wasm.go"))
