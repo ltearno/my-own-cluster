@@ -1,12 +1,5 @@
 package wasm
 
-/*
-#cgo CFLAGS: -Iinclude
-
-#include "wasi_core.h"
-*/
-import "C"
-
 import (
 	"errors"
 	"fmt"
@@ -18,37 +11,6 @@ import (
 
 	wasm3 "github.com/ltearno/go-wasm3"
 )
-
-var preopen = []string{
-	"<stdin>",
-	"<stdout>",
-	"<stderr>",
-	"./",
-	"../",
-}
-
-const (
-	WASI_ESUCCESS                  = C.__WASI_ESUCCESS
-	WASI_EBADF                     = C.__WASI_EBADF
-	WASI_PREOPENTYPE_DIR           = C.__WASI_PREOPENTYPE_DIR
-	WASI_FILETYPE_CHARACTER_DEVICE = C.__WASI_FILETYPE_CHARACTER_DEVICE
-	WASI_FILETYPE_DIRECTORY        = C.__WASI_FILETYPE_DIRECTORY
-	WASI_FILETYPE_REGULAR_FILE     = C.__WASI_FILETYPE_REGULAR_FILE
-)
-
-func setWasiStat(fd int, fdStatAddr unsafe.Pointer) {
-	fdStat := (*C.__wasi_fdstat_t)(fdStatAddr)
-	if fd >= 0 && fd <= 2 {
-		fdStat.fs_filetype = C.__WASI_FILETYPE_CHARACTER_DEVICE
-	} else if fd == 3 || fd == 4 {
-		fdStat.fs_filetype = C.__WASI_FILETYPE_DIRECTORY
-	} else {
-		fdStat.fs_filetype = C.__WASI_FILETYPE_REGULAR_FILE
-	}
-	fdStat.fs_flags = 0
-	fdStat.fs_rights_base = C.ulong(0xfffffffffff)
-	fdStat.fs_rights_inheriting = C.ulong(0xfffffffffff)
-}
 
 // WasmProcessContext represents a running WASM context
 type WasmProcessContext struct {
@@ -446,7 +408,7 @@ func (wctx *WasmProcessContext) BindAPIFunction(moduleName string, functionName 
 // BindNotYetImplementedFunction exits the whole process when not yet implemented function is called
 func (wctx *WasmProcessContext) BindNotYetImplementedFunction(module string, name string, signature string) {
 	wctx.Runtime.AttachFunction(module, name, signature, func(runtime wasm3.RuntimeT, sp unsafe.Pointer, mem unsafe.Pointer) int {
-		fmt.Printf("called wasi function '%s', but it is not yet implemented... ABORTING PROGRAM EXECUTION\n", name)
+		fmt.Printf("called not yet implemented function '%s'... ABORTING WASM PROGRAM EXECUTION\n", name)
 		return -2
 	})
 }

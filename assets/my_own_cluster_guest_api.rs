@@ -12,16 +12,14 @@ use byteorder::{LittleEndian, ReadBytesExt};
 pub mod raw {
     #[link(wasm_import_module = "my-own-cluster")]
     extern {
-        pub fn test() -> u32;
         pub fn print_debug(buffer: *const u8, length: u32) -> u32;
         pub fn get_time(timestamp: *mut i64) -> u32;
         pub fn register_buffer(buffer: *const u8, length: u32) -> u32;
-        pub fn get_buffer_size(buffer_id: u32) -> u32;
-        pub fn get_buffer(buffer_id: u32, buffer: *const u8, length: u32) -> u32;
+        pub fn read_exchange_buffer(buffer_id: u32, buffer: *const u8, length: u32) -> u32;
         // returns the exchange buffer id where headers have been copied or 0xffff if error
         pub fn get_buffer_headers(buffer_id: u32) -> u32;
-        pub fn write_buffer(buffer_id: u32, buffer: *const u8, length: u32) -> u32;
-        pub fn write_buffer_header(buffer_id: u32, name: *const u8, name_length: u32, value: *const u8, value_length: u32) -> u32;
+        pub fn write_exchange_buffer(buffer_id: u32, buffer: *const u8, length: u32) -> u32;
+        pub fn write_exchange_buffer_header(buffer_id: u32, name: *const u8, name_length: u32, value: *const u8, value_length: u32) -> u32;
         pub fn free_buffer(buffer_id: u32) -> i32;
         pub fn get_input_buffer_id() -> u32;
         pub fn get_output_buffer_id() -> u32;
@@ -201,10 +199,10 @@ pub fn free_buffer(buffer_id: u32) {
 
 pub fn read_buffer(buffer_id: u32) -> Vec<u8> {
     unsafe {
-        let buffer_size = raw::get_buffer_size(buffer_id);
+        let buffer_size = raw::read_exchange_buffer(buffer_id, std::ptr::null(), 0);
         let mut dest = Vec::with_capacity(buffer_size as usize);
         dest.resize(buffer_size as usize, 0);
-        raw::get_buffer(buffer_id, dest.as_ptr(), buffer_size);
+        raw::read_exchange_buffer(buffer_id, dest.as_ptr(), buffer_size);
         dest
     }
 }
@@ -224,15 +222,15 @@ pub fn get_url(url: &str) -> String {
     }
 }
 
-pub fn write_buffer(buffer_id: u32, buffer: &[u8]) -> u32 {
+pub fn write_exchange_buffer(buffer_id: u32, buffer: &[u8]) -> u32 {
     unsafe {
-        raw::write_buffer(buffer_id, buffer.as_ptr(), buffer.len() as u32)
+        raw::write_exchange_buffer(buffer_id, buffer.as_ptr(), buffer.len() as u32)
     }
 }
 
-pub fn write_buffer_header(buffer_id: u32, name: &str, value: &str) {
+pub fn write_exchange_buffer_header(buffer_id: u32, name: &str, value: &str) {
     unsafe {
-        raw::write_buffer_header(
+        raw::write_exchange_buffer_header(
             buffer_id, 
             name.as_bytes().as_ptr(), 
             name.as_bytes().len() as u32, 

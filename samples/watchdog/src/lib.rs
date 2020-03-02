@@ -42,8 +42,8 @@ fn message_response(message: &str) {
 
     let serialized = serde_json::to_string(&body).unwrap();
 
-    write_buffer_header(get_output_buffer_id(), "content-type", "application/json");
-    write_buffer(get_output_buffer_id(), serialized.as_bytes());
+    write_exchange_buffer_header(get_output_buffer_id(), "content-type", "application/json");
+    write_exchange_buffer(get_output_buffer_id(), serialized.as_bytes());
 }
 
 #[no_mangle]
@@ -65,8 +65,8 @@ pub extern fn getStatus() -> u32 {
 
     let serialized = serde_json::to_string(&status).unwrap();
 
-    write_buffer_header(get_output_buffer_id(), "content-type", "application/json");
-    write_buffer(get_output_buffer_id(), serialized.as_bytes());
+    write_exchange_buffer_header(get_output_buffer_id(), "content-type", "application/json");
+    write_exchange_buffer(get_output_buffer_id(), serialized.as_bytes());
     
     200
 }
@@ -85,6 +85,7 @@ pub extern fn addStatus() -> u32 {
 #[no_mangle]
 pub extern fn postStatus() -> u32 {
     let body = read_buffer_as_string(get_input_buffer_id());
+    print_debug(&body);
     let status = serde_json::from_str::<WatchdogServicePostStatus>(&body);
     match status {
         Ok(status) => {
@@ -94,24 +95,14 @@ pub extern fn postStatus() -> u32 {
             200 as u32
         },
         Err(err) =>{
-            message_response("cannot parse");
+            message_response(&format!("cannot parse {:?}", err));
             400 as u32
         },
     }
 }
 
-// import the 'my-own-cluster' library
-#[link(wasm_import_module = "my-own-cluster")]
-extern {
-    fn test();
-}
-
 #[no_mangle]
 pub extern fn rustMultiply(a : i32, b:i32) -> i32 {
-    unsafe {
-        test();
-    }
-
     a * b
 }
 

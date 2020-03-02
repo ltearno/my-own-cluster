@@ -42,43 +42,41 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 	ctx.PushGoFunction(func(c *duktape.Context) int {
 		res, err := coreapi.GetOutputBufferID(fctx)
 		if err != nil {
-			c.PushInt(-1)
-		} else {
-			c.PushInt(res)
+			return 0
 		}
+
+		c.PushInt(res)
 
 		return 1
 	})
 	ctx.PutPropString(-2, "getOutputBufferId")
 
 	ctx.PushGoFunction(func(c *duktape.Context) int {
-		bufferID := int(c.GetNumber(-1))
+		bufferId := int(c.GetNumber(-1))
 
-		buffer := fctx.Orchestrator.GetExchangeBuffer(bufferID)
-		if buffer == nil {
-			fmt.Printf("buffer %d not found for reading\n", bufferID)
+		res, err := coreapi.ReadExchangeBuffer(fctx, bufferId)
+		if err != nil {
 			return 0
 		}
 
-		c.PushString(string(buffer.GetBuffer()))
+		dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
+		copy(dest, res)
 
 		return 1
 	})
-	ctx.PutPropString(-2, "readExchangeBufferAsString")
+	ctx.PutPropString(-2, "readExchangeBuffer")
 
 	ctx.PushGoFunction(func(c *duktape.Context) int {
 		bufferID := int(c.GetNumber(-2))
 		contentBytes := SafeToBytes(c, -1)
 
-		buffer := fctx.Orchestrator.GetExchangeBuffer(bufferID)
-		if buffer == nil {
-			fmt.Printf("buffer %d not found for writing\n", bufferID)
+		res, err := coreapi.WriteExchangeBuffer(fctx, bufferID, contentBytes)
+		if err != nil {
 			return 0
 		}
 
-		buffer.Write(contentBytes)
+		c.PushInt(res)
 
-		c.PushInt(len(contentBytes))
 		return 1
 	})
 	ctx.PutPropString(-2, "writeExchangeBuffer")

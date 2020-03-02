@@ -14,8 +14,17 @@
 
 const log = console.log.bind(console)
 
+function getInputRequest() {
+    var bufferId = moc.getInputBufferId()
+    var bufferBytes = moc.readExchangeBuffer(bufferId)
+
+    var reqText = new TextDecoder("utf-8").decode(bufferBytes)
+
+    return JSON.parse(reqText)
+}
+
 function plugFunction() {
-    var req = JSON.parse(moc.readExchangeBufferAsString(moc.getInputBufferId()))
+    var req = getInputRequest()
 
     moc.plugFunction(
         req.method,
@@ -32,7 +41,7 @@ function plugFunction() {
 }
 
 function plugFile() {
-    var req = JSON.parse(moc.readExchangeBufferAsString(moc.getInputBufferId()))
+    var req = getInputRequest()
 
     moc.plugFile(
         req.method,
@@ -48,7 +57,7 @@ function plugFile() {
 }
 
 function registerBlob() {
-    var req = JSON.parse(moc.readExchangeBufferAsString(moc.getInputBufferId()))
+    var req = getInputRequest()
 
     var bytes = moc.base64Decode(req.bytes)
 
@@ -76,7 +85,7 @@ function registerBlob() {
 }
 
 function callFunction() {
-    var req = JSON.parse(moc.readExchangeBufferAsString(moc.getInputBufferId()))
+    var req = getInputRequest()
 
     var inputExchangeBufferId = moc.createExchangeBuffer()
     if (req.input)

@@ -1,20 +1,20 @@
 (module
-  (type (;0;) (func (result i32)))
-  (type (;1;) (func (param i32 i32) (result i32)))
+  (type (;0;) (func (param i32 i32) (result i32)))
+  (type (;1;) (func (param i32 i32 i32) (result i32)))
   (type (;2;) (func (param i32) (result i32)))
-  (type (;3;) (func (param i32 i32 i32) (result i32)))
-  (import "my-own-cluster" "test" (func (;0;) (type 0)))
-  (import "my-own-cluster" "register_buffer" (func (;1;) (type 1)))
-  (import "my-own-cluster" "get_buffer_size" (func (;2;) (type 2)))
-  (import "my-own-cluster" "get_buffer" (func (;3;) (type 3)))
-  (import "my-own-cluster" "free_buffer" (func (;4;) (type 2)))
-  (func (;5;) (type 1) (param i32 i32) (result i32)
+  (import "my-own-cluster" "print_debug" (func (;0;) (type 0)))
+  (import "my-own-cluster" "register_buffer" (func (;1;) (type 0)))
+  (import "my-own-cluster" "read_exchange_buffer" (func (;2;) (type 1)))
+  (import "my-own-cluster" "free_buffer" (func (;3;) (type 2)))
+  (func (;4;) (type 0) (param i32 i32) (result i32)
     (local i32 i32 i32 i32)
     global.get 0
     i32.const 32
     i32.sub
     local.tee 2
     global.set 0
+    i32.const 1024
+    i32.const 5
     call 0
     drop
     i32.const 0
@@ -38,6 +38,8 @@
       i32.const 5
       call 1
       local.tee 5
+      i32.const 0
+      i32.const 0
       call 2
       i32.const 5
       i32.ne
@@ -47,7 +49,7 @@
       i32.const 14
       i32.add
       i32.const 5
-      call 3
+      call 2
       drop
       loop  ;; label = @2
         block  ;; label = @3
@@ -78,7 +80,7 @@
         br_if 0 (;@2;)
       end
       local.get 5
-      call 4
+      call 3
       drop
       i32.const 700
       local.set 4
@@ -88,13 +90,15 @@
     i32.add
     global.set 0
     local.get 4)
-  (func (;6;) (type 2) (param i32) (result i32)
+  (func (;5;) (type 2) (param i32) (result i32)
     local.get 0
+    i32.const 0
+    i32.const 0
     call 2)
   (table (;0;) 1 1 funcref)
   (memory (;0;) 1)
   (global (;0;) (mut i32) (i32.const 5136))
   (export "memory" (memory 0))
-  (export "_start" (func 5))
-  (export "get_size_of_passed_buffer" (func 6))
+  (export "_start" (func 4))
+  (export "get_size_of_passed_buffer" (func 5))
   (data (;0;) (i32.const 1024) "hello\00"))

@@ -17,6 +17,11 @@ func (cs *CallSite) GetParamUINT32(index int) uint32 {
 	return getParameter(cs.sp, index)
 }
 
+// GetParamInt returns int
+func (cs *CallSite) GetParamInt(index int) int {
+	return int(getParameter(cs.sp, index))
+}
+
 // GetParamPointer retrive pointer
 func (cs *CallSite) GetParamPointer(index int) unsafe.Pointer {
 	return m3ApiOffsetToPtr(cs.mem, getParameter(cs.sp, index))
@@ -26,6 +31,10 @@ func (cs *CallSite) GetParamPointer(index int) unsafe.Pointer {
 func (cs *CallSite) GetParamByteBuffer(addrParamIndex int, lengthParamIndex int) []byte {
 	addr := cs.GetParamPointer(addrParamIndex)
 	size := cs.GetParamUINT32(lengthParamIndex)
+
+	if size == 0 || addr == nil {
+		return nil
+	}
 
 	bytes := (*[1 << 30]byte)(addr)[:size:size]
 

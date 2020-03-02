@@ -10,11 +10,6 @@ import (
  * Implementation of core functions that execution engines can use to exposes functionality to their runtimes
  */
 
-func Test(ctx *common.FunctionExecutionContext) (int, error) {
-	fmt.Printf("guest called 'test()'\n")
-	return 0, nil
-}
-
 func GetInputBufferID(ctx *common.FunctionExecutionContext) (int, error) {
 	return ctx.InputExchangeBufferID, nil
 }
@@ -67,4 +62,28 @@ func Base64Decode(ctx *common.FunctionExecutionContext, encoded string) ([]byte,
 
 func Base64Encode(ctx *common.FunctionExecutionContext, b []byte) string {
 	return base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(b)
+}
+
+func WriteExchangeBuffer(ctx *common.FunctionExecutionContext, bufferID int, content []byte) (int, error) {
+	exchangeBuffer := ctx.Orchestrator.GetExchangeBuffer(bufferID)
+	if exchangeBuffer == nil {
+		fmt.Printf("GET EXCHANGE BUFFER FOR UNKNOWN BUFFER %d\n", bufferID)
+		return 0, nil
+	}
+
+	exchangeBuffer.Write(content)
+
+	return len(content), nil
+}
+
+func ReadExchangeBuffer(ctx *common.FunctionExecutionContext, bufferID int) ([]byte, error) {
+	buffer := ctx.Orchestrator.GetExchangeBuffer(bufferID)
+	if buffer == nil {
+		fmt.Printf("buffer %d not found for reading\n", bufferID)
+		return nil, nil
+	}
+
+	bufferBytes := buffer.GetBuffer()
+
+	return bufferBytes, nil
 }

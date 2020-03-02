@@ -27,11 +27,6 @@ func (p *MyOwnClusterWASMAPIPlugin) Bind(wctx *WasmProcessContext) {
 		fmt.Println("binding MyOwnCluster API...")
 	}
 
-	wctx.BindAPIFunction("my-own-cluster", "test", "i()", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
-		res, err := coreapi.Test(wctx.Fctx)
-		return uint32(res), err
-	})
-
 	wctx.BindAPIFunction("my-own-cluster", "base64_decode", "i(ii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
 		encoded := cs.GetParamString(0, 1)
 
@@ -170,61 +165,30 @@ func (p *MyOwnClusterWASMAPIPlugin) Bind(wctx *WasmProcessContext) {
 		return uint32(bufferID), nil
 	})
 
-	// params : buffer id
-	wctx.BindAPIFunction("my-own-cluster", "get_buffer_size", "i(i)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
-		bufferID := cs.GetParamUINT32(0)
-		exchangeBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(int(bufferID))
-		if exchangeBuffer == nil {
-			fmt.Printf("GET EXCHANGE BUFFER SIZE FOR UNKNOWN BUFFER %d\n", bufferID)
-			return 0, nil
+	// wasm params : buffer_id result_buffer_addr result_buffer_length
+	wctx.BindAPIFunction("my-own-cluster", "read_exchange_buffer", "i(iii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
+		bufferId := cs.GetParamInt(0)
+		resultBuffer := cs.GetParamByteBuffer(1, 2)
+
+		res, err := coreapi.ReadExchangeBuffer(wctx.Fctx, bufferId)
+
+		if resultBuffer != nil && len(resultBuffer) == len(res) {
+			copy(resultBuffer, res)
 		}
+		return uint32(len(res)), err
+	})
 
-		buffer := exchangeBuffer.GetBuffer()
+	// params : buffer_id, content
+	wctx.BindAPIFunction("my-own-cluster", "write_exchange_buffer", "i(iii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
+		bufferId := cs.GetParamInt(0)
+		content := cs.GetParamByteBuffer(1, 2)
 
-		return uint32(len(buffer)), nil
+		res, err := coreapi.WriteExchangeBuffer(wctx.Fctx, bufferId, content)
+		return uint32(res), err
 	})
 
 	// params : buffer id, buffer addr, buffer length
-	wctx.BindAPIFunction("my-own-cluster", "get_buffer", "i(iii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
-		bufferID := cs.GetParamUINT32(0)
-		buffer := cs.GetParamByteBuffer(1, 2)
-
-		exchangeBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(int(bufferID))
-		if exchangeBuffer == nil {
-			fmt.Printf("GET EXCHANGE BUFFER FOR UNKNOWN BUFFER %d\n", bufferID)
-			return 0, nil
-		}
-
-		sourceBuffer := exchangeBuffer.GetBuffer()
-
-		if len(buffer) != len(sourceBuffer) {
-			fmt.Printf("GET BUFFER WITH WRONG SIZE given %d, required %d\n", len(buffer), len(sourceBuffer))
-			return 0, nil
-		}
-
-		copy(buffer, sourceBuffer)
-
-		return uint32(len(sourceBuffer)), nil
-	})
-
-	// params : buffer id, buffer addr, buffer length
-	wctx.BindAPIFunction("my-own-cluster", "write_buffer", "i(iii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
-		bufferID := cs.GetParamUINT32(0)
-		buffer := cs.GetParamByteBuffer(1, 2)
-
-		exchangeBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(int(bufferID))
-		if exchangeBuffer == nil {
-			fmt.Printf("GET EXCHANGE BUFFER FOR UNKNOWN BUFFER %d\n", bufferID)
-			return 0, nil
-		}
-
-		exchangeBuffer.Write(buffer)
-
-		return uint32(len(buffer)), nil
-	})
-
-	// params : buffer id, buffer addr, buffer length
-	wctx.BindAPIFunction("my-own-cluster", "write_buffer_header", "i(iiiii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
+	wctx.BindAPIFunction("my-own-cluster", "write_exchange_buffer_header", "i(iiiii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
 		bufferID := cs.GetParamUINT32(0)
 		name := cs.GetParamByteBuffer(1, 2)
 		value := cs.GetParamByteBuffer(3, 4)
@@ -247,7 +211,7 @@ func (p *MyOwnClusterWASMAPIPlugin) Bind(wctx *WasmProcessContext) {
 		return uint32(0), err
 	})
 
-	// params : buffer id
+	// params :
 	wctx.BindAPIFunction("my-own-cluster", "get_input_buffer_id", "i()", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
 		res, err := coreapi.GetInputBufferID(wctx.Fctx)
 		return uint32(res), err

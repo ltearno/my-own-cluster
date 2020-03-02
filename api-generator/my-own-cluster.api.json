@@ -1,0 +1,40 @@
+{
+    "wasmDeclaredModule": "my-own-cluster",
+    "targetGoPackage": "coreapi",
+    "functions": [
+        {
+            "name": "get_input_buffer_id",
+            "args": [],
+            "returnType": "int"
+        },
+        {
+            "name": "get_output_buffer_id",
+            "args": [],
+            "returnType": "int"
+        },
+        {
+            "name": "write_exchange_buffer",
+            "args": [
+                {
+                    "name": "buffer_id",
+                    "type": "int"
+                },
+                {
+                    "name": "content",
+                    "type": "buffer"
+                }
+            ],
+            "returnType": "int"
+        },
+        {
+            "name": "read_exchange_buffer",
+            "args": [
+                {
+                    "name": "buffer_id",
+                    "type": "int"
+                }
+            ],
+            "returnType": "buffer"
+        }
+    ]
+}

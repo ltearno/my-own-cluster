@@ -1,9 +1,11 @@
 #include "my-own-cluster-guest-api.h"
 
+#define NULL 0
+
 WASM_EXPORT
 uint32_t _start(int a, int b) {
     // call the host test function
-    test();
+    print_debug("hello", 5);
 
     /**
      * This demonstrates how to pass a memory buffer from guest to host and vice-versa.
@@ -15,11 +17,11 @@ uint32_t _start(int a, int b) {
 
     // get buffer
     char dest[10];
-    int bufferSize = get_buffer_size(bufferId);
+    int bufferSize = read_exchange_buffer(bufferId, NULL, 0);
     if(bufferSize!=5) {
         return 100;
     }
-    get_buffer(bufferId, dest, 5);
+    read_exchange_buffer(bufferId, dest, 5);
 
     // check buffer
     for(int i=0;i<5;i++){
@@ -36,5 +38,5 @@ uint32_t _start(int a, int b) {
 
 WASM_EXPORT
 uint32_t get_size_of_passed_buffer(int bufferId) {
-    return get_buffer_size(bufferId);
+    return read_exchange_buffer(bufferId, NULL, 0);
 }
