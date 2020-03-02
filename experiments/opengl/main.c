@@ -232,13 +232,18 @@ int main() {
    checkErrors();
 
    /* prepare input and output */
-   const int dataSize = 4;
+   const int dataSize = 4096;
    float *in1 = malloc(sizeof(float) * dataSize);
    float *in2 = malloc(sizeof(float) * dataSize);
    for(int i=0;i<dataSize; i++ ){
       in1[i] = i;
       in2[i] = i;
    }
+
+   struct ShaderParams {
+      float fRatio;
+      float imageSize;
+   } shaderParams;
 
    GLuint textureIndex;
    int textureWidth = dataSize;
@@ -274,8 +279,9 @@ int main() {
    GLuint paramsIndex;
    glGenBuffers(1, &paramsIndex);
    glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramsIndex);
-   float fRatio = 1;
-   glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * 1, &fRatio,  GL_STATIC_DRAW);
+   shaderParams.fRatio = 1;
+   shaderParams.imageSize = textureWidth;
+   glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(shaderParams), &shaderParams,  GL_STATIC_DRAW);
    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, paramsIndex);
    
    checkErrors();
@@ -301,10 +307,10 @@ int main() {
       printf("tmp[%d] = %f\n", i, tmp[i]);
    
    glBindTexture(GL_TEXTURE_2D, textureIndex);
-   float *pixels = malloc(sizeof(float)*textureWidth*textureHeight*4);
-   glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, pixels);
-   for(int x=0;x<textureWidth*textureHeight*4;x+=4)
-      printf("%d: %f %f %f %f\n",x,  pixels[x], pixels[x+1], pixels[x+2], pixels[x+3]);
+   //float *pixels = malloc(sizeof(float)*textureWidth*textureHeight*4);
+   //glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, pixels);
+   //for(int x=0;x<textureWidth*textureHeight*4;x+=4)
+   //   printf("%d: %f %f %f %f\n",x,  pixels[x], pixels[x+1], pixels[x+2], pixels[x+3]);
 
    /* free stuff */
    glDeleteProgram (shader_program);
