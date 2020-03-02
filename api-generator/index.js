@@ -183,7 +183,6 @@ function generateJsBindings(apiDescription, out) {
     out(`package duktape
 
     import (
-        "fmt"
         "my-own-cluster/common"
         "my-own-cluster/coreapi"
     
@@ -225,5 +224,5 @@ function makeOut(fileName) {
 
 // read api description
 let apiDescription = JSON.parse(fs.readFileSync("my-own-cluster.api.json"))
-generateJsBindings(apiDescription, makeOut("my-own-cluster-api-js.go"))
-generateWasmBindings(apiDescription, makeOut("my-own-cluster-api-wasm.go"))
+generateJsBindings(apiDescription, makeOut("../src/my-own-cluster/duktape/my-own-cluster-api-js.go"))
+generateWasmBindings(apiDescription, makeOut("../src/my-own-cluster/wasm/my-own-cluster-api-wasm.go"))
