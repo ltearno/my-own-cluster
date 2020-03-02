@@ -2,6 +2,7 @@ package coreapi
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"my-own-cluster/common"
 )
@@ -86,4 +87,13 @@ func ReadExchangeBuffer(ctx *common.FunctionExecutionContext, bufferID int) ([]b
 	bufferBytes := buffer.GetBuffer()
 
 	return bufferBytes, nil
+}
+
+func PersistenceSet(ctx *common.FunctionExecutionContext, key []byte, value []byte) (int, error) {
+	ok := ctx.Orchestrator.PersistenceSet(key, value)
+	if !ok {
+		return 0, errors.New("cannot persist key !")
+	}
+
+	return 0, nil
 }

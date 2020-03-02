@@ -27,33 +27,28 @@ func (p *MyOwnClusterWASMAPIPlugin) Bind(wctx *WasmProcessContext) {
 		fmt.Println("binding MyOwnCluster API...")
 	}
 
-	wctx.BindAPIFunction("my-own-cluster", "base64_decode", "i(ii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
+	// wasm params : encoded result_buffer_addr result_buffer_length
+	wctx.BindAPIFunction("my-own-cluster", "base64_decode", "i(iiii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
 		encoded := cs.GetParamString(0, 1)
 
-		decoded, err := coreapi.Base64Decode(wctx.Fctx, encoded)
-		if err != nil {
-			fmt.Println(err)
-			return uint32(0xffff), nil
+		resultBuffer := cs.GetParamByteBuffer(2, 3)
+
+		res, err := coreapi.Base64Decode(wctx.Fctx, encoded)
+
+		if resultBuffer != nil && len(resultBuffer) == len(res) {
+			copy(resultBuffer, res)
 		}
-
-		bufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
-		buffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(bufferID)
-		buffer.Write(decoded)
-
-		return uint32(bufferID), nil
+		return uint32(len(res)), err
 	})
 
-	// params : key addr, key length, value addr, value length
+	// wasm params : key value
 	wctx.BindAPIFunction("my-own-cluster", "persistence_set", "i(iiii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
 		key := cs.GetParamByteBuffer(0, 1)
 		value := cs.GetParamByteBuffer(2, 3)
 
-		ok := wctx.Fctx.Orchestrator.PersistenceSet(key, value)
-		if !ok {
-			return uint32(0xffff), nil
-		}
+		res, err := coreapi.PersistenceSet(wctx.Fctx, key, value)
 
-		return uint32(0), nil
+		return uint32(res), err
 	})
 
 	// params : key addr, key length

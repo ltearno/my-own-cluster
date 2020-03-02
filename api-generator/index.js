@@ -25,6 +25,9 @@ function mapArgumentType(tag) {
 
         case "buffer":
             return "ii"
+
+        case "string":
+            return "ii"
     }
 
     throw `unknown return type '${tag}'`
@@ -91,6 +94,10 @@ function getGoParamExtractionCode(args) {
                 code += `cs.GetParamByteBuffer(${currentWasmParamIndex}, ${currentWasmParamIndex + 1})`
                 currentWasmParamIndex += 2
                 break
+            case "string":
+                code += `cs.GetParamString(${currentWasmParamIndex}, ${currentWasmParamIndex + 1})`
+                currentWasmParamIndex += 2
+                break
         }
         code += "\n"
     }
@@ -116,6 +123,9 @@ function getJsParamExtractionCode(args) {
                 break
             case "buffer":
                 code += `SafeToBytes(c, ${stackPosition})`
+                break
+            case "string":
+                code += `c.SafeToString(${stackPosition})`
                 break
         }
         code += "\n"
@@ -151,15 +161,15 @@ for (let fct of apiDescription.functions) {
     let goCallParams = ["wctx.Fctx"]
     goCallParams = goCallParams.concat(...goParamExtraction.argNames)
     log(`
-    // wasm params : ${fct.args.map(arg => arg.name).join(' ')} ${fct.returnType=='buffer'?`result_buffer_addr result_buffer_length`:''}
-	wctx.BindAPIFunction("${apiDescription.wasmDeclaredModule}", "${wasmName}", "${mapReturnType(fct.returnType)}(${fct.args.map(arg => mapArgumentType(arg.type)).join('')}${fct.returnType=='buffer'?'ii':''})", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
+    // wasm params : ${fct.args.map(arg => arg.name).join(' ')} ${fct.returnType == 'buffer' ? `result_buffer_addr result_buffer_length` : ''}
+	wctx.BindAPIFunction("${apiDescription.wasmDeclaredModule}", "${wasmName}", "${mapReturnType(fct.returnType)}(${fct.args.map(arg => mapArgumentType(arg.type)).join('')}${fct.returnType == 'buffer' ? 'ii' : ''})", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
         ${goParamExtraction.code}
 
-        ${fct.returnType!='buffer'?'':`resultBuffer := cs.GetParamByteBuffer(${goParamExtraction.currentWasmParamIndex}, ${goParamExtraction.currentWasmParamIndex + 1})`}
+        ${fct.returnType != 'buffer' ? '' : `resultBuffer := cs.GetParamByteBuffer(${goParamExtraction.currentWasmParamIndex}, ${goParamExtraction.currentWasmParamIndex + 1})`}
 
         res, err := ${apiDescription.targetGoPackage}.${goName}(${goCallParams.join(', ')})
         
-        ${fct.returnType!='buffer'?`return uint32(res), err`:`if resultBuffer != nil && len(resultBuffer)==len(res) {\n                copy(resultBuffer, res)\n        }\n        return uint32(len(res)), err`}
+        ${fct.returnType != 'buffer' ? `return uint32(res), err` : `if resultBuffer != nil && len(resultBuffer)>=len(res) {\n                copy(resultBuffer, res)\n        }\n        return uint32(len(res)), err`}
     })
     `)
 

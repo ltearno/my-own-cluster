@@ -100,15 +100,14 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 
 	ctx.PushGoFunction(func(c *duktape.Context) int {
 		encoded := c.SafeToString(-1)
-		decoded, err := coreapi.Base64Decode(fctx, encoded)
+
+		res, err := coreapi.Base64Decode(fctx, encoded)
 		if err != nil {
-			fmt.Printf("cannot decode base64\n")
 			return 0
 		}
 
-		dest := (*[1 << 30]byte)(c.PushBuffer(len(decoded), false))[:len(decoded):len(decoded)]
-
-		copy(dest, decoded)
+		dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
+		copy(dest, res)
 
 		return 1
 	})

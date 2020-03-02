@@ -35,6 +35,30 @@
                 }
             ],
             "returnType": "buffer"
+        },
+        {
+            "name": "base64_decode",
+            "args": [
+                {
+                    "name": "encoded",
+                    "type": "string"
+                }
+            ],
+            "returnType": "buffer"
+        },
+        {
+            "name": "persistence_set",
+            "args": [
+                {
+                    "name": "key",
+                    "type": "buffer"
+                },
+                {
+                    "name": "value",
+                    "type": "buffer"
+                }
+            ],
+            "returnType": "int"
         }
     ]
 }

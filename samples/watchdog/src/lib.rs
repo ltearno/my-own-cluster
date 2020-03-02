@@ -85,7 +85,6 @@ pub extern fn addStatus() -> u32 {
 #[no_mangle]
 pub extern fn postStatus() -> u32 {
     let body = read_buffer_as_string(get_input_buffer_id());
-    print_debug(&body);
     let status = serde_json::from_str::<WatchdogServicePostStatus>(&body);
     match status {
         Ok(status) => {

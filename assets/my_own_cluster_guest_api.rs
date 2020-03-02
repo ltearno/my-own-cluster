@@ -30,22 +30,17 @@ pub mod raw {
         pub fn persistence_get_subset(prefix_buffer: *const u8, prefix_length: u32) -> u32;
 
         pub fn plug_file(method_buffer: *const u8, method_length: u32, path_buffer: *const u8, path_length: u32, content_type_buffer: *const u8, content_type_length: u32, bytes_buffer: *const u8, bytes_length: u32) -> u32;
-
-        // temporary
-        pub fn base64_decode(encoded_buffer: *const u8, encoded_length: u32) -> u32;
+        pub fn base64_decode(encoded_buffer: *const u8, encoded_length: u32, result_buffer: *const u8, result_length: u32) -> u32;
     }
 }
 
 pub fn base64_decode(encoded: &str) -> Result<Vec<u8>, &str> {
-    let decoded_buffer_id = unsafe { raw::base64_decode(encoded.as_ptr(), encoded.len() as u32) };
-    if decoded_buffer_id == 0xffff {
-        return Err("cannot decode")
-    }
+    let buffer_size = unsafe { raw::base64_decode(encoded.as_ptr(), encoded.len() as u32, std::ptr::null(), 0) };
+    let mut dest = Vec::with_capacity(buffer_size as usize);
+    dest.resize(buffer_size as usize, 0);
+    unsafe { raw::base64_decode(encoded.as_ptr(), encoded.len() as u32, dest.as_ptr(), buffer_size) };
 
-    let decoded = read_buffer(decoded_buffer_id);
-    free_buffer(decoded_buffer_id);
-
-    Ok(decoded)
+    Ok(dest)
 }
 
 pub fn plug_file(method: &str, path: &str, content_type: &str, bytes: &[u8]) -> String {
