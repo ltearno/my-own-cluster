@@ -252,7 +252,6 @@ int main() {
    glBindTexture(GL_TEXTURE_2D, textureIndex);
    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-   //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, textureWidth, textureHeight, 0, GL_RGBA, GL_FLOAT, NULL);
    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, textureWidth, textureHeight);
    checkErrors();
    glBindImageTexture(0, textureIndex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
