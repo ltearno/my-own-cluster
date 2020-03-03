@@ -95,7 +95,7 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			fmt.Printf("CANNOT READ BODY\n")
 		}
 		for k, v := range r.Header {
-			// TODO why not support multiple values ?
+			// TODO why not support multiple values ? would add complexity and one header with clear syntax parsing should be enough
 			inputExchangeBuffer.SetHeader(k, v[0])
 		}
 		inputExchangeBuffer.SetHeader("x-moc-host", r.Host)
@@ -104,6 +104,7 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 		inputExchangeBuffer.SetHeader("x-moc-remote-addr", r.RemoteAddr)
 		inputExchangeBuffer.SetHeader("x-moc-request-uri", r.RequestURI)
 		inputExchangeBuffer.SetHeader("x-moc-url-path", r.URL.Path)
+		inputExchangeBuffer.SetHeader("x-moc-url-query", r.URL.RawQuery)
 		for k, v := range boundParameters {
 			inputExchangeBuffer.SetHeader(fmt.Sprintf("x-moc-path-param-%s", k), v)
 		}
