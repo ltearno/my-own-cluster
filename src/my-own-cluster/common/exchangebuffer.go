@@ -1,6 +1,8 @@
 package common
 
-import "sync/atomic"
+import (
+	"sync"
+)
 
 /*
 	ExchangeBuffer is a byte buffer together with a set of headers.
@@ -17,8 +19,14 @@ type ExchangeBuffer struct {
 }
 
 func (o *Orchestrator) CreateExchangeBuffer() int {
-	bufferID := atomic.AddInt32(&o.nextExchangeBufferID, 1)
+	var lock sync.Mutex
+
+	lock.Lock()
+	bufferID := o.nextExchangeBufferID
+	o.nextExchangeBufferID++
 	o.exchangeBuffers[int(bufferID)] = newExchangeBuffer()
+	lock.Unlock()
+
 	return int(bufferID)
 }
 
