@@ -33,6 +33,9 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 	// soon will be completely replaced by those ones, generated from 'my-own-cluster.api.json'
 	BindMyOwnClusterFunctionsJs(fctx, ctx)
 
+	// TODO : this should be factorized in the concept of pluggable "runtime providers"
+	BindOpenGLFunctionsJs(fctx, ctx)
+
 	ctx.PutPropString(-2, "moc")
 	ctx.Pop()
 

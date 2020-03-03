@@ -64,11 +64,11 @@ func (p *ExchangeBuffer) Read(buffer []byte) int {
 	return 0
 }
 
-func (p *ExchangeBuffer) Write(buffer []byte) int {
+func (p *ExchangeBuffer) Write(buffer []byte) (int, error) {
 	// TODO WARNING THIS DOES NOT TAKE WRITE POS IN ACCOUNT !!!
 	p.buffer = appendSlice(p.buffer, buffer)
 
-	return len(buffer)
+	return len(buffer), nil
 }
 
 /**

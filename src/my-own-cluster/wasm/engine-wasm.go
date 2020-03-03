@@ -28,7 +28,7 @@ type WASMAPIPlugin interface {
 
 type VirtualFile interface {
 	Read(buffer []byte) int
-	Write(buffer []byte) int
+	Write(buffer []byte) (int, error)
 	Close() int
 }
 
@@ -81,9 +81,9 @@ func (vf *StdAccess) Read(buffer []byte) int {
 	return l
 }
 
-func (vf *StdAccess) Write(buffer []byte) int {
+func (vf *StdAccess) Write(buffer []byte) (int, error) {
 	fmt.Printf("%s: %s\n", vf.Name, string(buffer))
-	return len(buffer)
+	return len(buffer), nil
 }
 
 func (vf *StdAccess) Close() int {
@@ -112,9 +112,9 @@ func (vf *InputAccessState) Read(buffer []byte) int {
 	return l
 }
 
-func (vf *InputAccessState) Write(buffer []byte) int {
+func (vf *InputAccessState) Write(buffer []byte) (int, error) {
 	fmt.Printf("CALLED WRITE ON INPUT STREAM !\n")
-	return 0
+	return 0, nil
 }
 
 func (vf *InputAccessState) Close() int {
@@ -138,12 +138,12 @@ func (vf *OutputAccessState) Read(buffer []byte) int {
 	return 0
 }
 
-func (vf *OutputAccessState) Write(buffer []byte) int {
+func (vf *OutputAccessState) Write(buffer []byte) (int, error) {
 	exchangeBuffer := vf.Wctx.Fctx.Orchestrator.GetExchangeBuffer(vf.Wctx.Fctx.OutputExchangeBufferID)
-	written := exchangeBuffer.Write(buffer)
+	written, _ := exchangeBuffer.Write(buffer)
 	vf.WritePos += written
 
-	return written
+	return written, nil
 }
 
 func (vf *OutputAccessState) Close() int {
@@ -166,9 +166,9 @@ func CreateWebAccessVirtualFile(path string) VirtualFile {
 	}
 }
 
-func (vf *WebAccessState) Write(buffer []byte) int {
+func (vf *WebAccessState) Write(buffer []byte) (int, error) {
 	fmt.Printf("CALLED WRITE ON WEB STREAM !\n")
-	return 0
+	return 0, nil
 }
 
 func (vf *WebAccessState) Read(buffer []byte) int {
@@ -251,6 +251,7 @@ func (e *WasmWasm3Engine) PrepareContext(fctx *common.FunctionExecutionContext) 
 	wctx.AddAPIPlugin(NewAutoLinkWASMAPIPlugin())
 	if fctx.Mode == "posix" {
 		inputExchangeBuffer := fctx.Orchestrator.GetExchangeBuffer(fctx.InputExchangeBufferID)
+
 		wctx.AddAPIPlugin(NewWASIHostPlugin(fctx.POSIXFileName, fctx.POSIXArguments, map[int]VirtualFile{
 			0: CreateStdInVirtualFile(wctx, inputExchangeBuffer.GetBuffer()),
 			1: wctx.Fctx.Orchestrator.GetExchangeBuffer(wctx.Fctx.OutputExchangeBufferID),

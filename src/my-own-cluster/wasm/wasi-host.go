@@ -393,7 +393,11 @@ func WASIFdWrite(state *state, cs *CallSite) (uint32, int) {
 		}
 
 		virtualFile := state.OpenedVirtualFiles[int(fd)]
-		l := virtualFile.Write(buffer)
+		l, err := virtualFile.Write(buffer)
+		if err != nil {
+			*(*uint32)(nwritten) = 0
+			return WASI_EBADF, 0
+		}
 		writtenLength += uint32(l)
 	}
 

@@ -1,0 +1,39 @@
+{
+    "bindFunctionName": "BindOpenGLFunctions",
+    "wasmDeclaredModule": "my-own-cluster",
+    "targetGoPackage": "openglapi",
+    "functions": [
+        {
+            "name": "compute_shader",
+            "args": [
+                {
+                    "name": "specification",
+                    "type": "string"
+                }
+            ],
+            "returnType": "int"
+        },
+        {
+            "name": "create_image_from_rgbafloat_pixels",
+            "args": [
+                {
+                    "name": "width",
+                    "type": "int"
+                },
+                {
+                    "name": "height",
+                    "type": "int"
+                },
+                {
+                    "name": "pixels_exchange_buffer_id",
+                    "type": "int"
+                },
+                {
+                    "name": "png_exchange_buffer_id",
+                    "type": "int"
+                }
+            ],
+            "returnType": "int"
+        }
+    ]
+}

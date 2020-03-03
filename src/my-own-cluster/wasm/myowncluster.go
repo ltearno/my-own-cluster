@@ -29,6 +29,9 @@ func (p *MyOwnClusterWASMAPIPlugin) Bind(wctx *WasmProcessContext) {
 
 	BindMyOwnClusterFunctionsWASM(wctx)
 
+	// TODO : this should be factorized in the concept of pluggable "runtime providers"
+	BindOpenGLFunctionsWASM(wctx)
+
 	// params : key addr, key length
 	wctx.BindAPIFunction("my-own-cluster", "persistence_get", "i(ii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
 		key := cs.GetParamByteBuffer(0, 1)
@@ -136,23 +139,6 @@ func (p *MyOwnClusterWASMAPIPlugin) Bind(wctx *WasmProcessContext) {
 		exchangeBuffer.Write(buffer)
 
 		return uint32(bufferID), nil
-	})
-
-	// params : buffer id, buffer addr, buffer length
-	wctx.BindAPIFunction("my-own-cluster", "write_exchange_buffer_header", "i(iiiii)", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
-		bufferID := cs.GetParamUINT32(0)
-		name := cs.GetParamByteBuffer(1, 2)
-		value := cs.GetParamByteBuffer(3, 4)
-
-		exchangeBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(int(bufferID))
-		if exchangeBuffer == nil {
-			fmt.Printf("GET EXCHANGE BUFFER FOR UNKNOWN BUFFER %d\n", bufferID)
-			return 0, nil
-		}
-
-		exchangeBuffer.SetHeader(string(name), string(value))
-
-		return uint32(1), nil
 	})
 
 	// params : buffer id

@@ -34,6 +34,7 @@ function launchMandelbrotShader() {
 
     console.log("create buffers")
     var textureBufferId = moc.createExchangeBuffer();
+    // we write in the buffer because opengl api will read it to fill the texture (no option yet)
     moc.writeExchangeBuffer(textureBufferId, texture);
 
     var in1BufferId = moc.createExchangeBuffer();
@@ -101,19 +102,9 @@ function launchMandelbrotShader() {
         console.log("AN ERROR HAS OCCURED " + res)
     }
 
-    console.log("read result")
-    var textureBytes = moc.readExchangeBuffer(textureBufferId);
-    var texturePixels = new Float32Array(textureBytes.buffer);
-    /*for (var i = 0; i < textureWidth; i++) {
-        var s = ""
-        for (var j = 0; j < textureHeight; j++)
-            s += texturePixels[4 * (i * textureHeight + j)] + " "
-        console.log(s)
-    }*/
 
-    console.log("read storage result")
-    var storageBytes = moc.readExchangeBuffer(outBufferId);
-    var storageValues = new Float32Array(storageBytes.buffer);
-    for (var i = 0; i < 10; i++)
-        console.log(storageValues[i])
+    moc.createImageFromRgbafloatPixels(textureWidth, textureHeight, textureBufferId, moc.getOutputBufferId())
+    moc.writeExchangeBufferHeader(moc.getOutputBufferId(), "content-type", "image/png")
+
+    return 200
 }

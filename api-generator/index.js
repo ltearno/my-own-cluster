@@ -153,7 +153,7 @@ function generateWasmBindings(apiDescription, out) {
     out(`package wasm
 
     import (
-        "my-own-cluster/coreapi"
+        "my-own-cluster/${apiDescription.targetGoPackage}"
     )\n\n`)
     out(`func ${apiDescription.bindFunctionName}WASM(wctx *WasmProcessContext) {`)
     for (let fct of apiDescription.functions) {
@@ -184,7 +184,7 @@ function generateJsBindings(apiDescription, out) {
 
     import (
         "my-own-cluster/common"
-        "my-own-cluster/coreapi"
+        "my-own-cluster/${apiDescription.targetGoPackage}"
     
         "gopkg.in/ltearno/go-duktape.v3"
     )\n\n`)
@@ -223,6 +223,10 @@ function makeOut(fileName) {
 }
 
 // read api description
-let apiDescription = JSON.parse(fs.readFileSync("my-own-cluster.api.json"))
-generateJsBindings(apiDescription, makeOut("../src/my-own-cluster/duktape/my-own-cluster-api-js.go"))
-generateWasmBindings(apiDescription, makeOut("../src/my-own-cluster/wasm/my-own-cluster-api-wasm.go"))
+let apiDescription = JSON.parse(fs.readFileSync("core-api.json"))
+generateJsBindings(apiDescription, makeOut("../src/my-own-cluster/duktape/core-api-js.go"))
+generateWasmBindings(apiDescription, makeOut("../src/my-own-cluster/wasm/core-api-wasm.go"))
+
+apiDescription = JSON.parse(fs.readFileSync("opengl-api.json"))
+generateJsBindings(apiDescription, makeOut("../src/my-own-cluster/duktape/opengl-api-js.go"))
+generateWasmBindings(apiDescription, makeOut("../src/my-own-cluster/wasm/opengl-api-wasm.go"))

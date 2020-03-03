@@ -33,6 +33,24 @@
             "returnType": "int"
         },
         {
+            "name": "write_exchange_buffer_header",
+            "args": [
+                {
+                    "name": "buffer_id",
+                    "type": "int"
+                },
+                {
+                    "name": "name",
+                    "type": "string"
+                },
+                {
+                    "name": "value",
+                    "type": "string"
+                }
+            ],
+            "returnType": "int"
+        },
+        {
             "name": "read_exchange_buffer",
             "args": [
                 {
@@ -62,16 +80,6 @@
                 {
                     "name": "value",
                     "type": "buffer"
-                }
-            ],
-            "returnType": "int"
-        },
-        {
-            "name": "compute_shader",
-            "args": [
-                {
-                    "name": "specification",
-                    "type": "string"
                 }
             ],
             "returnType": "int"
