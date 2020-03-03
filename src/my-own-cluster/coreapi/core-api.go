@@ -2,6 +2,7 @@ package coreapi
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"my-own-cluster/common"
@@ -112,4 +113,15 @@ func PersistenceSet(ctx *common.FunctionExecutionContext, key []byte, value []by
 
 func CreateExchangeBuffer(ctx *common.FunctionExecutionContext) (int, error) {
 	return ctx.Orchestrator.CreateExchangeBuffer(), nil
+}
+
+func ReadExchangeBufferHeaders(ctx *common.FunctionExecutionContext, bufferID int) ([]byte, error) {
+	buffer := ctx.Orchestrator.GetExchangeBuffer(bufferID)
+	headers := make(map[string]string)
+	buffer.GetHeaders(func(name string, value string) { headers[name] = value })
+	b, err := json.Marshal(headers)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
 }

@@ -61,6 +61,17 @@
             "returnType": "buffer"
         },
         {
+            "name": "read_exchange_buffer_headers",
+            "comment": "returns the buffer headers in JSON format",
+            "args": [
+                {
+                    "name": "buffer_id",
+                    "type": "int"
+                }
+            ],
+            "returnType": "buffer"
+        },
+        {
             "name": "base64_decode",
             "args": [
                 {

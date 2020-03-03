@@ -97,11 +97,11 @@ func ComputeShader(ctx *common.FunctionExecutionContext, specificationJSON strin
 
 	// copy out buffers to the specified exchange buffers
 	for binding, bindingSpec := range spec.Bindings {
-		fmt.Printf("copying out for binding %d on target %s\n", binding, bindingSpec.Target)
-
 		if !bindingSpec.IsOUT {
 			continue
 		}
+
+		fmt.Printf("copying out for binding %d on target %s\n", binding, bindingSpec.Target)
 
 		switch bindingSpec.Target {
 		case "STORAGE":

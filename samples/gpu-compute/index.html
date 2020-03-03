@@ -1,11 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mandelbrot on server's GPU</title>
 </head>
+
 <body>
-    <img src="mandelbrot">
+    <img id='image' src='mandelbrot?{"xmin":-2.5,"xmax":1,"ymin":-1,"ymax":1}'>
+
+    <script>
+        params = {
+            xmin: -2.5,
+            xmax: 1,
+            ymin: -1,
+            ymax: 1
+        }
+
+        let image = document.getElementById('image')
+        const update = () => { image.src = `mandelbrot?${JSON.stringify(params)}` }
+
+        image.addEventListener('wheel', e => {
+            if (e.deltaY != 0) {
+                let max = params.xmax
+                let min = params.xmin
+                let middle = (max + min) / 2
+                let span = (max - min) / 2
+
+                let coef = e.deltaY > 0 ? .9 : 1.11111
+                params.xmin = middle - coef * span
+                params.xmax = middle + coef * span
+                update()
+            }
+            console.log(e)
+        })
+    </script>
 </body>
+
 </html>
