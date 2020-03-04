@@ -77,20 +77,20 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 	found, plugType, plug, boundParameters := server.orchestrator.GetPlugFromPath(r.Method, path)
 	if !found {
 		if server.trace {
-			fmt.Printf("received query for path '%s'\n", path)
+			fmt.Printf("received not found query for path '%s'\n", path)
 		}
 
 		errorResponse(w, 404, fmt.Sprintf("sorry, unbound resource '%s', method:%s", path, r.Method))
 		return
 	}
 
-	if server.trace {
-		fmt.Printf("received query path '%s' type is %s\n", path, plugType)
-	}
-
 	switch plugType {
 	case "function":
 		pluggedFunction := plug.(*common.PluggedFunction)
+
+		if server.trace {
+			fmt.Printf("received plugged function request, path:'%s', type:%s, name:%s, start_function:%s\n", path, plugType, pluggedFunction.Name, pluggedFunction.StartFunction)
+		}
 
 		// create exchange buffers and provide informations about current http request
 		outputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
@@ -155,6 +155,10 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 
 	case "file":
 		pluggedFile := plug.(*common.PluggedFile)
+
+		if server.trace {
+			fmt.Printf("received plugged file request, path:'%s', type:%s, name:%s\n", path, plugType, pluggedFile.Name)
+		}
 
 		fileTechID, err := server.orchestrator.GetBlobTechIDFromReference(pluggedFile.Name)
 		if err != nil {
