@@ -13,6 +13,7 @@ import (
 	"my-own-cluster/enginewasm"
 	"net/http"
 	"time"
+	"unsafe"
 
 	"gopkg.in/ltearno/go-duktape.v3"
 )
@@ -28,22 +29,6 @@ func (p *CoreAPIProvider) BindToExecutionEngineContext(ctx common.ExecutionEngin
 	if ok {
 		wctx := *wctx
 		BindMyOwnClusterFunctionsWASM(wctx)
-
-		// params : key addr, key length
-		wctx.BindAPIFunction("my-own-cluster", "persistence_get", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
-			key := cs.GetParamByteBuffer(0, 1)
-
-			value, present := wctx.Fctx.Orchestrator.PersistenceGet(key)
-			if !present {
-				return uint32(0xffff), nil
-			}
-
-			bufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
-			buffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(bufferID)
-			buffer.Write(value)
-
-			return uint32(bufferID), nil
-		})
 
 		// params : prefix addr, prefix length
 		wctx.BindAPIFunction("my-own-cluster", "persistence_get_subset", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
@@ -105,45 +90,6 @@ func (p *CoreAPIProvider) BindToExecutionEngineContext(ctx common.ExecutionEngin
 
 			return uint32(bufferID), nil
 		})
-
-		// params : buffer id, buffer addr, buffer length
-		wctx.BindAPIFunction("my-own-cluster", "print_debug", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
-			buffer := cs.GetParamByteBuffer(0, 1)
-
-			fmt.Printf("\n[my-own-cluster api, ctx %s, print_debug]: %s\n", wctx.Fctx.Name, string(buffer))
-
-			return uint32(len(buffer)), nil
-		})
-
-		// params : time addr (should be wide enough for the 64 bit timestamp)
-		wctx.BindAPIFunction("my-own-cluster", "get_time", "i(i)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
-			timestampPtr := cs.GetParamPointer(0)
-
-			*(*int64)(timestampPtr) = time.Now().UnixNano()
-
-			return uint32(0), nil
-		})
-
-		// params : buffer addr, buffer length
-		wctx.BindAPIFunction("my-own-cluster", "register_buffer", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
-			buffer := cs.GetParamByteBuffer(0, 1)
-			bufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
-			exchangeBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(bufferID)
-			if exchangeBuffer == nil {
-				return 0, errors.New("cannot get just created exchange buffer")
-			}
-
-			exchangeBuffer.Write(buffer)
-
-			return uint32(bufferID), nil
-		})
-
-		// params : buffer id
-		wctx.BindAPIFunction("my-own-cluster", "free_buffer", "i(i)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
-			bufferID := cs.GetParamUINT32(0)
-			wctx.Fctx.Orchestrator.ReleaseExchangeBuffer(int(bufferID))
-			return uint32(0), nil
-		})
 	}
 
 	jsctx, ok := ctx.(*enginejs.JSProcessContext)
@@ -168,9 +114,9 @@ func GetOutputBufferID(ctx *common.FunctionExecutionContext) (int, error) {
 	return ctx.OutputExchangeBufferID, nil
 }
 
-func FreeBuffer(ctx *common.FunctionExecutionContext, bufferID int) error {
+func FreeBuffer(ctx *common.FunctionExecutionContext, bufferID int) (int, error) {
 	ctx.Orchestrator.ReleaseExchangeBuffer(int(bufferID))
-	return nil
+	return 0, nil
 }
 
 func PlugFunction(ctx *common.FunctionExecutionContext, method string, path string, name string, startFunction string) error {
@@ -296,6 +242,27 @@ func GetUrl(ctx *common.FunctionExecutionContext, url string) ([]byte, error) {
 	bytes, _ := ioutil.ReadAll(resp.Body)
 
 	return bytes, nil
+}
+
+func PersistenceGet(ctx *common.FunctionExecutionContext, key []byte) ([]byte, error) {
+	value, present := ctx.Orchestrator.PersistenceGet(key)
+	if !present {
+		return nil, nil
+	}
+
+	return value, nil
+}
+
+func PrintDebug(ctx *common.FunctionExecutionContext, text string) (int, error) {
+	fmt.Printf("\n[my-own-cluster api, ctx %s, print_debug]: %s\n", ctx.Name, text)
+
+	return 0, nil
+}
+
+func GetTime(ctx *common.FunctionExecutionContext, destBuffer []byte) (int, error) {
+	*(*int64)(unsafe.Pointer(&destBuffer[0])) = time.Now().UnixNano()
+
+	return 0, nil
 }
 
 func BindMocFunctionsMano(ctx enginejs.JSProcessContext) {

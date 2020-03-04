@@ -14,7 +14,7 @@ pub mod raw {
     extern {
         pub fn print_debug(buffer: *const u8, length: u32) -> u32;
         pub fn get_time(timestamp: *mut i64) -> u32;
-        pub fn register_buffer(buffer: *const u8, length: u32) -> u32;
+        pub fn create_exchange_buffer(buffer: *const u8, length: u32) -> u32;
         pub fn read_exchange_buffer(buffer_id: u32, buffer: *const u8, length: u32) -> u32;
         // returns the exchange buffer id where headers have been copied or 0xffff if error
         pub fn get_buffer_headers(buffer_id: u32) -> u32;

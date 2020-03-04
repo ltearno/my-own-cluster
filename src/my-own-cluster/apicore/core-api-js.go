@@ -165,4 +165,61 @@ value := c.SafeToBytes(-1)
             return 1
         })
         ctx.Context.PutPropString(-2, "getUrl")
+        
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            key := c.SafeToBytes(-1)
+
+            res, err := PersistenceGet(ctx.Fctx, key)
+            if err != nil {
+                return 0
+            }
+            
+            dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
+                copy(dest, res)
+    
+            return 1
+        })
+        ctx.Context.PutPropString(-2, "persistenceGet")
+        
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            text := c.SafeToString(-1)
+
+            res, err := PrintDebug(ctx.Fctx, text)
+            if err != nil {
+                return 0
+            }
+            
+            c.PushInt(res)
+    
+            return 1
+        })
+        ctx.Context.PutPropString(-2, "printDebug")
+        
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            dest := c.SafeToBytes(-1)
+
+            res, err := GetTime(ctx.Fctx, dest)
+            if err != nil {
+                return 0
+            }
+            
+            c.PushInt(res)
+    
+            return 1
+        })
+        ctx.Context.PutPropString(-2, "getTime")
+        
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            bufferId := int(c.GetNumber(-1))
+
+            res, err := FreeBuffer(ctx.Fctx, bufferId)
+            if err != nil {
+                return 0
+            }
+            
+            c.PushInt(res)
+    
+            return 1
+        })
+        ctx.Context.PutPropString(-2, "freeBuffer")
         }

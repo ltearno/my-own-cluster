@@ -178,4 +178,64 @@ value := cs.GetParamByteBuffer(2, 3)
                 resultBuffer.Write(res)
                 return uint32(resultBufferID), nil
     })
+    
+	wctx.BindAPIFunction("my-own-cluster", "persistence_get", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        key := cs.GetParamByteBuffer(0, 1)
+
+
+        
+
+        res, err := PersistenceGet(wctx.Fctx, key)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        
+                resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
+                resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
+                resultBuffer.Write(res)
+                return uint32(resultBufferID), nil
+    })
+    
+	wctx.BindAPIFunction("my-own-cluster", "print_debug", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        text := cs.GetParamString(0, 1)
+
+
+        
+
+        res, err := PrintDebug(wctx.Fctx, text)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        return uint32(res), err
+    })
+    
+	wctx.BindAPIFunction("my-own-cluster", "get_time", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        dest := cs.GetParamByteBuffer(0, 1)
+
+
+        
+
+        res, err := GetTime(wctx.Fctx, dest)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        return uint32(res), err
+    })
+    
+	wctx.BindAPIFunction("my-own-cluster", "free_buffer", "i(i)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        bufferId := cs.GetParamInt(0)
+
+
+        
+
+        res, err := FreeBuffer(wctx.Fctx, bufferId)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        return uint32(res), err
+    })
     }

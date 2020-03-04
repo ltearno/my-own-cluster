@@ -13,7 +13,8 @@ uint32_t _start(int a, int b) {
 
     // register a buffer in the host
     char buffer[] = "hello";
-    int bufferId = register_buffer(buffer, 5);
+    int bufferId = create_exchange_buffer();
+    write_exchange_buffer(bufferId, buffer, 5);
 
     // get buffer
     char dest[10];

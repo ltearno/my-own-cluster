@@ -1,5 +1,6 @@
 print_debug
-register_buffer
+create_exchange_buffer
+write_exchange_buffer
 read_exchange_buffer
 free_buffer
 get_input_buffer_id

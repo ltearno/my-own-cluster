@@ -15,7 +15,8 @@ uint32_t process(int a, int b) {
     // the other program is running in another wasm instance and is automatically dynamically linked
     // the other program reads the exchange buffer and returns it size, which should be 5
     char buffer[] = "hello";
-    int bufferId = register_buffer(buffer, 5);
+    int bufferId = create_exchange_buffer();
+    write_exchange_buffer(bufferId, buffer, 5);
     int v = get_size_of_passed_buffer(bufferId);
     
     return v + rustDivide(rustMultiply(a,a), rustMultiply(b,b));

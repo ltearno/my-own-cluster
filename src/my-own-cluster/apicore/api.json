@@ -96,11 +96,11 @@
             "args": [
                 {
                     "name": "key",
-                    "type": "buffer"
+                    "type": "bytes"
                 },
                 {
                     "name": "value",
-                    "type": "buffer"
+                    "type": "bytes"
                 }
             ],
             "returnType": "int"
@@ -114,6 +114,46 @@
                 }
             ],
             "returnType": "buffer"
+        },
+        {
+            "name": "persistence_get",
+            "args": [
+                {
+                    "name": "key",
+                    "type": "bytes"
+                }
+            ],
+            "returnType": "buffer"
+        },
+        {
+            "name": "print_debug",
+            "args": [
+                {
+                    "name": "text",
+                    "type": "string"
+                }
+            ],
+            "returnType": "int"
+        },
+        {
+            "name": "get_time",
+            "args": [
+                {
+                    "name": "dest",
+                    "type": "bytes"
+                }
+            ],
+            "returnType": "int"
+        },
+        {
+            "name": "free_buffer",
+            "args": [
+                {
+                    "name": "bufferId",
+                    "type": "int"
+                }
+            ],
+            "returnType": "int"
         }
     ]
 }
