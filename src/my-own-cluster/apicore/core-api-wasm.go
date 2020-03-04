@@ -2,6 +2,9 @@ package apicore
 
     import (
         "my-own-cluster/enginewasm"
+
+        "bytes"
+        "encoding/binary"
     )
     
 
@@ -126,6 +129,44 @@ value := cs.GetParamString(3, 4)
                     resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
                     resultBuffer.Write(res)
                     return uint32(resultBufferID), nil
+    })
+    
+	wctx.BindAPIFunction("my-own-cluster", "get_buffer_headers", "i(i)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        bufferId := cs.GetParamInt(0)
+
+
+        
+
+        res, err := GetBufferHeaders(wctx.Fctx, bufferId)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        
+                var b bytes.Buffer
+                bs := make([]byte, 4)
+
+                // pair count
+                binary.LittleEndian.PutUint32(bs, uint32(len(res)))
+                b.Write(bs)
+
+                for k, v := range res {
+                    // write key
+                    binary.LittleEndian.PutUint32(bs, uint32(len([]byte(k))))
+                    b.Write(bs)
+                    b.Write([]byte(k))
+
+                    // write value
+                    binary.LittleEndian.PutUint32(bs, uint32(len([]byte(v))))
+                    b.Write(bs)
+                    b.Write([]byte(v))
+                }
+
+                resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
+                resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
+                resultBuffer.Write(b.Bytes())
+
+                return uint32(resultBufferID), nil
     })
     
 	wctx.BindAPIFunction("my-own-cluster", "base64_decode", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
@@ -338,6 +379,44 @@ value := cs.GetParamByteBuffer(2, 3)
                     resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
                     resultBuffer.Write(res)
                     return uint32(resultBufferID), nil
+    })
+    
+	wctx.BindAPIFunction("my-own-cluster", "persistence_get_subset", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        prefix := cs.GetParamString(0, 1)
+
+
+        
+
+        res, err := PersistenceGetSubset(wctx.Fctx, prefix)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        
+                var b bytes.Buffer
+                bs := make([]byte, 4)
+
+                // pair count
+                binary.LittleEndian.PutUint32(bs, uint32(len(res)))
+                b.Write(bs)
+
+                for k, v := range res {
+                    // write key
+                    binary.LittleEndian.PutUint32(bs, uint32(len([]byte(k))))
+                    b.Write(bs)
+                    b.Write([]byte(k))
+
+                    // write value
+                    binary.LittleEndian.PutUint32(bs, uint32(len([]byte(v))))
+                    b.Write(bs)
+                    b.Write([]byte(v))
+                }
+
+                resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
+                resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
+                resultBuffer.Write(b.Bytes())
+
+                return uint32(resultBufferID), nil
     })
     
 	wctx.BindAPIFunction("my-own-cluster", "print_debug", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {

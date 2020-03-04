@@ -1,9 +1,7 @@
 package apicore
 
 import (
-	"bytes"
 	"encoding/base64"
-	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,72 +22,25 @@ func NewCoreAPIProvider() (common.APIProvider, error) {
 	return &CoreAPIProvider{}, nil
 }
 
+func GetBufferHeaders(ctx *common.FunctionExecutionContext, bufferID int) (map[string]string, error) {
+	res := make(map[string]string)
+
+	exchangeBuffer := ctx.Orchestrator.GetExchangeBuffer(int(bufferID))
+	if exchangeBuffer == nil {
+		return nil, nil
+	}
+
+	exchangeBuffer.GetHeaders(func(name string, value string) {
+		res[name] = value
+	})
+	return res, nil
+}
+
 func (p *CoreAPIProvider) BindToExecutionEngineContext(ctx common.ExecutionEngineContextBounding) {
 	wctx, ok := ctx.(*enginewasm.WasmProcessContext)
 	if ok {
 		wctx := *wctx
 		BindMyOwnClusterFunctionsWASM(wctx)
-
-		// params : prefix addr, prefix length
-		wctx.BindAPIFunction("my-own-cluster", "persistence_get_subset", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
-			prefix := cs.GetParamByteBuffer(0, 1)
-
-			subset, err := wctx.Fctx.Orchestrator.PersistenceGetSubset(prefix)
-			if err != nil {
-				return uint32(0xffff), nil
-			}
-
-			var b bytes.Buffer
-			bs := make([]byte, 4)
-
-			binary.LittleEndian.PutUint32(bs, uint32(len(subset)))
-			b.Write(bs)
-
-			for i := 0; i < len(subset); i++ {
-				binary.LittleEndian.PutUint32(bs, uint32(len(subset[i])))
-				b.Write(bs)
-
-				b.Write(subset[i])
-			}
-
-			bufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
-			buffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(bufferID)
-			buffer.Write(b.Bytes())
-
-			return uint32(bufferID), nil
-		})
-
-		// pub fn get_buffer_headers(buffer_id: u32) -> u32;
-		wctx.BindAPIFunction("my-own-cluster", "get_buffer_headers", "i(i)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
-			exchangeBufferID := cs.GetParamUINT32(0)
-
-			exchangeBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(int(exchangeBufferID))
-			if exchangeBuffer == nil {
-				return uint32(0xffff), nil
-			}
-
-			var b bytes.Buffer
-			bs := make([]byte, 4)
-
-			binary.LittleEndian.PutUint32(bs, uint32(2*exchangeBuffer.GetHeadersCount()))
-			b.Write(bs)
-
-			exchangeBuffer.GetHeaders(func(name string, value string) {
-				binary.LittleEndian.PutUint32(bs, uint32(len([]byte(name))))
-				b.Write(bs)
-				b.Write([]byte(name))
-
-				binary.LittleEndian.PutUint32(bs, uint32(len([]byte(value))))
-				b.Write(bs)
-				b.Write([]byte(value))
-			})
-
-			bufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
-			buffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(bufferID)
-			buffer.Write(b.Bytes())
-
-			return uint32(bufferID), nil
-		})
 	}
 
 	jsctx, ok := ctx.(*enginejs.JSProcessContext)
@@ -283,6 +234,23 @@ func GetStatus(ctx *common.FunctionExecutionContext) (string, error) {
 
 func CallFunction(ctx *common.FunctionExecutionContext) error {
 	return nil
+}
+
+func PersistenceGetSubset(ctx *common.FunctionExecutionContext, prefix string) (map[string]string, error) {
+	subset, err := ctx.Orchestrator.PersistenceGetSubset([]byte(prefix))
+	if err != nil {
+		return nil, err
+	}
+	res := make(map[string]string)
+	i := 0
+	for i < len(subset) {
+		k := subset[i]
+		i++
+		v := subset[i]
+		i++
+		res[string(k)] = string(v)
+	}
+	return res, nil
 }
 
 func BindMocFunctionsMano(ctx enginejs.JSProcessContext) {

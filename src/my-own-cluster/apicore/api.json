@@ -73,6 +73,15 @@
             ],
             "returnType": "buffer"
         },
+        "get_buffer_headers": {
+            "args": [
+                {
+                    "name": "buffer_id",
+                    "type": "int"
+                }
+            ],
+            "returnType": "map[string]string"
+        },
         "base64_decode": {
             "args": [
                 {
@@ -211,6 +220,15 @@
                 }
             ],
             "returnType": "buffer"
+        },
+        "persistence_get_subset": {
+            "args": [
+                {
+                    "name": "prefix",
+                    "type": "string"
+                }
+            ],
+            "returnType": "map[string]string"
         },
         "print_debug": {
             "args": [

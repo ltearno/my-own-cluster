@@ -122,6 +122,25 @@ value := c.SafeToString(-1)
         ctx.Context.PutPropString(-2, "readExchangeBufferHeaders")
         
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            bufferId := int(c.GetNumber(-1))
+
+            res, err := GetBufferHeaders(ctx.Fctx, bufferId)
+            if err != nil {
+                return 0
+            }
+            
+            
+            c.PushObject()
+            for k, v := range res {
+                c.PushString(v)
+                c.PutPropString(-2, k)
+            }
+    
+            return 1
+        })
+        ctx.Context.PutPropString(-2, "getBufferHeaders")
+        
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             encoded := c.SafeToString(-1)
 
             res, err := Base64Decode(ctx.Fctx, encoded)
@@ -299,6 +318,25 @@ value := c.SafeToBytes(-1)
             return 1
         })
         ctx.Context.PutPropString(-2, "persistenceGet")
+        
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            prefix := c.SafeToString(-1)
+
+            res, err := PersistenceGetSubset(ctx.Fctx, prefix)
+            if err != nil {
+                return 0
+            }
+            
+            
+            c.PushObject()
+            for k, v := range res {
+                c.PushString(v)
+                c.PutPropString(-2, k)
+            }
+    
+            return 1
+        })
+        ctx.Context.PutPropString(-2, "persistenceGetSubset")
         
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             text := c.SafeToString(-1)

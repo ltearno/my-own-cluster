@@ -12,6 +12,8 @@ function mapReturnType(tag) {
             return "i" // returns the result buffer length if passed buffer is NULL and written size if not
         case "buffer":
             return "i" // returns the result exchange buffer id
+        case "map[string]string":
+            return "i" // exchange buffer id
     }
 
     throw `unknown return type '${tag}'`
@@ -160,6 +162,14 @@ function getJsReturnCode(type) {
         case "bytes":
             return `dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
                     copy(dest, res)`
+
+        case "map[string]string":
+            return `
+            c.PushObject()
+            for k, v := range res {
+                c.PushString(v)
+                c.PutPropString(-2, k)
+            }`
     }
 
     throw `unknown js retrun type`
@@ -178,6 +188,9 @@ function getGoPreCallCode(fct, goParamExtraction) {
 
         case "bytes":
             return `resultBuffer := cs.GetParamByteBuffer(${goParamExtraction.currentWasmParamIndex}, ${goParamExtraction.currentWasmParamIndex + 1})`
+
+        case "map[string]string":
+            return ""
     }
 
     throw `unknown js retrun type for precall code`
@@ -210,6 +223,33 @@ function getGoReturnCode(fct) {
                 } else {
                     return uint32(len(res)), nil
                 }`
+
+        case "map[string]string":
+            return `
+                var b bytes.Buffer
+                bs := make([]byte, 4)
+
+                // pair count
+                binary.LittleEndian.PutUint32(bs, uint32(len(res)))
+                b.Write(bs)
+
+                for k, v := range res {
+                    // write key
+                    binary.LittleEndian.PutUint32(bs, uint32(len([]byte(k))))
+                    b.Write(bs)
+                    b.Write([]byte(k))
+
+                    // write value
+                    binary.LittleEndian.PutUint32(bs, uint32(len([]byte(v))))
+                    b.Write(bs)
+                    b.Write([]byte(v))
+                }
+
+                resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
+                resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
+                resultBuffer.Write(b.Bytes())
+
+                return uint32(resultBufferID), nil`
     }
 
     throw `unknown js retrun type for go return code`
@@ -227,10 +267,14 @@ function getWasmAdditionalPrototype(type) {
 // output code for binding wasm engine to core api
 // output code for binding js engine to core api
 function generateWasmBindings(apiDescription, out) {
+    let needBytesPackage = Object.values(apiDescription.functions).some(fct => fct.returnType == "map[string]string")
     out(`package ${apiDescription.targetGoPackage}
 
     import (
         "my-own-cluster/enginewasm"
+
+        ${needBytesPackage ? '"bytes"' : ''}
+        ${needBytesPackage ? '"encoding/binary"' : ''}
     )
     \n\n`)
     out(`func ${apiDescription.bindFunctionName}WASM(wctx enginewasm.WasmProcessContext) {`)
