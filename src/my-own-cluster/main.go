@@ -148,7 +148,7 @@ func main() {
 		}
 
 		// init core-api
-		coreAPILibrary, err := assetsgen.Asset("assets/core-api.js")
+		coreAPILibrary, err := assetsgen.Asset("assets/rest-default-api.js")
 		if err == nil {
 			orchestrator.RegisterBlobWithName("core-api", "text/javascript", coreAPILibrary)
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/blob/register", "core-api", "registerBlob")
@@ -157,7 +157,7 @@ func main() {
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/call", "core-api", "callFunction")
 			fmt.Printf("core-api loaded and bound\n")
 		} else {
-			fmt.Printf("[ERROR] cannot load core-api.js, things will go bad quickly...\n")
+			fmt.Printf("[ERROR] cannot load rest-default-api.js, things will go bad quickly...\n")
 		}
 
 		port := 8443

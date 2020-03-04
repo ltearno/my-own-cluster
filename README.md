@@ -100,7 +100,7 @@ Those functions can be called by whatever language which is targetting WASM and 
 A basic set of REST api is provided through the _core_ module. 
 This module is loaded at startup like other functions and use the guest api to provide the REST API that the _cli_ program uses.
 
-The core api module implementation can be found in the [assets/core-api.js](assets/core-api.js) file.
+The core api module implementation can be found in the [assets/rest-default-api.js](assets/rest-default-api.js) file.
 
 ## Automatic module binding
 
