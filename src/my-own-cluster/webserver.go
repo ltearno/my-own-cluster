@@ -76,8 +76,16 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 
 	found, plugType, plug, boundParameters := server.orchestrator.GetPlugFromPath(r.Method, path)
 	if !found {
+		if server.trace {
+			fmt.Printf("received query for path '%s'\n", path)
+		}
+
 		errorResponse(w, 404, fmt.Sprintf("sorry, unbound resource '%s', method:%s", path, r.Method))
 		return
+	}
+
+	if server.trace {
+		fmt.Printf("received query path '%s' type is %s\n", path, plugType)
 	}
 
 	switch plugType {

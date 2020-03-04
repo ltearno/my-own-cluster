@@ -7,7 +7,7 @@ import (
 )
 
 /*
-#cgo LDFLAGS: -lOpenGL -lEGL -lgbm
+#cgo LDFLAGS: -lGL -lEGL -lgbm
 #define GL_GLEXT_PROTOTYPES
 #include <fcntl.h>
 #include <stdbool.h>

@@ -17,11 +17,11 @@ build-embed-assets:
 	@./bin/go-bindata -o src/my-own-cluster/assetsgen/assets.go -pkg assetsgen assets/...
 
 .PHONY: build-apis
-build-apis: api-generator/*.*
+build-apis:
 	cd api-generator && node index.js && cd ..
 
 .PHONY: build
-build: build-embed-assets build-apis
+build: build-embed-assets
 	@echo "build binaries..."
 	@go build my-own-cluster
 

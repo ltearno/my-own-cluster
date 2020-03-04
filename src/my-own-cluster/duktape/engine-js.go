@@ -74,7 +74,11 @@ func SafeToBytes(c *duktape.Context, index int) []byte {
 
 func (jsctx *JSProcessContext) Run() error {
 	jsctx.Context.PushString(string(jsctx.Fctx.CodeBytes))
-	jsctx.Context.Eval()
+	err := jsctx.Context.Peval()
+	if err != nil {
+		return fmt.Errorf("cannot eval script, probably syntax error")
+	}
+
 	jsctx.Context.Pop()
 	jsctx.Context.PushGlobalObject()
 	ok := jsctx.Context.GetPropString(-1, jsctx.Fctx.StartFunction)
@@ -82,7 +86,10 @@ func (jsctx *JSProcessContext) Run() error {
 		return fmt.Errorf("cannot find start function %s", jsctx.Fctx.StartFunction)
 	}
 
-	jsctx.Context.Call(0)
+	res := jsctx.Context.Pcall(0)
+	if res != 0 {
+		return fmt.Errorf("error while executing js function '%s'", jsctx.Fctx.StartFunction)
+	}
 
 	jsctx.Fctx.Result = jsctx.Context.GetInt(-1)
 

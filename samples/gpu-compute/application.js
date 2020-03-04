@@ -18,7 +18,7 @@ function launchMandelbrotShader() {
 
     console.log("init data for query " + params)
 
-    var dataSize = 256;
+    var dataSize = 1024;
     var textureWidth = dataSize;
     var textureHeight = dataSize;
     
@@ -82,7 +82,9 @@ function test() {
     var written = moc.writeExchangeBuffer(bufferId, values);
     console.log("written " + written + " values")
 
+    console.log("yoiii " + bufferId)
     var bytes = moc.readExchangeBuffer(bufferId);
+    console.log("yo")
     var outValues = new Float32Array(bytes.buffer);
     for (var i = 0; i < dataSize; i++)
         console.log(outValues[i] + " / " + values[i])
