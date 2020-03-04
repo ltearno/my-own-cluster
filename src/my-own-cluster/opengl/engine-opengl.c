@@ -268,15 +268,36 @@ int bindTexture2DRGBAFloat(int binding, int textureWidth, int textureHeight) {
   return textureIndex;
 }
 
+int bindTexture2DRFloat(int binding, int textureWidth, int textureHeight) {
+  int dataSize = sizeof(float) * textureWidth * textureHeight;
+
+  GLuint textureIndex;
+
+  glGenTextures(1, &textureIndex);
+  glBindTexture(GL_TEXTURE_2D, textureIndex);
+  glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+  glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+  glTexStorage2D(GL_TEXTURE_2D, 1, GL_R32F, textureWidth, textureHeight);
+  glBindImageTexture(binding, textureIndex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
+
+  return textureIndex;
+}
+
 int getStorageBuffer(int bufferIndex, void* buffer, int size) {
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, bufferIndex);
   glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, size, buffer);
   return 0;
 }
 
-int getTextureBuffer(int textureIndex, void* buffer, int size) {
+int getTexture2DRGBAFloatBuffer(int textureIndex, void* buffer, int size) {
   glBindTexture(GL_TEXTURE_2D, textureIndex);
   glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, buffer);
+  return 0;
+}
+
+int getTexture2DRFloatBuffer(int textureIndex, void* buffer, int size) {
+  glBindTexture(GL_TEXTURE_2D, textureIndex);
+  glGetTexImage(GL_TEXTURE_2D, 0, GL_R, GL_FLOAT, buffer);
   return 0;
 }
 

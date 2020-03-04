@@ -79,6 +79,12 @@ func (c *GLSLOpenGLContext) BindTexture2DRGBAFloat(binding int, width int, heigh
 	return int(textureIndex), nil
 }
 
+func (c *GLSLOpenGLContext) BindTexture2DRFloat(binding int, width int, height int) (int, error) {
+	textureIndex := C.bindTexture2DRFloat(C.int(binding), C.int(width), C.int(height))
+	fmt.Printf("bound texture to index %d\n", textureIndex)
+	return int(textureIndex), nil
+}
+
 func (c *GLSLOpenGLContext) DispatchCompute(x int, y int, z int) {
 	fmt.Printf("dispatching compute %d %d %d\n", x, y, z)
 	C.glDispatchCompute(C.uint(x), C.uint(y), C.uint(z))
@@ -92,9 +98,15 @@ func (c *GLSLOpenGLContext) GetStorageBuffer(bufferIndex int, buffer []byte) err
 	return nil
 }
 
-func (c *GLSLOpenGLContext) GetTextureBuffer(textureIndex int, buffer []byte) error {
+func (c *GLSLOpenGLContext) GetTexture2DRGBAFloatBuffer(textureIndex int, buffer []byte) error {
 	fmt.Printf("getting texture %d content\n", textureIndex)
-	C.getTextureBuffer(C.int(textureIndex), unsafe.Pointer(&buffer[0]), C.int(len(buffer)))
+	C.getTexture2DRGBAFloatBuffer(C.int(textureIndex), unsafe.Pointer(&buffer[0]), C.int(len(buffer)))
+	return nil
+}
+
+func (c *GLSLOpenGLContext) GetTexture2DRFloatBuffer(textureIndex int, buffer []byte) error {
+	fmt.Printf("getting texture %d content\n", textureIndex)
+	C.getTexture2DRFloatBuffer(C.int(textureIndex), unsafe.Pointer(&buffer[0]), C.int(len(buffer)))
 	return nil
 }
 

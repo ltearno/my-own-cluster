@@ -34,7 +34,9 @@ int compileAndBindShader(const char *shader_source);
 
 int bindStorageBuffer(int binding, void* buffer, int size);
 int bindTexture2DRGBAFloat(int binding, int textureWidth, int textureHeight);
+int bindTexture2DRFloat(int binding, int textureWidth, int textureHeight);
 int getStorageBuffer(int bufferIndex, void* buffer, int size);
-int getTextureBuffer(int textureIndex, void* buffer, int size);
+int getTexture2DRGBAFloatBuffer(int textureIndex, void* buffer, int size);
+int getTexture2DRFloatBuffer(int textureIndex, void* buffer, int size);
 int deleteBuffer(int bufferIndex);
 int deleteTexture(int textureIndex);

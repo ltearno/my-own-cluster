@@ -89,6 +89,15 @@ func ComputeShader(ctx *common.FunctionExecutionContext, specificationJSON strin
 			}
 			textureIndices[binding] = textureIndex
 			break
+
+		case "TEXTURE_2D_R_FLOAT":
+			textureIndex, err := openglCtx.BindTexture2DRFloat(binding, bindingSpec.Width, bindingSpec.Height)
+			if err != nil {
+				fmt.Printf("cannot bind texture\n")
+				return -18, err
+			}
+			textureIndices[binding] = textureIndex
+			break
 		}
 	}
 
@@ -119,7 +128,19 @@ func ComputeShader(ctx *common.FunctionExecutionContext, specificationJSON strin
 			buffer := ctx.Orchestrator.GetExchangeBuffer(bindingSpec.ExchangeBufferID).GetBuffer()
 			textureIndex := textureIndices[binding]
 
-			err := openglCtx.GetTextureBuffer(textureIndex, buffer)
+			err := openglCtx.GetTexture2DRGBAFloatBuffer(textureIndex, buffer)
+			if err != nil {
+				fmt.Printf("cannot read output texture\n")
+				return -20, err
+			}
+
+			break
+
+		case "TEXTURE_2D_R_FLOAT":
+			buffer := ctx.Orchestrator.GetExchangeBuffer(bindingSpec.ExchangeBufferID).GetBuffer()
+			textureIndex := textureIndices[binding]
+
+			err := openglCtx.GetTexture2DRFloatBuffer(textureIndex, buffer)
 			if err != nil {
 				fmt.Printf("cannot read output texture\n")
 				return -20, err
