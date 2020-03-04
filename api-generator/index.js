@@ -2,8 +2,6 @@
 
 const fs = require('fs')
 
-const log = console.log.bind(console)
-
 function mapReturnType(tag) {
     switch (tag) {
         case "int":
