@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
+	"my-own-cluster/apicore"
+	"my-own-cluster/apigpu"
 	"my-own-cluster/assetsgen"
 	"my-own-cluster/common"
-	"my-own-cluster/coreapi"
 	"my-own-cluster/enginejs"
 	"my-own-cluster/enginewasm"
-	"my-own-cluster/opengl"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -137,12 +137,12 @@ func main() {
 		orchestrator.AddExecutionEngine("application/wasm", enginewasm.NewWasmWasm3Engine())
 
 		// add api providers
-		apiProvider, err := coreapi.NewCoreAPIProvider()
+		apiProvider, err := apicore.NewCoreAPIProvider()
 		if err == nil {
 			orchestrator.AddAPIProvider("core", apiProvider)
 			orchestrator.AddAPIProvider("my-own-cluster", apiProvider)
 		}
-		apiProvider, err = opengl.NewGPUAPIProvider()
+		apiProvider, err = apigpu.NewGPUAPIProvider()
 		if err == nil {
 			orchestrator.AddAPIProvider("gpu", apiProvider)
 		}

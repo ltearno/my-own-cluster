@@ -1,4 +1,4 @@
-package opengl
+package apigpu
 
     import (
         "my-own-cluster/enginewasm"

@@ -224,9 +224,9 @@ function makeOut(fileName) {
 
 // read api description
 let apiDescription = JSON.parse(fs.readFileSync("core-api.json"))
-generateJsBindings(apiDescription, makeOut("../src/my-own-cluster/coreapi/core-api-js.go"))
-generateWasmBindings(apiDescription, makeOut("../src/my-own-cluster/coreapi/core-api-wasm.go"))
+generateJsBindings(apiDescription, makeOut("../src/my-own-cluster/apicore/core-api-js.go"))
+generateWasmBindings(apiDescription, makeOut("../src/my-own-cluster/apicore/core-api-wasm.go"))
 
-apiDescription = JSON.parse(fs.readFileSync("opengl-api.json"))
-generateJsBindings(apiDescription, makeOut("../src/my-own-cluster/opengl/opengl-api-js.go"))
-generateWasmBindings(apiDescription, makeOut("../src/my-own-cluster/opengl/opengl-api-wasm.go"))
+apiDescription = JSON.parse(fs.readFileSync("gpu-api.json"))
+generateJsBindings(apiDescription, makeOut("../src/my-own-cluster/apigpu/opengl-api-js.go"))
+generateWasmBindings(apiDescription, makeOut("../src/my-own-cluster/apigpu/opengl-api-wasm.go"))
