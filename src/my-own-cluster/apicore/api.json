@@ -92,6 +92,113 @@
             "returnType": "buffer"
         },
         {
+            "name": "base64_encode",
+            "args": [
+                {
+                    "name": "input",
+                    "type": "bytes"
+                }
+            ],
+            "returnType": "string"
+        },
+        {
+            "name": "register_blob_with_name",
+            "args": [
+                {
+                    "name": "name",
+                    "type": "string"
+                },
+                {
+                    "name": "content_type",
+                    "type": "string"
+                },
+                {
+                    "name": "content",
+                    "type": "bytes"
+                }
+            ],
+            "returnType": "string"
+        },
+        {
+            "name": "register_blob",
+            "args": [
+                {
+                    "name": "content_type",
+                    "type": "string"
+                },
+                {
+                    "name": "content",
+                    "type": "bytes"
+                }
+            ],
+            "returnType": "string"
+        },
+        {
+            "name": "get_blob_tech_id_from_name",
+            "args": [
+                {
+                    "name": "name",
+                    "type": "string"
+                }
+            ],
+            "returnType": "string"
+        },
+        {
+            "name": "get_blob_bytes_as_string",
+            "args": [
+                {
+                    "name": "name",
+                    "type": "string"
+                }
+            ],
+            "returnType": "string"
+        },
+        {
+            "name": "plug_function",
+            "args": [
+                {
+                    "name": "method",
+                    "type": "string"
+                },
+                {
+                    "name": "path",
+                    "type": "string"
+                },
+                {
+                    "name": "name",
+                    "type": "string"
+                },
+                {
+                    "name": "start_function",
+                    "type": "string"
+                }
+            ],
+            "returnType": "int"
+        },
+        {
+            "name": "plug_file",
+            "args": [
+                {
+                    "name": "method",
+                    "type": "string"
+                },
+                {
+                    "name": "path",
+                    "type": "string"
+                },
+                {
+                    "name": "name",
+                    "type": "string"
+                }
+            ],
+            "returnType": "int"
+        },
+        {
+            "name": "get_status",
+            "args": [],
+            "returnType": "string"
+        },
+        {
             "name": "persistence_set",
             "args": [
                 {

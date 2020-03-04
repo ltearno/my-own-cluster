@@ -122,10 +122,10 @@ value := cs.GetParamString(3, 4)
         }
         
         
-                resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
-                resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
-                resultBuffer.Write(res)
-                return uint32(resultBufferID), nil
+                    resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
+                    resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
+                    resultBuffer.Write(res)
+                    return uint32(resultBufferID), nil
     })
     
 	wctx.BindAPIFunction("my-own-cluster", "base64_decode", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
@@ -140,9 +140,152 @@ value := cs.GetParamString(3, 4)
         }
         
         
+                    resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
+                    resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
+                    resultBuffer.Write(res)
+                    return uint32(resultBufferID), nil
+    })
+    
+	wctx.BindAPIFunction("my-own-cluster", "base64_encode", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        input := cs.GetParamByteBuffer(0, 1)
+
+
+        
+
+        res, err := Base64Encode(wctx.Fctx, input)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        
                 resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
                 resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
-                resultBuffer.Write(res)
+                resultBuffer.Write([]byte(res))
+                return uint32(resultBufferID), nil
+    })
+    
+	wctx.BindAPIFunction("my-own-cluster", "register_blob_with_name", "i(iiiiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        name := cs.GetParamString(0, 1)
+contentType := cs.GetParamString(2, 3)
+content := cs.GetParamByteBuffer(4, 5)
+
+
+        
+
+        res, err := RegisterBlobWithName(wctx.Fctx, name, contentType, content)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        
+                resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
+                resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
+                resultBuffer.Write([]byte(res))
+                return uint32(resultBufferID), nil
+    })
+    
+	wctx.BindAPIFunction("my-own-cluster", "register_blob", "i(iiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        contentType := cs.GetParamString(0, 1)
+content := cs.GetParamByteBuffer(2, 3)
+
+
+        
+
+        res, err := RegisterBlob(wctx.Fctx, contentType, content)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        
+                resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
+                resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
+                resultBuffer.Write([]byte(res))
+                return uint32(resultBufferID), nil
+    })
+    
+	wctx.BindAPIFunction("my-own-cluster", "get_blob_tech_id_from_name", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        name := cs.GetParamString(0, 1)
+
+
+        
+
+        res, err := GetBlobTechIdFromName(wctx.Fctx, name)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        
+                resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
+                resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
+                resultBuffer.Write([]byte(res))
+                return uint32(resultBufferID), nil
+    })
+    
+	wctx.BindAPIFunction("my-own-cluster", "get_blob_bytes_as_string", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        name := cs.GetParamString(0, 1)
+
+
+        
+
+        res, err := GetBlobBytesAsString(wctx.Fctx, name)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        
+                resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
+                resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
+                resultBuffer.Write([]byte(res))
+                return uint32(resultBufferID), nil
+    })
+    
+	wctx.BindAPIFunction("my-own-cluster", "plug_function", "i(iiiiiiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        method := cs.GetParamString(0, 1)
+path := cs.GetParamString(2, 3)
+name := cs.GetParamString(4, 5)
+startFunction := cs.GetParamString(6, 7)
+
+
+        
+
+        res, err := PlugFunction(wctx.Fctx, method, path, name, startFunction)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        return uint32(res), err
+    })
+    
+	wctx.BindAPIFunction("my-own-cluster", "plug_file", "i(iiiiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        method := cs.GetParamString(0, 1)
+path := cs.GetParamString(2, 3)
+name := cs.GetParamString(4, 5)
+
+
+        
+
+        res, err := PlugFile(wctx.Fctx, method, path, name)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        return uint32(res), err
+    })
+    
+	wctx.BindAPIFunction("my-own-cluster", "get_status", "i()", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        
+
+        
+
+        res, err := GetStatus(wctx.Fctx)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        
+                resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
+                resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
+                resultBuffer.Write([]byte(res))
                 return uint32(resultBufferID), nil
     })
     
@@ -173,10 +316,10 @@ value := cs.GetParamByteBuffer(2, 3)
         }
         
         
-                resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
-                resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
-                resultBuffer.Write(res)
-                return uint32(resultBufferID), nil
+                    resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
+                    resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
+                    resultBuffer.Write(res)
+                    return uint32(resultBufferID), nil
     })
     
 	wctx.BindAPIFunction("my-own-cluster", "persistence_get", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
@@ -191,10 +334,10 @@ value := cs.GetParamByteBuffer(2, 3)
         }
         
         
-                resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
-                resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
-                resultBuffer.Write(res)
-                return uint32(resultBufferID), nil
+                    resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
+                    resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
+                    resultBuffer.Write(res)
+                    return uint32(resultBufferID), nil
     })
     
 	wctx.BindAPIFunction("my-own-cluster", "print_debug", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {

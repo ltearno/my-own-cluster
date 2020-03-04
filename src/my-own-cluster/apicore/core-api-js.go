@@ -137,6 +137,125 @@ value := c.SafeToString(-1)
         ctx.Context.PutPropString(-2, "base64Decode")
         
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            input := c.SafeToBytes(-1)
+
+            res, err := Base64Encode(ctx.Fctx, input)
+            if err != nil {
+                return 0
+            }
+            
+            c.PushString(res)
+    
+            return 1
+        })
+        ctx.Context.PutPropString(-2, "base64Encode")
+        
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            name := c.SafeToString(-3)
+contentType := c.SafeToString(-2)
+content := c.SafeToBytes(-1)
+
+            res, err := RegisterBlobWithName(ctx.Fctx, name, contentType, content)
+            if err != nil {
+                return 0
+            }
+            
+            c.PushString(res)
+    
+            return 1
+        })
+        ctx.Context.PutPropString(-2, "registerBlobWithName")
+        
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            contentType := c.SafeToString(-2)
+content := c.SafeToBytes(-1)
+
+            res, err := RegisterBlob(ctx.Fctx, contentType, content)
+            if err != nil {
+                return 0
+            }
+            
+            c.PushString(res)
+    
+            return 1
+        })
+        ctx.Context.PutPropString(-2, "registerBlob")
+        
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            name := c.SafeToString(-1)
+
+            res, err := GetBlobTechIdFromName(ctx.Fctx, name)
+            if err != nil {
+                return 0
+            }
+            
+            c.PushString(res)
+    
+            return 1
+        })
+        ctx.Context.PutPropString(-2, "getBlobTechIdFromName")
+        
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            name := c.SafeToString(-1)
+
+            res, err := GetBlobBytesAsString(ctx.Fctx, name)
+            if err != nil {
+                return 0
+            }
+            
+            c.PushString(res)
+    
+            return 1
+        })
+        ctx.Context.PutPropString(-2, "getBlobBytesAsString")
+        
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            method := c.SafeToString(-4)
+path := c.SafeToString(-3)
+name := c.SafeToString(-2)
+startFunction := c.SafeToString(-1)
+
+            res, err := PlugFunction(ctx.Fctx, method, path, name, startFunction)
+            if err != nil {
+                return 0
+            }
+            
+            c.PushInt(res)
+    
+            return 1
+        })
+        ctx.Context.PutPropString(-2, "plugFunction")
+        
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            method := c.SafeToString(-3)
+path := c.SafeToString(-2)
+name := c.SafeToString(-1)
+
+            res, err := PlugFile(ctx.Fctx, method, path, name)
+            if err != nil {
+                return 0
+            }
+            
+            c.PushInt(res)
+    
+            return 1
+        })
+        ctx.Context.PutPropString(-2, "plugFile")
+        
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            
+            res, err := GetStatus(ctx.Fctx)
+            if err != nil {
+                return 0
+            }
+            
+            c.PushString(res)
+    
+            return 1
+        })
+        ctx.Context.PutPropString(-2, "getStatus")
+        
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             key := c.SafeToBytes(-2)
 value := c.SafeToBytes(-1)
 

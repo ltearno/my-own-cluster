@@ -10,6 +10,8 @@ function mapReturnType(tag) {
             return "i"
         case "bytes":
             return "i" // returns the result buffer length if passed buffer is NULL and written size if not
+        case "string":
+            return "i" // returns the result buffer length if passed buffer is NULL and written size if not
         case "buffer":
             return "i" // returns the result exchange buffer id
     }
@@ -154,6 +156,9 @@ function getJsReturnCode(type) {
             return `dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
                 copy(dest, res)`
 
+        case "string":
+            return `c.PushString(res)`
+
         case "bytes":
             return `dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
                     copy(dest, res)`
@@ -170,6 +175,9 @@ function getGoPreCallCode(fct, goParamExtraction) {
         case "buffer":
             return ""
 
+        case "string":
+            return ""
+
         case "bytes":
             return `resultBuffer := cs.GetParamByteBuffer(${goParamExtraction.currentWasmParamIndex}, ${goParamExtraction.currentWasmParamIndex + 1})`
     }
@@ -184,9 +192,16 @@ function getGoReturnCode(fct) {
 
         case "buffer":
             return `
+                    resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
+                    resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
+                    resultBuffer.Write(res)
+                    return uint32(resultBufferID), nil`
+
+        case "string":
+            return `
                 resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
                 resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
-                resultBuffer.Write(res)
+                resultBuffer.Write([]byte(res))
                 return uint32(resultBufferID), nil`
 
         case "bytes":

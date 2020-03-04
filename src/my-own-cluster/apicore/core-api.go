@@ -119,14 +119,14 @@ func FreeBuffer(ctx *common.FunctionExecutionContext, bufferID int) (int, error)
 	return 0, nil
 }
 
-func PlugFunction(ctx *common.FunctionExecutionContext, method string, path string, name string, startFunction string) error {
+func PlugFunction(ctx *common.FunctionExecutionContext, method string, path string, name string, startFunction string) (int, error) {
 	ctx.Orchestrator.PlugFunction(method, path, name, startFunction)
-	return nil
+	return 0, nil
 }
 
-func PlugFile(ctx *common.FunctionExecutionContext, method string, path string, name string) error {
+func PlugFile(ctx *common.FunctionExecutionContext, method string, path string, name string) (int, error) {
 	ctx.Orchestrator.PlugFile(method, path, name)
-	return nil
+	return 0, nil
 }
 
 func RegisterBlobWithName(ctx *common.FunctionExecutionContext, name string, contentType string, contentBytes []byte) (string, error) {
@@ -156,8 +156,8 @@ func Base64Decode(ctx *common.FunctionExecutionContext, encoded string) ([]byte,
 	return decoded, nil
 }
 
-func Base64Encode(ctx *common.FunctionExecutionContext, b []byte) string {
-	return base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(b)
+func Base64Encode(ctx *common.FunctionExecutionContext, b []byte) (string, error) {
+	return base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(b), nil
 }
 
 func WriteExchangeBuffer(ctx *common.FunctionExecutionContext, bufferID int, content []byte) (int, error) {
@@ -265,133 +265,27 @@ func GetTime(ctx *common.FunctionExecutionContext, destBuffer []byte) (int, erro
 	return 0, nil
 }
 
+func GetBlobTechIdFromName(ctx *common.FunctionExecutionContext, name string) (string, error) {
+	techID, err := ctx.Orchestrator.GetBlobTechIDFromName(name)
+
+	return techID, err
+}
+
+func GetBlobBytesAsString(ctx *common.FunctionExecutionContext, techID string) (string, error) {
+	contentBytes, err := ctx.Orchestrator.GetBlobBytesByTechID(techID)
+
+	return string(contentBytes), err
+}
+
+func GetStatus(ctx *common.FunctionExecutionContext) (string, error) {
+	return ctx.Orchestrator.GetStatus(), nil
+}
+
+func CallFunction(ctx *common.FunctionExecutionContext) error {
+	return nil
+}
+
 func BindMocFunctionsMano(ctx enginejs.JSProcessContext) {
-	ctx.Context.PushGoFunction(func(c *duktape.Context) int {
-		bufferID := int(c.GetNumber(-3))
-		name := c.SafeToString(-2)
-		value := c.SafeToString(-1)
-
-		buffer := ctx.Fctx.Orchestrator.GetExchangeBuffer(bufferID)
-		if buffer == nil {
-			fmt.Printf("buffer %d not found for writing header %s\n", bufferID, name)
-			return 0
-		}
-
-		buffer.SetHeader(name, value)
-
-		return 0
-	})
-	ctx.Context.PutPropString(-2, "writeExchangeBufferHeader")
-
-	ctx.Context.PushGoFunction(func(c *duktape.Context) int {
-		decoded := c.SafeToBytes(-1)
-		encoded := Base64Encode(ctx.Fctx, decoded)
-
-		c.PushString(encoded)
-
-		return 1
-	})
-	ctx.Context.PutPropString(-2, "base64Encode")
-
-	ctx.Context.PushGoFunction(func(c *duktape.Context) int {
-		contentBytesPtr, contentBytesLength := c.GetBuffer(-1)
-		contentBytes := (*[1 << 30]byte)(contentBytesPtr)[:contentBytesLength:contentBytesLength]
-		contentType := c.SafeToString(-2)
-		name := c.SafeToString(-3)
-
-		techID, err := RegisterBlobWithName(ctx.Fctx, name, contentType, contentBytes)
-		if err != nil {
-			fmt.Printf("[ERROR] registerBlobWithName failed\n")
-			return 0
-		}
-
-		c.PushString(techID)
-		return 1
-	})
-	ctx.Context.PutPropString(-2, "registerBlobWithName")
-
-	ctx.Context.PushGoFunction(func(c *duktape.Context) int {
-		contentBytesPtr, contentBytesLength := c.GetBuffer(-1)
-		contentBytes := (*[1 << 30]byte)(contentBytesPtr)[:contentBytesLength:contentBytesLength]
-		contentType := c.SafeToString(-2)
-
-		techID, err := RegisterBlob(ctx.Fctx, contentType, contentBytes)
-		if err != nil {
-			fmt.Printf("[ERROR] registerBlob failed\n")
-			return 0
-		}
-
-		c.PushString(techID)
-		return 1
-	})
-	ctx.Context.PutPropString(-2, "registerBlob")
-
-	ctx.Context.PushGoFunction(func(c *duktape.Context) int {
-		name := c.SafeToString(-1)
-
-		techID, err := ctx.Fctx.Orchestrator.GetBlobTechIDFromName(name)
-		if err != nil {
-			fmt.Printf("[ERROR] getBlobTechIDFromName failed\n")
-			return 0
-		}
-
-		c.PushString(techID)
-		return 1
-	})
-	ctx.Context.PutPropString(-2, "getBlobTechIDFromName")
-
-	ctx.Context.PushGoFunction(func(c *duktape.Context) int {
-		techID := c.SafeToString(-1)
-
-		contentBytes, err := ctx.Fctx.Orchestrator.GetBlobBytesByTechID(techID)
-		if err != nil {
-			fmt.Printf("[ERROR] getBlobTechIDFromName failed\n")
-			return 0
-		}
-
-		c.PushString(string(contentBytes))
-		return 1
-	})
-	ctx.Context.PutPropString(-2, "getBlobBytesAsString")
-
-	ctx.Context.PushGoFunction(func(c *duktape.Context) int {
-		startFunction := c.SafeToString(-1)
-		name := c.SafeToString(-2)
-		path := c.SafeToString(-3)
-		method := c.SafeToString(-4)
-
-		err := PlugFunction(ctx.Fctx, method, path, name, startFunction)
-		if err != nil {
-			fmt.Printf("[ERROR] plugFunction failed\n")
-			return 0
-		}
-
-		return 0
-	})
-	ctx.Context.PutPropString(-2, "plugFunction")
-
-	ctx.Context.PushGoFunction(func(c *duktape.Context) int {
-		name := c.SafeToString(-1)
-		path := c.SafeToString(-2)
-		method := c.SafeToString(-3)
-
-		err := PlugFile(ctx.Fctx, method, path, name)
-		if err != nil {
-			fmt.Printf("[ERROR] plugFile failed\n")
-			return 0
-		}
-
-		return 0
-	})
-	ctx.Context.PutPropString(-2, "plugFile")
-
-	ctx.Context.PushGoFunction(func(c *duktape.Context) int {
-		c.PushInt(ctx.Fctx.Orchestrator.CreateExchangeBuffer())
-
-		return 1
-	})
-	ctx.Context.PutPropString(-2, "createExchangeBuffer")
-
 	ctx.Context.PushGoFunction(func(c *duktape.Context) int {
 		name := c.SafeToString(-8)
 		startFunction := c.SafeToString(-7)
@@ -455,10 +349,4 @@ func BindMocFunctionsMano(ctx enginejs.JSProcessContext) {
 		return 1
 	})
 	ctx.Context.PutPropString(-2, "callFunction")
-
-	ctx.Context.PushGoFunction(func(c *duktape.Context) int {
-		c.PushString(ctx.Fctx.Orchestrator.GetStatus())
-		return 1
-	})
-	ctx.Context.PutPropString(-2, "getStatus")
 }
