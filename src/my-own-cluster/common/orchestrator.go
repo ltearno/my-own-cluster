@@ -18,6 +18,12 @@ type ExecutionEngine interface {
 	PrepareContext(fctx *FunctionExecutionContext) (ExecutionEngineContext, error)
 }
 
+type ExecutionEngineContextBounding interface{}
+
+type APIProvider interface {
+	BindToExecutionEngineContext(ctx ExecutionEngineContextBounding)
+}
+
 type Orchestrator struct {
 	nextExchangeBufferID int32
 	exchangeBuffers      map[int]*ExchangeBuffer
@@ -27,6 +33,7 @@ type Orchestrator struct {
 	db *leveldb.DB
 
 	executionEngines map[string]ExecutionEngine
+	apiProviders     map[string]APIProvider
 }
 
 func NewOrchestrator(db *leveldb.DB) *Orchestrator {
@@ -35,12 +42,23 @@ func NewOrchestrator(db *leveldb.DB) *Orchestrator {
 		exchangeBuffers:      make(map[int]*ExchangeBuffer),
 		db:                   db,
 		executionEngines:     make(map[string]ExecutionEngine),
+		apiProviders:         make(map[string]APIProvider),
 	}
 }
 
 func (o *Orchestrator) AddExecutionEngine(contentType string, engine ExecutionEngine) {
 	o.executionEngines[contentType] = engine
 	fmt.Printf("added execution engine for '%s'\n", contentType)
+}
+
+func (o *Orchestrator) AddAPIProvider(moduleName string, apiProvider APIProvider) {
+	o.apiProviders[moduleName] = apiProvider
+	fmt.Printf("added api provider for '%s'\n", moduleName)
+}
+
+func (o *Orchestrator) GetAPIProvider(moduleName string) APIProvider {
+	v, _ := o.apiProviders[moduleName]
+	return v
 }
 
 type FunctionExecutionContext struct {

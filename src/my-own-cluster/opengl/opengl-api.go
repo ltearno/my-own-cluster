@@ -1,4 +1,4 @@
-package openglapi
+package opengl
 
 import (
 	"encoding/json"
@@ -7,7 +7,6 @@ import (
 	"image/color"
 	"image/png"
 	"my-own-cluster/common"
-	"my-own-cluster/opengl"
 	"unsafe"
 )
 
@@ -39,7 +38,7 @@ func ComputeShader(ctx *common.FunctionExecutionContext, specificationJSON strin
 		return -1, nil
 	}
 
-	openglCtx, err := opengl.InitOpenGLContext()
+	openglCtx, err := InitOpenGLContext()
 	if err != nil {
 		fmt.Printf("cannot init opengl %v\n", err)
 		return -2, err

@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"my-own-cluster/assetsgen"
 	"my-own-cluster/common"
-	"my-own-cluster/duktape"
-	"my-own-cluster/wasm"
+	"my-own-cluster/coreapi"
+	"my-own-cluster/enginejs"
+	"my-own-cluster/enginewasm"
+	"my-own-cluster/opengl"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -131,14 +133,19 @@ func main() {
 		orchestrator := common.NewOrchestrator(db)
 
 		// register execution engines
-		orchestrator.AddExecutionEngine("text/javascript", duktape.NewJavascriptDuktapeEngine())
-		orchestrator.AddExecutionEngine("application/wasm", wasm.NewWasmWasm3Engine())
-		/*openGLEngine, err := opengl.NewGLSLOpenGLEngine()
+		orchestrator.AddExecutionEngine("text/javascript", enginejs.NewJavascriptDuktapeEngine())
+		orchestrator.AddExecutionEngine("application/wasm", enginewasm.NewWasmWasm3Engine())
+
+		// add api providers
+		apiProvider, err := coreapi.NewCoreAPIProvider()
 		if err == nil {
-			orchestrator.AddExecutionEngine("text/glsl", openGLEngine)
-		} else {
-			fmt.Printf("cannot instantiate OpenGL engine\n")
-		}*/
+			orchestrator.AddAPIProvider("core", apiProvider)
+			orchestrator.AddAPIProvider("my-own-cluster", apiProvider)
+		}
+		apiProvider, err = opengl.NewGPUAPIProvider()
+		if err == nil {
+			orchestrator.AddAPIProvider("gpu", apiProvider)
+		}
 
 		// init core-api
 		coreAPILibrary, err := assetsgen.Asset("assets/core-api.js")

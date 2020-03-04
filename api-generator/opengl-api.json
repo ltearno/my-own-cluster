@@ -1,7 +1,7 @@
 {
     "bindFunctionName": "BindOpenGLFunctions",
     "wasmDeclaredModule": "my-own-cluster",
-    "targetGoPackage": "openglapi",
+    "targetGoPackage": "opengl",
     "functions": [
         {
             "name": "compute_shader",

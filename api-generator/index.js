@@ -119,7 +119,7 @@ function getJsParamExtractionCode(args) {
                 code += `int(c.GetNumber(${stackPosition}))`
                 break
             case "buffer":
-                code += `SafeToBytes(c, ${stackPosition})`
+                code += `c.SafeToBytes(${stackPosition})`
                 break
             case "string":
                 code += `c.SafeToString(${stackPosition})`
@@ -150,12 +150,13 @@ function getJsReturnCode(type) {
 // output code for binding wasm engine to core api
 // output code for binding js engine to core api
 function generateWasmBindings(apiDescription, out) {
-    out(`package wasm
+    out(`package ${apiDescription.targetGoPackage}
 
     import (
-        "my-own-cluster/${apiDescription.targetGoPackage}"
-    )\n\n`)
-    out(`func ${apiDescription.bindFunctionName}WASM(wctx *WasmProcessContext) {`)
+        "my-own-cluster/enginewasm"
+    )
+    \n\n`)
+    out(`func ${apiDescription.bindFunctionName}WASM(wctx enginewasm.WasmProcessContext) {`)
     for (let fct of apiDescription.functions) {
         let wasmName = fct.name
         let goName = mapGoName(fct.name)
@@ -165,12 +166,12 @@ function generateWasmBindings(apiDescription, out) {
         goCallParams = goCallParams.concat(...goParamExtraction.argNames)
         out(`
     // wasm params : ${fct.args.map(arg => arg.name).join(' ')} ${fct.returnType == 'buffer' ? `result_buffer_addr result_buffer_length` : ''}
-	wctx.BindAPIFunction("${apiDescription.wasmDeclaredModule}", "${wasmName}", "${mapReturnType(fct.returnType)}(${fct.args.map(arg => mapArgumentType(arg.type)).join('')}${fct.returnType == 'buffer' ? 'ii' : ''})", func(wctx *WasmProcessContext, cs *CallSite) (uint32, error) {
+	wctx.BindAPIFunction("${apiDescription.wasmDeclaredModule}", "${wasmName}", "${mapReturnType(fct.returnType)}(${fct.args.map(arg => mapArgumentType(arg.type)).join('')}${fct.returnType == 'buffer' ? 'ii' : ''})", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         ${goParamExtraction.code}
 
         ${fct.returnType != 'buffer' ? '' : `resultBuffer := cs.GetParamByteBuffer(${goParamExtraction.currentWasmParamIndex}, ${goParamExtraction.currentWasmParamIndex + 1})`}
 
-        res, err := ${apiDescription.targetGoPackage}.${goName}(${goCallParams.join(', ')})
+        res, err := ${goName}(${goCallParams.join(', ')})
         
         ${fct.returnType != 'buffer' ? `return uint32(res), err` : `if resultBuffer != nil && len(resultBuffer)>=len(res) {\n                copy(resultBuffer, res)\n        }\n        return uint32(len(res)), err`}
     })
@@ -180,26 +181,25 @@ function generateWasmBindings(apiDescription, out) {
 }
 
 function generateJsBindings(apiDescription, out) {
-    out(`package duktape
+    out(`package ${apiDescription.targetGoPackage}
 
     import (
-        "my-own-cluster/common"
-        "my-own-cluster/${apiDescription.targetGoPackage}"
+        "my-own-cluster/enginejs"
     
         "gopkg.in/ltearno/go-duktape.v3"
     )\n\n`)
-    out(`func ${apiDescription.bindFunctionName}Js(fctx *common.FunctionExecutionContext, ctx *duktape.Context) {`)
+    out(`func ${apiDescription.bindFunctionName}Js(ctx enginejs.JSProcessContext) {`)
     for (let fct of apiDescription.functions) {
         let jsName = mapJsName(fct.name)
         let goName = mapGoName(fct.name)
 
         let jsParamExtraction = getJsParamExtractionCode(fct.args)
-        let jsCallParams = ["fctx"]
+        let jsCallParams = ["ctx.Fctx"]
         jsCallParams = jsCallParams.concat(...jsParamExtraction.argNames)
         out(`
-        ctx.PushGoFunction(func(c *duktape.Context) int {
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             ${jsParamExtraction.code}
-            res, err := ${apiDescription.targetGoPackage}.${goName}(${jsCallParams.join(', ')})
+            res, err := ${goName}(${jsCallParams.join(', ')})
             if err != nil {
                 return 0
             }
@@ -208,7 +208,7 @@ function generateJsBindings(apiDescription, out) {
     
             return 1
         })
-        ctx.PutPropString(-2, "${jsName}")
+        ctx.Context.PutPropString(-2, "${jsName}")
         `)
     }
     out(`}`)
@@ -224,9 +224,9 @@ function makeOut(fileName) {
 
 // read api description
 let apiDescription = JSON.parse(fs.readFileSync("core-api.json"))
-generateJsBindings(apiDescription, makeOut("../src/my-own-cluster/duktape/core-api-js.go"))
-generateWasmBindings(apiDescription, makeOut("../src/my-own-cluster/wasm/core-api-wasm.go"))
+generateJsBindings(apiDescription, makeOut("../src/my-own-cluster/coreapi/core-api-js.go"))
+generateWasmBindings(apiDescription, makeOut("../src/my-own-cluster/coreapi/core-api-wasm.go"))
 
 apiDescription = JSON.parse(fs.readFileSync("opengl-api.json"))
-generateJsBindings(apiDescription, makeOut("../src/my-own-cluster/duktape/opengl-api-js.go"))
-generateWasmBindings(apiDescription, makeOut("../src/my-own-cluster/wasm/opengl-api-wasm.go"))
+generateJsBindings(apiDescription, makeOut("../src/my-own-cluster/opengl/opengl-api-js.go"))
+generateWasmBindings(apiDescription, makeOut("../src/my-own-cluster/opengl/opengl-api-wasm.go"))

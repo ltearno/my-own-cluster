@@ -1,16 +1,15 @@
-package duktape
+package coreapi
 
     import (
-        "my-own-cluster/common"
-        "my-own-cluster/coreapi"
+        "my-own-cluster/enginejs"
     
         "gopkg.in/ltearno/go-duktape.v3"
     )
 
-func BindMyOwnClusterFunctionsJs(fctx *common.FunctionExecutionContext, ctx *duktape.Context) {
-        ctx.PushGoFunction(func(c *duktape.Context) int {
+func BindMyOwnClusterFunctionsJs(ctx enginejs.JSProcessContext) {
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             
-            res, err := coreapi.GetInputBufferID(fctx)
+            res, err := GetInputBufferID(ctx.Fctx)
             if err != nil {
                 return 0
             }
@@ -19,11 +18,11 @@ func BindMyOwnClusterFunctionsJs(fctx *common.FunctionExecutionContext, ctx *duk
     
             return 1
         })
-        ctx.PutPropString(-2, "getInputBufferId")
+        ctx.Context.PutPropString(-2, "getInputBufferId")
         
-        ctx.PushGoFunction(func(c *duktape.Context) int {
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             
-            res, err := coreapi.GetOutputBufferID(fctx)
+            res, err := GetOutputBufferID(ctx.Fctx)
             if err != nil {
                 return 0
             }
@@ -32,11 +31,11 @@ func BindMyOwnClusterFunctionsJs(fctx *common.FunctionExecutionContext, ctx *duk
     
             return 1
         })
-        ctx.PutPropString(-2, "getOutputBufferId")
+        ctx.Context.PutPropString(-2, "getOutputBufferId")
         
-        ctx.PushGoFunction(func(c *duktape.Context) int {
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             
-            res, err := coreapi.CreateExchangeBuffer(fctx)
+            res, err := CreateExchangeBuffer(ctx.Fctx)
             if err != nil {
                 return 0
             }
@@ -45,13 +44,13 @@ func BindMyOwnClusterFunctionsJs(fctx *common.FunctionExecutionContext, ctx *duk
     
             return 1
         })
-        ctx.PutPropString(-2, "createExchangeBuffer")
+        ctx.Context.PutPropString(-2, "createExchangeBuffer")
         
-        ctx.PushGoFunction(func(c *duktape.Context) int {
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             bufferId := int(c.GetNumber(-2))
-content := SafeToBytes(c, -1)
+content := c.SafeToBytes(-1)
 
-            res, err := coreapi.WriteExchangeBuffer(fctx, bufferId, content)
+            res, err := WriteExchangeBuffer(ctx.Fctx, bufferId, content)
             if err != nil {
                 return 0
             }
@@ -60,14 +59,14 @@ content := SafeToBytes(c, -1)
     
             return 1
         })
-        ctx.PutPropString(-2, "writeExchangeBuffer")
+        ctx.Context.PutPropString(-2, "writeExchangeBuffer")
         
-        ctx.PushGoFunction(func(c *duktape.Context) int {
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             bufferId := int(c.GetNumber(-3))
 name := c.SafeToString(-2)
 value := c.SafeToString(-1)
 
-            res, err := coreapi.WriteExchangeBufferHeader(fctx, bufferId, name, value)
+            res, err := WriteExchangeBufferHeader(ctx.Fctx, bufferId, name, value)
             if err != nil {
                 return 0
             }
@@ -76,12 +75,12 @@ value := c.SafeToString(-1)
     
             return 1
         })
-        ctx.PutPropString(-2, "writeExchangeBufferHeader")
+        ctx.Context.PutPropString(-2, "writeExchangeBufferHeader")
         
-        ctx.PushGoFunction(func(c *duktape.Context) int {
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             bufferId := int(c.GetNumber(-1))
 
-            res, err := coreapi.ReadExchangeBuffer(fctx, bufferId)
+            res, err := ReadExchangeBuffer(ctx.Fctx, bufferId)
             if err != nil {
                 return 0
             }
@@ -91,12 +90,12 @@ value := c.SafeToString(-1)
     
             return 1
         })
-        ctx.PutPropString(-2, "readExchangeBuffer")
+        ctx.Context.PutPropString(-2, "readExchangeBuffer")
         
-        ctx.PushGoFunction(func(c *duktape.Context) int {
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             bufferId := int(c.GetNumber(-1))
 
-            res, err := coreapi.ReadExchangeBufferHeaders(fctx, bufferId)
+            res, err := ReadExchangeBufferHeaders(ctx.Fctx, bufferId)
             if err != nil {
                 return 0
             }
@@ -106,12 +105,12 @@ value := c.SafeToString(-1)
     
             return 1
         })
-        ctx.PutPropString(-2, "readExchangeBufferHeaders")
+        ctx.Context.PutPropString(-2, "readExchangeBufferHeaders")
         
-        ctx.PushGoFunction(func(c *duktape.Context) int {
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             encoded := c.SafeToString(-1)
 
-            res, err := coreapi.Base64Decode(fctx, encoded)
+            res, err := Base64Decode(ctx.Fctx, encoded)
             if err != nil {
                 return 0
             }
@@ -121,13 +120,13 @@ value := c.SafeToString(-1)
     
             return 1
         })
-        ctx.PutPropString(-2, "base64Decode")
+        ctx.Context.PutPropString(-2, "base64Decode")
         
-        ctx.PushGoFunction(func(c *duktape.Context) int {
-            key := SafeToBytes(c, -2)
-value := SafeToBytes(c, -1)
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            key := c.SafeToBytes(-2)
+value := c.SafeToBytes(-1)
 
-            res, err := coreapi.PersistenceSet(fctx, key, value)
+            res, err := PersistenceSet(ctx.Fctx, key, value)
             if err != nil {
                 return 0
             }
@@ -136,5 +135,5 @@ value := SafeToBytes(c, -1)
     
             return 1
         })
-        ctx.PutPropString(-2, "persistenceSet")
+        ctx.Context.PutPropString(-2, "persistenceSet")
         }

@@ -3,6 +3,9 @@ package opengl
 import (
 	"errors"
 	"fmt"
+	"my-own-cluster/common"
+	"my-own-cluster/enginejs"
+	"my-own-cluster/enginewasm"
 	"unsafe"
 )
 
@@ -20,7 +23,23 @@ type GLSLOpenGLContext struct {
 	ctx *C.ContextInformation
 }
 
-type GLSLOpenGLEngine struct {
+type GPUAPIProvider struct {
+}
+
+func NewGPUAPIProvider() (common.APIProvider, error) {
+	return &GPUAPIProvider{}, nil
+}
+
+func (p *GPUAPIProvider) BindToExecutionEngineContext(ctx common.ExecutionEngineContextBounding) {
+	wctx, ok := ctx.(*enginewasm.WasmProcessContext)
+	if ok {
+		BindOpenGLFunctionsWASM(*wctx)
+	}
+
+	jsctx, ok := ctx.(*enginejs.JSProcessContext)
+	if ok {
+		BindOpenGLFunctionsJs(*jsctx)
+	}
 }
 
 var openGLDeviceContext *GLSLOpenGLDeviceContext = nil
@@ -42,10 +61,6 @@ func InitOpenGLContext() (*GLSLOpenGLContext, error) {
 	C.initOpenGLContext(openGLDeviceContext.ctx, ctx.ctx)
 
 	return ctx, nil
-}
-
-func NewGLSLOpenGLEngine() (*GLSLOpenGLEngine, error) {
-	return &GLSLOpenGLEngine{}, nil
 }
 
 func (c *GLSLOpenGLContext) SetContext() {
