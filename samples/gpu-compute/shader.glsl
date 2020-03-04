@@ -11,6 +11,8 @@ layout(binding = 1) readonly buffer Params {
     float ymin;
     float yspan;
     float imageSize;
+    float maxIterations;
+    float mult;
 } parameters;
 
 void main()
@@ -22,10 +24,10 @@ void main()
     float cImag = imag;
 
     float r2 = 0.0;
-    int iter;
+    float iter;
+    float maxIterations = parameters.maxIterations;
 
-    int maxIterations = 2500;
-    for (iter = 0; iter < maxIterations && r2 < 4.0; ++iter)
+    for (iter = 0.0; iter < maxIterations && r2 < 4.0; iter+=1.0)
     {
         float tempreal = real;
         real = (tempreal * tempreal) - (imag * imag) + cReal;
@@ -38,7 +40,7 @@ void main()
     if (r2 < 4.0)
         color = vec4(0.0, 0.0, 0.0, 1.0);
     else
-        color = vec4(10.0 * float(iter)/float(maxIterations), 0.0, 0.0, 1.0);
+        color = vec4(parameters.mult * float(iter)/float(maxIterations), 0.0, 0.0, 1.0);
 
     imageStore(uImage, ivec2(gl_GlobalInvocationID.x,gl_GlobalInvocationID.y), color);
 }

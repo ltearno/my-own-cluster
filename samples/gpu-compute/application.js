@@ -10,6 +10,8 @@ function getRequestParameters() {
     params.xmax = params.xmax || 0;
     params.ymin = params.ymin || 0;
     params.ymax = params.ymax || 0;
+    params.iter = params.iter || 12;
+    params.mult = params.mult || 10;
     return params
 }
 
@@ -27,12 +29,14 @@ function launchMandelbrotShader() {
     // we write in the buffer because opengl api will read it to fill the texture (no option yet)
     moc.writeExchangeBuffer(textureBufferId, texture);
 
-    var params = new Float32Array(5)
+    var params = new Float32Array(7)
     params[0] = req.xmin;
     params[1] = req.xmax - req.xmin;
     params[2] = req.ymin;
     params[3] = req.ymax - req.ymin;
     params[4] = dataSize;
+    params[5] = req.iter;
+    params[6] = req.mult;
     var paramsBufferId = moc.createExchangeBuffer();
     moc.writeExchangeBuffer(paramsBufferId, params);
 

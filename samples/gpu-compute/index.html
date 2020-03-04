@@ -8,18 +8,29 @@
 </head>
 
 <body>
-    <img id='image' src='mandelbrot?{"xmin":-2.5,"xmax":1,"ymin":-1,"ymax":1}'>
+    <img id='image' src='mandelbrot?{"xmin":-2.5,"xmax":1,"ymin":-1,"ymax":1}'><br />
+    <input type="number" id="maxIterations" value="12"><br />
+    <input type="number" id="mult" value="10">
 
     <script>
-        params = {
+        let image = document.getElementById('image')
+        let maxIterations = document.getElementById('maxIterations')
+        let mult = document.getElementById('mult')
+
+        let params = {
             xmin: -2.5,
             xmax: 1,
             ymin: -1,
-            ymax: 1
+            ymax: 1,
+            iter: 12,
+            mult: 10
         }
 
-        let image = document.getElementById('image')
-        const update = () => { image.src = `mandelbrot?${JSON.stringify(params)}` }
+        const update = () => {
+            params.iter = parseInt(maxIterations.value)
+            params.mult = parseInt(mult.value)
+            image.src = `mandelbrot?${JSON.stringify(params)}`
+        }
 
         const zoom = (min, max, coef) => {
             let middle = (max + min) / 2
@@ -28,12 +39,16 @@
             return [middle - coef * span, middle + coef * span]
         }
 
+        maxIterations.addEventListener('input', e => update())
+
+        mult.addEventListener('input', e => update())
+
         image.addEventListener('wheel', e => {
             if (e.deltaY != 0) {
                 let coef = e.deltaY > 0 ? .9 : 1.11111
                 let x = zoom(params.xmin, params.xmax, coef)
                 let y = zoom(params.ymin, params.ymax, coef)
-                
+
                 params.xmin = x[0]
                 params.xmax = x[1]
                 params.ymin = y[0]
