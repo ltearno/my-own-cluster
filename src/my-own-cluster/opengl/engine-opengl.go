@@ -106,16 +106,19 @@ typedef struct {
   int renderDeviceFd;
   struct gbm_device *gbm;
    EGLDisplay egl_dpy;
+   EGLConfig config;
+} DeviceInformation;
+
+typedef struct {
    EGLContext core_ctx;
 } ContextInformation;
 
-int initOpenGLContext(ContextInformation *info) {
-   EGLDisplay egl_dpy;
-   EGLint* configAttrs;
-
+int initOpenGLDevice(DeviceInformation *info) {
    info->egl_dpy = NULL;
    info->gbm = NULL;
    info->renderDeviceFd = 0;
+
+   EGLint* configAttrs;
 
    if(getenv("DISPLAY")!=NULL) {
       info->renderDeviceFd = open ("/dev/dri/renderD128", O_RDWR);
@@ -130,86 +133,87 @@ int initOpenGLContext(ContextInformation *info) {
 
       printf("opened gbm device %p\n", info->gbm);
 
-      egl_dpy = eglGetPlatformDisplay (EGL_PLATFORM_GBM_KHR, info->gbm, NULL);
+      info->egl_dpy = eglGetPlatformDisplay (EGL_PLATFORM_GBM_KHR, info->gbm, NULL);
 
       configAttrs = gbmConfigAttrs;
    }
    else {
-      egl_dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+      info->egl_dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
 
       configAttrs = defaultConfigAttrs;
    }
 
-   if (egl_dpy == NULL)
+   if (info->egl_dpy == NULL)
       return -7;
 
-   printf("opened egl platform display %p\n", egl_dpy);
+   printf("opened egl platform display %p\n", info->egl_dpy);
 
    EGLint major, minor;
-   EGLBoolean res = eglInitialize (egl_dpy, &major, &minor);
+   EGLBoolean res = eglInitialize (info->egl_dpy, &major, &minor);
    if (! res)
       return -4;
 
    printf("egl version %d.%d\n", major, minor);
 
-   const char *egl_extension_st = eglQueryString (egl_dpy, EGL_EXTENSIONS);
+   const char *egl_extension_st = eglQueryString (info->egl_dpy, EGL_EXTENSIONS);
    if (strstr (egl_extension_st, "EGL_KHR_create_context") == NULL)
       return -5;
    if (strstr (egl_extension_st, "EGL_KHR_surfaceless_context") == NULL)
       return -6;
 
-   printf("EGL_CLIENT_APIS: '%s'\n", eglQueryString(egl_dpy, EGL_CLIENT_APIS));
-   printf("EGL_EXTENSIONS: '%s'\n", eglQueryString(egl_dpy, EGL_EXTENSIONS));
-   printf("EGL_VENDOR: '%s'\n", eglQueryString(egl_dpy, EGL_VENDOR));
-   printf("EGL_VERSION: '%s'\n", eglQueryString(egl_dpy, EGL_VERSION));
+   printf("EGL_CLIENT_APIS: '%s'\n", eglQueryString(info->egl_dpy, EGL_CLIENT_APIS));
+   printf("EGL_EXTENSIONS: '%s'\n", eglQueryString(info->egl_dpy, EGL_EXTENSIONS));
+   printf("EGL_VENDOR: '%s'\n", eglQueryString(info->egl_dpy, EGL_VENDOR));
+   printf("EGL_VERSION: '%s'\n", eglQueryString(info->egl_dpy, EGL_VERSION));
 
-   EGLConfig config;
    EGLint configCount;
-   res = eglChooseConfig (egl_dpy, configAttrs, &config, 1, &configCount);
+   res = eglChooseConfig (info->egl_dpy, configAttrs, &info->config, 1, &configCount);
    if (!res)
       return -8;
-
-   // EGL_OPENGL_API, EGL_OPENGL_ES_API, or EGL_OPENVG_API
-   res = eglBindAPI (EGL_OPENGL_API);
-   if (!res)
-      return -9;
-
-   EGLContext core_ctx = eglCreateContext (egl_dpy, config, EGL_NO_CONTEXT, contextAttribList);
-   if (core_ctx == EGL_NO_CONTEXT)
-      return -10;
-
-   printf("egl context created\n");
-
-   info->egl_dpy = egl_dpy;
-   info->core_ctx = core_ctx;
 
    return 0;
 }
 
-int setContext(ContextInformation *info){
-  int res = eglMakeCurrent (info->egl_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, info->core_ctx);
+int initOpenGLContext(DeviceInformation *dInfo, ContextInformation *info) {
+   // EGL_OPENGL_API, EGL_OPENGL_ES_API, or EGL_OPENVG_API
+   EGLBoolean res = eglBindAPI (EGL_OPENGL_API);
+   if (!res)
+      return -9;
+
+   info->core_ctx = eglCreateContext (dInfo->egl_dpy, dInfo->config, EGL_NO_CONTEXT, contextAttribList);
+   if (info->core_ctx == EGL_NO_CONTEXT)
+      return -10;
+
+   printf("egl context created\n");
+
+   return 0;
+}
+
+int setContext(DeviceInformation *dInfo, ContextInformation *info){
+  int res = eglMakeCurrent (dInfo->egl_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, info->core_ctx);
   if (!res)
     return -11;
   return 0;
 }
 
-int clearContext(ContextInformation *info){
-  int res = eglMakeCurrent (info->egl_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, NULL);
+int clearContext(DeviceInformation *dInfo, ContextInformation *info){
+   eglDestroyContext (dInfo->egl_dpy, info->core_ctx);
+  int res = eglMakeCurrent (dInfo->egl_dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, NULL);
   if (!res)
     return -11;
   return 0;
 }
 
-int destroyOpenGLContext(ContextInformation *ctx) {
-   eglDestroyContext (ctx->egl_dpy, ctx->core_ctx);
-   eglTerminate (ctx->egl_dpy);
-   if(ctx->gbm != NULL){
-      gbm_device_destroy (ctx->gbm);
-      ctx->gbm = NULL;
+int destroyOpenGLContext(DeviceInformation *dInfo, ContextInformation *ctx) {
+   eglDestroyContext (dInfo->egl_dpy, ctx->core_ctx);
+   eglTerminate (dInfo->egl_dpy);
+   if(dInfo->gbm != NULL){
+      gbm_device_destroy (dInfo->gbm);
+      dInfo->gbm = NULL;
    }
-   if(ctx->renderDeviceFd > 0) {
-      close(ctx->renderDeviceFd);
-      ctx->renderDeviceFd = 0;
+   if(dInfo->renderDeviceFd > 0) {
+      close(dInfo->renderDeviceFd);
+      dInfo->renderDeviceFd = 0;
    }
 }
 
@@ -322,46 +326,51 @@ int deleteTexture(int textureIndex) {
 */
 import "C"
 
-type GLSLOpenGLProcessContext struct {
+type GLSLOpenGLDeviceContext struct {
+	ctx *C.DeviceInformation
+}
+
+type GLSLOpenGLContext struct {
 	ctx *C.ContextInformation
 }
 
 type GLSLOpenGLEngine struct {
 }
 
-// TODO manage EGL contexts and free resources when used !! This is highly not done here (dirty crap code)
+var openGLDeviceContext *GLSLOpenGLDeviceContext = nil
 
-var currentContext *GLSLOpenGLProcessContext = nil
-
-func InitOpenGLContext() (*GLSLOpenGLProcessContext, error) {
-	if currentContext == nil {
-		ctx := &C.ContextInformation{}
-		ok := C.initOpenGLContext(ctx)
-		if ok != 0 {
-			return nil, errors.New("cannot instantiate OpenGL")
+func InitOpenGLContext() (*GLSLOpenGLContext, error) {
+	if openGLDeviceContext == nil {
+		openGLDeviceContext = &GLSLOpenGLDeviceContext{
+			ctx: &C.DeviceInformation{},
 		}
-
-		currentContext = &GLSLOpenGLProcessContext{
-			ctx: ctx,
+		res := C.initOpenGLDevice(openGLDeviceContext.ctx)
+		if res != 0 {
+			return nil, fmt.Errorf("cannot instantiate OpenGL device (%d)", res)
 		}
 	}
 
-	return currentContext, nil
+	ctx := &GLSLOpenGLContext{
+		ctx: &C.ContextInformation{},
+	}
+	C.initOpenGLContext(openGLDeviceContext.ctx, ctx.ctx)
+
+	return ctx, nil
 }
 
 func NewGLSLOpenGLEngine() (*GLSLOpenGLEngine, error) {
 	return &GLSLOpenGLEngine{}, nil
 }
 
-func (c *GLSLOpenGLProcessContext) SetContext() {
-	C.setContext(c.ctx)
+func (c *GLSLOpenGLContext) SetContext() {
+	C.setContext(openGLDeviceContext.ctx, c.ctx)
 }
 
-func (c *GLSLOpenGLProcessContext) ClearContext() {
-	C.clearContext(c.ctx)
+func (c *GLSLOpenGLContext) ClearContext() {
+	C.clearContext(openGLDeviceContext.ctx, c.ctx)
 }
 
-func (c *GLSLOpenGLProcessContext) CompileAndBindShader(shaderCodeBytes []byte) error {
+func (c *GLSLOpenGLContext) CompileAndBindShader(shaderCodeBytes []byte) error {
 	res := C.compileAndBindShader(C.CString(string(shaderCodeBytes)))
 	if res < 0 {
 		return errors.New("cannot compile and bind shader")
@@ -372,43 +381,43 @@ func (c *GLSLOpenGLProcessContext) CompileAndBindShader(shaderCodeBytes []byte) 
 	return nil
 }
 
-func (c *GLSLOpenGLProcessContext) BindStorageBuffer(binding int, bufferContent []byte) (int, error) {
+func (c *GLSLOpenGLContext) BindStorageBuffer(binding int, bufferContent []byte) (int, error) {
 	bufferIndex := C.bindStorageBuffer(C.int(binding), C.CBytes(bufferContent), C.int(len(bufferContent)))
 	fmt.Printf("bound storage buffer to index %d\n", bufferIndex)
 	return int(bufferIndex), nil
 }
 
-func (c *GLSLOpenGLProcessContext) BindTexture2DRGBAFloat(binding int, width int, height int) (int, error) {
+func (c *GLSLOpenGLContext) BindTexture2DRGBAFloat(binding int, width int, height int) (int, error) {
 	textureIndex := C.bindTexture2DRGBAFloat(C.int(binding), C.int(width), C.int(height))
 	fmt.Printf("bound texture to index %d\n", textureIndex)
 	return int(textureIndex), nil
 }
 
-func (c *GLSLOpenGLProcessContext) DispatchCompute(x int, y int, z int) {
+func (c *GLSLOpenGLContext) DispatchCompute(x int, y int, z int) {
 	fmt.Printf("dispatching compute %d %d %d\n", x, y, z)
 	C.glDispatchCompute(C.uint(x), C.uint(y), C.uint(z))
 	C.glMemoryBarrier(C.GL_ALL_BARRIER_BITS)
 	fmt.Println("dispatched ok")
 }
 
-func (c *GLSLOpenGLProcessContext) GetStorageBuffer(bufferIndex int, buffer []byte) error {
+func (c *GLSLOpenGLContext) GetStorageBuffer(bufferIndex int, buffer []byte) error {
 	fmt.Printf("getting buffer %d content\n", bufferIndex)
 	C.getStorageBuffer(C.int(bufferIndex), unsafe.Pointer(&buffer[0]), C.int(len(buffer)))
 	return nil
 }
 
-func (c *GLSLOpenGLProcessContext) GetTextureBuffer(textureIndex int, buffer []byte) error {
+func (c *GLSLOpenGLContext) GetTextureBuffer(textureIndex int, buffer []byte) error {
 	fmt.Printf("getting texture %d content\n", textureIndex)
 	C.getTextureBuffer(C.int(textureIndex), unsafe.Pointer(&buffer[0]), C.int(len(buffer)))
 	return nil
 }
 
-func (c *GLSLOpenGLProcessContext) DeleteBuffer(bufferIndex int) error {
+func (c *GLSLOpenGLContext) DeleteBuffer(bufferIndex int) error {
 	C.deleteBuffer(C.int(bufferIndex))
 	return nil
 }
 
-func (c *GLSLOpenGLProcessContext) DeleteTexture(textureIndex int) error {
+func (c *GLSLOpenGLContext) DeleteTexture(textureIndex int) error {
 	C.deleteTexture(C.int(textureIndex))
 	return nil
 }

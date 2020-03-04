@@ -41,7 +41,7 @@ func ComputeShader(ctx *common.FunctionExecutionContext, specificationJSON strin
 
 	openglCtx, err := opengl.InitOpenGLContext()
 	if err != nil {
-		fmt.Printf("cannot init opengl\n")
+		fmt.Printf("cannot init opengl %v\n", err)
 		return -2, err
 	}
 
