@@ -27,7 +27,7 @@
                 },
                 {
                     "name": "content",
-                    "type": "buffer"
+                    "type": "bytes"
                 }
             ],
             "returnType": "int"
@@ -51,6 +51,16 @@
             "returnType": "int"
         },
         {
+            "name": "get_exchange_buffer_size",
+            "args": [
+                {
+                    "name": "buffer_id",
+                    "type": "int"
+                }
+            ],
+            "returnType": "int"
+        },
+        {
             "name": "read_exchange_buffer",
             "args": [
                 {
@@ -58,7 +68,7 @@
                     "type": "int"
                 }
             ],
-            "returnType": "buffer"
+            "returnType": "bytes"
         },
         {
             "name": "read_exchange_buffer_headers",
@@ -94,6 +104,16 @@
                 }
             ],
             "returnType": "int"
+        },
+        {
+            "name": "get_url",
+            "args": [
+                {
+                    "name": "url",
+                    "type": "string"
+                }
+            ],
+            "returnType": "buffer"
         }
     ]
 }

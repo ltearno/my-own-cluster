@@ -80,13 +80,27 @@ value := c.SafeToString(-1)
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             bufferId := int(c.GetNumber(-1))
 
+            res, err := GetExchangeBufferSize(ctx.Fctx, bufferId)
+            if err != nil {
+                return 0
+            }
+            
+            c.PushInt(res)
+    
+            return 1
+        })
+        ctx.Context.PutPropString(-2, "getExchangeBufferSize")
+        
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            bufferId := int(c.GetNumber(-1))
+
             res, err := ReadExchangeBuffer(ctx.Fctx, bufferId)
             if err != nil {
                 return 0
             }
             
             dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
-            copy(dest, res)
+                    copy(dest, res)
     
             return 1
         })
@@ -101,7 +115,7 @@ value := c.SafeToString(-1)
             }
             
             dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
-            copy(dest, res)
+                copy(dest, res)
     
             return 1
         })
@@ -116,7 +130,7 @@ value := c.SafeToString(-1)
             }
             
             dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
-            copy(dest, res)
+                copy(dest, res)
     
             return 1
         })
@@ -136,4 +150,19 @@ value := c.SafeToBytes(-1)
             return 1
         })
         ctx.Context.PutPropString(-2, "persistenceSet")
+        
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            url := c.SafeToString(-1)
+
+            res, err := GetUrl(ctx.Fctx, url)
+            if err != nil {
+                return 0
+            }
+            
+            dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
+                copy(dest, res)
+    
+            return 1
+        })
+        ctx.Context.PutPropString(-2, "getUrl")
         }

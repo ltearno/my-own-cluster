@@ -8,8 +8,10 @@ function mapReturnType(tag) {
     switch (tag) {
         case "int":
             return "i"
+        case "bytes":
+            return "i" // returns the result buffer length if passed buffer is NULL and written size if not
         case "buffer":
-            return "i" // returns the result buffer length
+            return "i" // returns the result exchange buffer id
     }
 
     throw `unknown return type '${tag}'`
@@ -21,6 +23,9 @@ function mapArgumentType(tag) {
             return "i"
 
         case "buffer":
+            return "ii"
+
+        case "bytes":
             return "ii"
 
         case "string":
@@ -91,6 +96,10 @@ function getGoParamExtractionCode(args) {
                 code += `cs.GetParamByteBuffer(${currentWasmParamIndex}, ${currentWasmParamIndex + 1})`
                 currentWasmParamIndex += 2
                 break
+            case "bytes":
+                code += `cs.GetParamByteBuffer(${currentWasmParamIndex}, ${currentWasmParamIndex + 1})`
+                currentWasmParamIndex += 2
+                break
             case "string":
                 code += `cs.GetParamString(${currentWasmParamIndex}, ${currentWasmParamIndex + 1})`
                 currentWasmParamIndex += 2
@@ -121,6 +130,9 @@ function getJsParamExtractionCode(args) {
             case "buffer":
                 code += `c.SafeToBytes(${stackPosition})`
                 break
+            case "bytes":
+                code += `c.SafeToBytes(${stackPosition})`
+                break
             case "string":
                 code += `c.SafeToString(${stackPosition})`
                 break
@@ -140,10 +152,62 @@ function getJsReturnCode(type) {
 
         case "buffer":
             return `dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
-            copy(dest, res)`
+                copy(dest, res)`
+
+        case "bytes":
+            return `dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
+                    copy(dest, res)`
     }
 
     throw `unknown js retrun type`
+}
+
+function getGoPreCallCode(fct, goParamExtraction) {
+    switch (fct.returnType) {
+        case "int":
+            return ""
+
+        case "buffer":
+            return ""
+
+        case "bytes":
+            return `resultBuffer := cs.GetParamByteBuffer(${goParamExtraction.currentWasmParamIndex}, ${goParamExtraction.currentWasmParamIndex + 1})`
+    }
+
+    throw `unknown js retrun type for precall code`
+}
+
+function getGoReturnCode(fct) {
+    switch (fct.returnType) {
+        case "int":
+            return `return uint32(res), err`
+
+        case "buffer":
+            return `
+                resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
+                resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
+                resultBuffer.Write(res)
+                return uint32(resultBufferID), nil`
+
+        case "bytes":
+            return `
+                if resultBuffer != nil && len(resultBuffer)>=len(res) {
+                    copy(resultBuffer, res)
+                    return uint32(len(res)), nil
+                } else {
+                    return uint32(len(res)), nil
+                }`
+    }
+
+    throw `unknown js retrun type for go return code`
+}
+
+function getWasmAdditionalPrototype(type) {
+    switch (type) {
+        case "bytes":
+            return `ii`
+    }
+    return ""
 }
 
 // for each api function :
@@ -165,15 +229,17 @@ function generateWasmBindings(apiDescription, out) {
         let goCallParams = ["wctx.Fctx"]
         goCallParams = goCallParams.concat(...goParamExtraction.argNames)
         out(`
-    // wasm params : ${fct.args.map(arg => arg.name).join(' ')} ${fct.returnType == 'buffer' ? `result_buffer_addr result_buffer_length` : ''}
-	wctx.BindAPIFunction("${apiDescription.wasmDeclaredModule}", "${wasmName}", "${mapReturnType(fct.returnType)}(${fct.args.map(arg => mapArgumentType(arg.type)).join('')}${fct.returnType == 'buffer' ? 'ii' : ''})", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("${apiDescription.wasmDeclaredModule}", "${wasmName}", "${mapReturnType(fct.returnType)}(${fct.args.map(arg => mapArgumentType(arg.type)).join('')}${getWasmAdditionalPrototype(fct.returnType)})", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         ${goParamExtraction.code}
 
-        ${fct.returnType != 'buffer' ? '' : `resultBuffer := cs.GetParamByteBuffer(${goParamExtraction.currentWasmParamIndex}, ${goParamExtraction.currentWasmParamIndex + 1})`}
+        ${getGoPreCallCode(fct, goParamExtraction)}
 
         res, err := ${goName}(${goCallParams.join(', ')})
+        if err != nil {
+            return uint32(0xffff), err
+        }
         
-        ${fct.returnType != 'buffer' ? `return uint32(res), err` : `if resultBuffer != nil && len(resultBuffer)>=len(res) {\n                copy(resultBuffer, res)\n        }\n        return uint32(len(res)), err`}
+        ${getGoReturnCode(fct)}
     })
     `)
     }

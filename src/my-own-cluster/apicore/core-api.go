@@ -144,28 +144,6 @@ func (p *CoreAPIProvider) BindToExecutionEngineContext(ctx common.ExecutionEngin
 			wctx.Fctx.Orchestrator.ReleaseExchangeBuffer(int(bufferID))
 			return uint32(0), nil
 		})
-
-		// params :
-		// params : url addr, url length
-		// returns: content buffer id
-		wctx.BindAPIFunction("my-own-cluster", "get_url", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
-			url := cs.GetParamString(0, 1)
-
-			resp, err := http.Get(url)
-			if err != nil {
-				return uint32(0xffff), nil
-			}
-			defer resp.Body.Close()
-
-			bytes, _ := ioutil.ReadAll(resp.Body)
-
-			contentBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
-			contentBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(contentBufferID)
-
-			contentBuffer.Write(bytes)
-
-			return uint32(contentBufferID), nil
-		})
 	}
 
 	jsctx, ok := ctx.(*enginejs.JSProcessContext)
@@ -260,6 +238,18 @@ func WriteExchangeBufferHeader(ctx *common.FunctionExecutionContext, bufferID in
 	return 0, nil
 }
 
+func GetExchangeBufferSize(ctx *common.FunctionExecutionContext, bufferID int) (int, error) {
+	buffer := ctx.Orchestrator.GetExchangeBuffer(bufferID)
+	if buffer == nil {
+		fmt.Printf("buffer %d not found for getting size\n", bufferID)
+		return -1, nil
+	}
+
+	bufferBytes := buffer.GetBuffer()
+
+	return len(bufferBytes), nil
+}
+
 func ReadExchangeBuffer(ctx *common.FunctionExecutionContext, bufferID int) ([]byte, error) {
 	buffer := ctx.Orchestrator.GetExchangeBuffer(bufferID)
 	if buffer == nil {
@@ -294,6 +284,18 @@ func ReadExchangeBufferHeaders(ctx *common.FunctionExecutionContext, bufferID in
 		return nil, err
 	}
 	return b, nil
+}
+
+func GetUrl(ctx *common.FunctionExecutionContext, url string) ([]byte, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, nil
+	}
+	defer resp.Body.Close()
+
+	bytes, _ := ioutil.ReadAll(resp.Body)
+
+	return bytes, nil
 }
 
 func BindMocFunctionsMano(ctx enginejs.JSProcessContext) {
