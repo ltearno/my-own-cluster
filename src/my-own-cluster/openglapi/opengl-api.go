@@ -165,7 +165,7 @@ func ComputeShader(ctx *common.FunctionExecutionContext, specificationJSON strin
 	return 0, nil
 }
 
-func CreateImageFromRgbafloatPixels(ctx *common.FunctionExecutionContext, width int, height int, pixelsExchangeBufferID int, pngExchangeBufferID int) (int, error) {
+func CreateImageFromRgbaFloatPixels(ctx *common.FunctionExecutionContext, width int, height int, pixelsExchangeBufferID int, pngExchangeBufferID int) (int, error) {
 	pixelsBuffer := ctx.Orchestrator.GetExchangeBuffer(pixelsExchangeBufferID)
 	pixels := pixelsBuffer.GetBuffer()
 
@@ -181,8 +181,35 @@ func CreateImageFromRgbafloatPixels(ctx *common.FunctionExecutionContext, width 
 	pixelIndex := 0
 	for x := 0; x < width; x++ {
 		for y := 0; y < height; y++ {
-			img.Set(x, y, color.RGBA{uint8(10.0 * fb[pixelIndex]), 0, 0, 255})
+			img.Set(x, y, color.RGBA{uint8(255.0 * fb[pixelIndex]), uint8(255.0 * fb[pixelIndex+1]), uint8(255.0 * fb[pixelIndex+2]), uint8(255.0 * fb[pixelIndex+3])})
 			pixelIndex += 4
+		}
+	}
+
+	png.Encode(ctx.Orchestrator.GetExchangeBuffer(pngExchangeBufferID), img)
+
+	return 0, nil
+}
+
+func CreateImageFromRFloatPixels(ctx *common.FunctionExecutionContext, width int, height int, pixelsExchangeBufferID int, pngExchangeBufferID int) (int, error) {
+	pixelsBuffer := ctx.Orchestrator.GetExchangeBuffer(pixelsExchangeBufferID)
+	pixels := pixelsBuffer.GetBuffer()
+
+	upLeft := image.Point{0, 0}
+	lowRight := image.Point{width, height}
+
+	img := image.NewRGBA(image.Rectangle{upLeft, lowRight})
+
+	l := width * height
+	fb := (*[1 << 26]float32)((*[1 << 26]float32)(unsafe.Pointer(&pixels[0])))[:l:l]
+
+	// Set color for each pixel.
+	pixelIndex := 0
+	for x := 0; x < width; x++ {
+		for y := 0; y < height; y++ {
+			v := uint8(255.0 * fb[pixelIndex])
+			img.Set(x, y, color.RGBA{v, v, v, 255})
+			pixelIndex++
 		}
 	}
 

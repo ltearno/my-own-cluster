@@ -36,9 +36,9 @@ void main()
 
     vec4 color;
     if (r2 < 4.0)
-        color = vec4(0.0, 0.0, 0.0, 0.0);
+        color = vec4(0.0, 0.0, 0.0, 1.0);
     else
-        color = vec4(float(iter), 0.0, 0.0, 0.0);
+        color = vec4(10.0 * float(iter)/float(maxIterations), 0.0, 0.0, 1.0);
 
     imageStore(uImage, ivec2(gl_GlobalInvocationID.x,gl_GlobalInvocationID.y), color);
 }

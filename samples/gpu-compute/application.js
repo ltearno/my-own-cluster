@@ -65,7 +65,7 @@ function launchMandelbrotShader() {
         console.log("AN ERROR HAS OCCURED " + res)
     }
 
-    moc.createImageFromRgbafloatPixels(textureWidth, textureHeight, textureBufferId, moc.getOutputBufferId())
+    moc.createImageFromRgbaFloatPixels(textureWidth, textureHeight, textureBufferId, moc.getOutputBufferId())
     moc.writeExchangeBufferHeader(moc.getOutputBufferId(), "content-type", "image/png")
 
     return 200
