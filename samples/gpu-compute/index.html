@@ -21,16 +21,23 @@
         let image = document.getElementById('image')
         const update = () => { image.src = `mandelbrot?${JSON.stringify(params)}` }
 
+        const zoom = (min, max, coef) => {
+            let middle = (max + min) / 2
+            let span = (max - min) / 2
+
+            return [middle - coef * span, middle + coef * span]
+        }
+
         image.addEventListener('wheel', e => {
             if (e.deltaY != 0) {
-                let max = params.xmax
-                let min = params.xmin
-                let middle = (max + min) / 2
-                let span = (max - min) / 2
-
                 let coef = e.deltaY > 0 ? .9 : 1.11111
-                params.xmin = middle - coef * span
-                params.xmax = middle + coef * span
+                let x = zoom(params.xmin, params.xmax, coef)
+                let y = zoom(params.ymin, params.ymax, coef)
+                
+                params.xmin = x[0]
+                params.xmax = x[1]
+                params.ymin = y[0]
+                params.ymax = y[1]
                 update()
             }
             console.log(e)

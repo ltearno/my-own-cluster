@@ -1,6 +1,6 @@
 #version 310 es
 
-layout(local_size_x = 1) in;
+layout(local_size_x = 256) in;
 layout(std430) buffer;
 
 layout(binding = 0, rgba32f) writeonly uniform highp image2D uImage;
@@ -24,7 +24,7 @@ void main()
     float r2 = 0.0;
     int iter;
 
-    int maxIterations = 250;
+    int maxIterations = 2500;
     for (iter = 0; iter < maxIterations && r2 < 4.0; ++iter)
     {
         float tempreal = real;
