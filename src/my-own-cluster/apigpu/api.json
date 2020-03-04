@@ -2,9 +2,8 @@
     "bindFunctionName": "BindOpenGLFunctions",
     "wasmDeclaredModule": "my-own-cluster",
     "targetGoPackage": "apigpu",
-    "functions": [
-        {
-            "name": "compute_shader",
+    "functions": {
+        "compute_shader": {
             "args": [
                 {
                     "name": "specification",
@@ -13,8 +12,7 @@
             ],
             "returnType": "int"
         },
-        {
-            "name": "create_image_from_rgba_float_pixels",
+        "create_image_from_rgba_float_pixels": {
             "args": [
                 {
                     "name": "width",
@@ -35,8 +33,7 @@
             ],
             "returnType": "int"
         },
-        {
-            "name": "create_image_from_r_float_pixels",
+        "create_image_from_r_float_pixels": {
             "args": [
                 {
                     "name": "width",
@@ -57,5 +54,5 @@
             ],
             "returnType": "int"
         }
-    ]
+    }
 }

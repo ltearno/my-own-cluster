@@ -2,24 +2,20 @@
     "bindFunctionName": "BindMyOwnClusterFunctions",
     "wasmDeclaredModule": "my-own-cluster",
     "targetGoPackage": "apicore",
-    "functions": [
-        {
-            "name": "get_input_buffer_id",
+    "functions": {
+        "get_input_buffer_id": {
             "args": [],
             "returnType": "int"
         },
-        {
-            "name": "get_output_buffer_id",
+        "get_output_buffer_id": {
             "args": [],
             "returnType": "int"
         },
-        {
-            "name": "create_exchange_buffer",
+        "create_exchange_buffer": {
             "args": [],
             "returnType": "int"
         },
-        {
-            "name": "write_exchange_buffer",
+        "write_exchange_buffer": {
             "args": [
                 {
                     "name": "buffer_id",
@@ -32,8 +28,7 @@
             ],
             "returnType": "int"
         },
-        {
-            "name": "write_exchange_buffer_header",
+        "write_exchange_buffer_header": {
             "args": [
                 {
                     "name": "buffer_id",
@@ -50,8 +45,7 @@
             ],
             "returnType": "int"
         },
-        {
-            "name": "get_exchange_buffer_size",
+        "get_exchange_buffer_size": {
             "args": [
                 {
                     "name": "buffer_id",
@@ -60,8 +54,7 @@
             ],
             "returnType": "int"
         },
-        {
-            "name": "read_exchange_buffer",
+        "read_exchange_buffer": {
             "args": [
                 {
                     "name": "buffer_id",
@@ -70,8 +63,7 @@
             ],
             "returnType": "bytes"
         },
-        {
-            "name": "read_exchange_buffer_headers",
+        "read_exchange_buffer_headers": {
             "comment": "returns the buffer headers in JSON format",
             "args": [
                 {
@@ -81,8 +73,7 @@
             ],
             "returnType": "buffer"
         },
-        {
-            "name": "base64_decode",
+        "base64_decode": {
             "args": [
                 {
                     "name": "encoded",
@@ -91,8 +82,7 @@
             ],
             "returnType": "buffer"
         },
-        {
-            "name": "base64_encode",
+        "base64_encode": {
             "args": [
                 {
                     "name": "input",
@@ -101,8 +91,7 @@
             ],
             "returnType": "string"
         },
-        {
-            "name": "register_blob_with_name",
+        "register_blob_with_name": {
             "args": [
                 {
                     "name": "name",
@@ -119,8 +108,7 @@
             ],
             "returnType": "string"
         },
-        {
-            "name": "register_blob",
+        "register_blob": {
             "args": [
                 {
                     "name": "content_type",
@@ -133,8 +121,7 @@
             ],
             "returnType": "string"
         },
-        {
-            "name": "get_blob_tech_id_from_name",
+        "get_blob_tech_id_from_name": {
             "args": [
                 {
                     "name": "name",
@@ -143,8 +130,7 @@
             ],
             "returnType": "string"
         },
-        {
-            "name": "get_blob_bytes_as_string",
+        "get_blob_bytes_as_string": {
             "args": [
                 {
                     "name": "name",
@@ -153,8 +139,7 @@
             ],
             "returnType": "string"
         },
-        {
-            "name": "plug_function",
+        "plug_function": {
             "args": [
                 {
                     "name": "method",
@@ -175,8 +160,7 @@
             ],
             "returnType": "int"
         },
-        {
-            "name": "plug_file",
+        "plug_file": {
             "args": [
                 {
                     "name": "method",
@@ -193,13 +177,11 @@
             ],
             "returnType": "int"
         },
-        {
-            "name": "get_status",
+        "get_status": {
             "args": [],
             "returnType": "string"
         },
-        {
-            "name": "persistence_set",
+        "persistence_set": {
             "args": [
                 {
                     "name": "key",
@@ -212,8 +194,7 @@
             ],
             "returnType": "int"
         },
-        {
-            "name": "get_url",
+        "get_url": {
             "args": [
                 {
                     "name": "url",
@@ -222,8 +203,7 @@
             ],
             "returnType": "buffer"
         },
-        {
-            "name": "persistence_get",
+        "persistence_get": {
             "args": [
                 {
                     "name": "key",
@@ -232,8 +212,7 @@
             ],
             "returnType": "buffer"
         },
-        {
-            "name": "print_debug",
+        "print_debug": {
             "args": [
                 {
                     "name": "text",
@@ -242,8 +221,7 @@
             ],
             "returnType": "int"
         },
-        {
-            "name": "get_time",
+        "get_time": {
             "args": [
                 {
                     "name": "dest",
@@ -252,8 +230,7 @@
             ],
             "returnType": "int"
         },
-        {
-            "name": "free_buffer",
+        "free_buffer": {
             "args": [
                 {
                     "name": "bufferId",
@@ -262,5 +239,5 @@
             ],
             "returnType": "int"
         }
-    ]
+    }
 }

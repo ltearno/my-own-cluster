@@ -236,9 +236,10 @@ function generateWasmBindings(apiDescription, out) {
     )
     \n\n`)
     out(`func ${apiDescription.bindFunctionName}WASM(wctx enginewasm.WasmProcessContext) {`)
-    for (let fct of apiDescription.functions) {
-        let wasmName = fct.name
-        let goName = mapGoName(fct.name)
+    for (let fctName in apiDescription.functions) {
+        let fct = apiDescription.functions[fctName]
+        let wasmName = fctName
+        let goName = mapGoName(fctName)
 
         let goParamExtraction = getGoParamExtractionCode(fct.args)
         let goCallParams = ["wctx.Fctx"]
@@ -270,9 +271,11 @@ function generateJsBindings(apiDescription, out) {
         "gopkg.in/ltearno/go-duktape.v3"
     )\n\n`)
     out(`func ${apiDescription.bindFunctionName}Js(ctx enginejs.JSProcessContext) {`)
-    for (let fct of apiDescription.functions) {
-        let jsName = mapJsName(fct.name)
-        let goName = mapGoName(fct.name)
+    for (let fctName in apiDescription.functions) {
+        let fct = apiDescription.functions[fctName]
+
+        let jsName = mapJsName(fctName)
+        let goName = mapGoName(fctName)
 
         let jsParamExtraction = getJsParamExtractionCode(fct.args)
         let jsCallParams = ["ctx.Fctx"]
