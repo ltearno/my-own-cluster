@@ -1,3 +1,6 @@
+const moc = require('core')
+const gpu = require('gpu')
+
 function getRequestParameters() {
     var bufferId = moc.getInputBufferId();
     var bufferBytes = moc.readExchangeBufferHeaders(bufferId);
@@ -41,7 +44,7 @@ function launchMandelbrotShader() {
     moc.writeExchangeBuffer(paramsBufferId, params);
 
     console.log("compute shader...")
-    var res = moc.computeShader(
+    var res = gpu.computeShader(
         JSON.stringify({
             shader_name: "gpu-compute-shader",
             dispatch_size: [dataSize, dataSize, 1],
@@ -69,7 +72,7 @@ function launchMandelbrotShader() {
         console.log("AN ERROR HAS OCCURED " + res)
     }
 
-    moc.createImageFromRgbaFloatPixels(textureWidth, textureHeight, textureBufferId, moc.getOutputBufferId())
+    gpu.createImageFromRgbaFloatPixels(textureWidth, textureHeight, textureBufferId, moc.getOutputBufferId())
     moc.writeExchangeBufferHeader(moc.getOutputBufferId(), "content-type", "image/png")
 
     return 200

@@ -12,7 +12,7 @@
  * It is normally bound to the cluster web endpoint during startup (in main.go)
  */
 
-const log = console.log.bind(console)
+const moc = require('core')
 
 function getInputRequest() {
     var bufferId = moc.getInputBufferId()

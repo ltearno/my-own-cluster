@@ -1,5 +1,7 @@
 console.log("js initialisation")
 
+const moc = require('core')
+
 // we use the doT.js template engine to render server-side
 
 // doT.js

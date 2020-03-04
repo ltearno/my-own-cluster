@@ -25,18 +25,34 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 	ctx := duktape.New()
 
 	ctx.PushGlobalObject()
-	ctx.PushObject()
 
-	// those wrappers are written by hand...
-	BindMocFunctionsMano(fctx, ctx)
+	ctx.PushGoFunction(func(c *duktape.Context) int {
+		module := c.SafeToString(-1)
 
-	// soon will be completely replaced by those ones, generated from 'my-own-cluster.api.json'
-	BindMyOwnClusterFunctionsJs(fctx, ctx)
+		ctx.PushObject()
 
-	// TODO : this should be factorized in the concept of pluggable "runtime providers"
-	BindOpenGLFunctionsJs(fctx, ctx)
+		switch module {
+		case "core":
+			// those wrappers are written by hand...
+			BindMocFunctionsMano(fctx, ctx)
 
-	ctx.PutPropString(-2, "moc")
+			// soon will be completely replaced by those ones, generated from 'my-own-cluster.api.json'
+			BindMyOwnClusterFunctionsJs(fctx, ctx)
+			break
+
+		case "gpu":
+			// TODO : this should be factorized in the concept of pluggable "runtime providers"
+			BindOpenGLFunctionsJs(fctx, ctx)
+
+		default:
+			fmt.Printf("js program requires unknown module '%s'\n", module)
+			return 0
+		}
+
+		return 1
+	})
+	ctx.PutPropString(-2, "require")
+
 	ctx.Pop()
 
 	return &JSProcessContext{
