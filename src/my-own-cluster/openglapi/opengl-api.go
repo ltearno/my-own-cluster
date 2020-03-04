@@ -165,11 +165,6 @@ func CreateImageFromRgbafloatPixels(ctx *common.FunctionExecutionContext, width 
 		}
 	}
 
-	// Encode as PNG.
-	//f, _ := os.Create("image.png")
-	//var f bytes.Buffer
-	//png.Encode(&f, img)
-
 	png.Encode(ctx.Orchestrator.GetExchangeBuffer(pngExchangeBufferID), img)
 
 	return 0, nil
