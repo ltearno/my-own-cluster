@@ -12,15 +12,6 @@ import (
 	wasm3 "github.com/ltearno/go-wasm3"
 )
 
-type MyOwnClusterWASMAPIPlugin struct{}
-
-func NewMyOwnClusterWASMAPIPlugin() WASMAPIPlugin {
-	return &MyOwnClusterWASMAPIPlugin{}
-}
-
-func (p *MyOwnClusterWASMAPIPlugin) Bind(wctx *WasmProcessContext) {
-}
-
 // WasmProcessContext represents a running WASM context
 type WasmProcessContext struct {
 	Fctx *common.FunctionExecutionContext
@@ -255,7 +246,6 @@ func (e *WasmWasm3Engine) PrepareContext(fctx *common.FunctionExecutionContext) 
 		return nil, errors.New("cannot create wasm context")
 	}
 
-	wctx.AddAPIPlugin(NewMyOwnClusterWASMAPIPlugin())
 	wctx.AddAPIPlugin(NewTinyGoWASMAPIPlugin())
 	wctx.AddAPIPlugin(NewAutoLinkWASMAPIPlugin())
 	if fctx.Mode == "posix" {
@@ -380,7 +370,7 @@ func (wctx *WasmProcessContext) Run() error {
 			continue
 		}
 
-		return fmt.Errorf("cannot emulate imported module '%s', cannot execute", m)
+		return fmt.Errorf("cannot emulate imported module '%s'", m)
 	}
 
 	// WITHOUT CALLING THIS, THE fn.Call() call fails ! need to investigate
