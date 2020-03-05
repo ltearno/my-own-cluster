@@ -29,8 +29,6 @@ func ComputeShader(ctx *common.FunctionExecutionContext, specificationJSON strin
 	// TODO later : maybe the present node does not have a GPU and we need to launch this elsewhere...
 	// TODO later : maybe this should be catched by the opengl exec engine...
 
-	fmt.Printf("COMPUTE SHADER BEGINS\n")
-
 	spec := &ComputeShaderSpecification{}
 	err := json.Unmarshal([]byte(specificationJSON), spec)
 	if err != nil {
