@@ -20,7 +20,8 @@ type GLSLOpenGLDeviceContext struct {
 }
 
 type GLSLOpenGLContext struct {
-	ctx *C.ContextInformation
+	ctx  *C.ContextInformation
+	fctx *common.FunctionExecutionContext
 }
 
 type GPUAPIProvider struct {
@@ -44,7 +45,7 @@ func (p *GPUAPIProvider) BindToExecutionEngineContext(ctx common.ExecutionEngine
 
 var openGLDeviceContext *GLSLOpenGLDeviceContext = nil
 
-func InitOpenGLContext() (*GLSLOpenGLContext, error) {
+func InitOpenGLContext(fctx *common.FunctionExecutionContext) (*GLSLOpenGLContext, error) {
 	if openGLDeviceContext == nil {
 		openGLDeviceContext = &GLSLOpenGLDeviceContext{
 			ctx: &C.DeviceInformation{},
@@ -56,7 +57,8 @@ func InitOpenGLContext() (*GLSLOpenGLContext, error) {
 	}
 
 	ctx := &GLSLOpenGLContext{
-		ctx: &C.ContextInformation{},
+		ctx:  &C.ContextInformation{},
+		fctx: fctx,
 	}
 	C.initOpenGLContext(openGLDeviceContext.ctx, ctx.ctx)
 
@@ -77,50 +79,68 @@ func (c *GLSLOpenGLContext) CompileAndBindShader(shaderCodeBytes []byte) error {
 		return errors.New("cannot compile and bind shader")
 	}
 
-	fmt.Printf("compiled and linked shader\n")
+	if c.fctx.Trace {
+		fmt.Printf("compiled and linked shader\n")
+	}
 
 	return nil
 }
 
 func (c *GLSLOpenGLContext) BindStorageBuffer(binding int, bufferContent []byte) (int, error) {
 	bufferIndex := C.bindStorageBuffer(C.int(binding), C.CBytes(bufferContent), C.int(len(bufferContent)))
-	fmt.Printf("bound storage buffer to index %d\n", bufferIndex)
+	if c.fctx.Trace {
+		fmt.Printf("bound storage buffer to index %d\n", bufferIndex)
+	}
 	return int(bufferIndex), nil
 }
 
 func (c *GLSLOpenGLContext) BindTexture2DRGBAFloat(binding int, width int, height int) (int, error) {
 	textureIndex := C.bindTexture2DRGBAFloat(C.int(binding), C.int(width), C.int(height))
-	fmt.Printf("bound texture to index %d\n", textureIndex)
+	if c.fctx.Trace {
+		fmt.Printf("bound texture to index %d\n", textureIndex)
+	}
 	return int(textureIndex), nil
 }
 
 func (c *GLSLOpenGLContext) BindTexture2DRFloat(binding int, width int, height int) (int, error) {
 	textureIndex := C.bindTexture2DRFloat(C.int(binding), C.int(width), C.int(height))
-	fmt.Printf("bound texture to index %d\n", textureIndex)
+	if c.fctx.Trace {
+		fmt.Printf("bound texture to index %d\n", textureIndex)
+	}
 	return int(textureIndex), nil
 }
 
 func (c *GLSLOpenGLContext) DispatchCompute(x int, y int, z int) {
-	fmt.Printf("dispatching compute %d %d %d\n", x, y, z)
+	if c.fctx.Trace {
+		fmt.Printf("dispatching compute %d %d %d\n", x, y, z)
+	}
 	C.glDispatchCompute(C.uint(x), C.uint(y), C.uint(z))
 	C.glMemoryBarrier(C.GL_ALL_BARRIER_BITS)
-	fmt.Println("dispatched ok")
+	if c.fctx.Trace {
+		fmt.Println("dispatched ok")
+	}
 }
 
 func (c *GLSLOpenGLContext) GetStorageBuffer(bufferIndex int, buffer []byte) error {
-	fmt.Printf("getting buffer %d content\n", bufferIndex)
+	if c.fctx.Trace {
+		fmt.Printf("getting buffer %d content\n", bufferIndex)
+	}
 	C.getStorageBuffer(C.int(bufferIndex), unsafe.Pointer(&buffer[0]), C.int(len(buffer)))
 	return nil
 }
 
 func (c *GLSLOpenGLContext) GetTexture2DRGBAFloatBuffer(textureIndex int, buffer []byte) error {
-	fmt.Printf("getting texture %d content\n", textureIndex)
+	if c.fctx.Trace {
+		fmt.Printf("getting texture %d content\n", textureIndex)
+	}
 	C.getTexture2DRGBAFloatBuffer(C.int(textureIndex), unsafe.Pointer(&buffer[0]), C.int(len(buffer)))
 	return nil
 }
 
 func (c *GLSLOpenGLContext) GetTexture2DRFloatBuffer(textureIndex int, buffer []byte) error {
-	fmt.Printf("getting texture %d content\n", textureIndex)
+	if c.fctx.Trace {
+		fmt.Printf("getting texture %d content\n", textureIndex)
+	}
 	C.getTexture2DRFloatBuffer(C.int(textureIndex), unsafe.Pointer(&buffer[0]), C.int(len(buffer)))
 	return nil
 }

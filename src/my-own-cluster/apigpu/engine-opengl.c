@@ -148,7 +148,7 @@ int initOpenGLContext(DeviceInformation *dInfo, ContextInformation *info) {
    if (info->core_ctx == EGL_NO_CONTEXT)
       return -10;
 
-   printf("egl context created\n");
+   //printf("egl context created\n");
 
    return 0;
 }
@@ -182,11 +182,11 @@ int destroyOpenGLContext(DeviceInformation *dInfo, ContextInformation *ctx) {
 }
 
 int compileAndBindShader(const char *shader_source) {
-  printf("compute_shader creating...\n");
+  //printf("compute_shader creating...\n");
    GLuint compute_shader = glCreateShader (GL_COMPUTE_SHADER);
    if(checkErrors()<0)
     return -1;
-   printf("compute_shader created\n");
+   //printf("compute_shader created\n");
 
    glShaderSource (compute_shader, 1, &shader_source, NULL);
    if(checkErrors()<0)

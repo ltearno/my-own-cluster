@@ -19,7 +19,7 @@ function getRequestParameters() {
 function launchMandelbrotShader() {
     var req = getRequestParameters()
 
-    console.log("init data for query " + params)
+    console.log("init data for query " + JSON.stringify(req))
 
     var dataSize = 1024;
     var textureWidth = dataSize;
@@ -41,7 +41,6 @@ function launchMandelbrotShader() {
     var paramsBufferId = moc.createExchangeBuffer();
     moc.writeExchangeBuffer(paramsBufferId, params);
 
-    console.log("compute shader...")
     var res = gpu.computeShader(
         JSON.stringify({
             shader_name: "gpu-compute-shader",
@@ -67,7 +66,7 @@ function launchMandelbrotShader() {
         })
     )
     if (res < 0) {
-        console.log("AN ERROR HAS OCCURED " + res)
+        console.log("error occured when processing shader" + res)
     }
 
     gpu.createImageFromRgbaFloatPixels(textureWidth, textureHeight, textureBufferId, moc.getOutputBufferId())
