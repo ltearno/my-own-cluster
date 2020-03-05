@@ -417,6 +417,10 @@ type WasmCallHandler func(wctx *WasmProcessContext, cs *CallSite) (uint32, error
 
 // BindAPIFunction binds a module+function name in wasm3 to a go routine
 func (wctx *WasmProcessContext) BindAPIFunction(moduleName string, functionName string, signature string, handler WasmCallHandler) {
+	if wctx.Fctx.Trace {
+		fmt.Printf("binding function '%s'::'%s' signature:%s\n", moduleName, functionName, signature)
+	}
+
 	wctx.Runtime.AttachFunction(moduleName, functionName, signature, func(runtime wasm3.RuntimeT, sp unsafe.Pointer, mem unsafe.Pointer) int {
 		callSite := &CallSite{
 			sp:  sp,
@@ -436,6 +440,10 @@ func (wctx *WasmProcessContext) BindAPIFunction(moduleName string, functionName 
 
 // BindNotYetImplementedFunction exits the whole process when not yet implemented function is called
 func (wctx *WasmProcessContext) BindNotYetImplementedFunction(module string, name string, signature string) {
+	if wctx.Fctx.Trace {
+		fmt.Printf("binding NOT YET IMPLEMENTED stub function '%s'::'%s' signature:%s\n", module, functionName, signature)
+	}
+
 	wctx.Runtime.AttachFunction(module, name, signature, func(runtime wasm3.RuntimeT, sp unsafe.Pointer, mem unsafe.Pointer) int {
 		fmt.Printf("called not yet implemented function '%s'... ABORTING WASM PROGRAM EXECUTION\n", name)
 		return -2
