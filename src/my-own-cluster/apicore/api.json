@@ -55,6 +55,7 @@
             "returnType": "int"
         },
         "read_exchange_buffer": {
+            "comment":"returns the written size if result_bytes was not NULL and the exchange buffer size otherwise",
             "args": [
                 {
                     "name": "buffer_id",

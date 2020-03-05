@@ -24,9 +24,6 @@ function mapArgumentType(tag) {
         case "int":
             return "i"
 
-        case "buffer":
-            return "ii"
-
         case "bytes":
             return "ii"
 
@@ -101,11 +98,6 @@ function getGoParamExtractionCode(args) {
                 currentWasmParamIndex++
                 break
 
-            case "buffer":
-                code += `cs.GetParamByteBuffer(${currentWasmParamIndex}, ${currentWasmParamIndex + 1})`
-                currentWasmParamIndex += 2
-                break
-
             case "bytes":
                 code += `cs.GetParamByteBuffer(${currentWasmParamIndex}, ${currentWasmParamIndex + 1})`
                 currentWasmParamIndex += 2
@@ -147,10 +139,6 @@ function getJsParamExtractionCode(args) {
         switch (arg.type) {
             case "int":
                 code += `int(c.GetNumber(${stackPosition}))`
-                break
-
-            case "buffer":
-                code += `c.SafeToBytes(${stackPosition})`
                 break
 
             case "bytes":
@@ -386,6 +374,75 @@ function generateJsBindings(apiDescription, out) {
     out(`}`)
 }
 
+function getCReturnType(type) {
+    switch (type) {
+        case "int":
+            return "uint32_t"
+        case "bytes":
+            return "uint32_t" // returns the result buffer length if passed buffer is NULL and written size if not
+        case "string":
+            return "uint32_t" // returns the result exhcnage buffer id
+        case "buffer":
+            return "uint32_t" // returns the result exchange buffer id
+        case "map[string]string":
+            return "uint32_t" // return exchange buffer id
+    }
+
+    throw `unknown return type '${tag}'`
+}
+
+function getCArgument(arg) {
+    switch (arg.type) {
+        case "int":
+            return `int ${arg.name}`
+
+        case "bytes":
+            return `const void *${arg.name}_bytes, int ${arg.name}_length`
+
+        case "string":
+            return `const char *${arg.name}_string, int ${arg.name}_length`
+
+        case "[]int":
+            return `const void *${arg.name}_int_array, int ${arg.name}_length`
+
+        case "[]string":
+            return `const void *${arg.name}_string_array, int ${arg.name}_length`
+    }
+
+    throw `unknown return type '${tag}'`
+}
+
+function generateGuestCBindings(apiDescription, out) {
+    out(`
+#ifndef ${apiDescription.targetGoPackage}_api_h
+#define ${apiDescription.targetGoPackage}_api_h
+
+#include <stdint.h>
+
+#define WASM_EXPORT                   extern __attribute__((used)) __attribute__((visibility ("default")))
+#define WASM_EXPORT_AS(NAME)          WASM_EXPORT __attribute__((export_name(NAME)))
+#define WASM_IMPORT(MODULE,NAME)      __attribute__((import_module(MODULE))) __attribute__((import_name(NAME)))
+#define WASM_CONSTRUCTOR              __attribute__((constructor))
+
+`)
+
+
+    for (let fctName in apiDescription.functions) {
+        let fct = apiDescription.functions[fctName]
+
+        let args = fct.args.map(getCArgument)
+        if(fct.returnType=="bytes")
+            args.push(`void *result_bytes, int result_length`)
+        if(fct.comment)
+            out(`// ${fct.comment}\n`)
+        out(`WASM_IMPORT("${apiDescription.wasmDeclaredModule}", "${fctName}") ${getCReturnType(fct.returnType)} ${fctName}(${args.join(', ')});\n`)
+    }
+
+    out(`
+#endif
+    `)
+}
+
 function makeOut(fileName) {
     if (fs.existsSync(fileName))
         fs.unlinkSync(fileName)
@@ -398,6 +455,7 @@ function makeOut(fileName) {
 let apiDescription = JSON.parse(fs.readFileSync("../src/my-own-cluster/apicore/api.json"))
 generateJsBindings(apiDescription, makeOut("../src/my-own-cluster/apicore/core-api-js.go"))
 generateWasmBindings(apiDescription, makeOut("../src/my-own-cluster/apicore/core-api-wasm.go"))
+generateGuestCBindings(apiDescription, makeOut("../assets/core-api-guest.h"))
 
 apiDescription = JSON.parse(fs.readFileSync("../src/my-own-cluster/apigpu/api.json"))
 generateJsBindings(apiDescription, makeOut("../src/my-own-cluster/apigpu/opengl-api-js.go"))
