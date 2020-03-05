@@ -42,7 +42,7 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 
 		return 1
 	})
-	ctx.Context.PutPropString(-2, "require")
+	ctx.Context.PutPropString(-2, "requireApi")
 
 	ctx.Context.Pop()
 

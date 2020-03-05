@@ -1,5 +1,5 @@
-const moc = require('core')
-const gpu = require('gpu')
+const moc = requireApi('core')
+const gpu = requireApi('gpu')
 
 function getRequestParameters() {
     var bufferId = moc.getInputBufferId();
