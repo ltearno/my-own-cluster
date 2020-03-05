@@ -1,7 +1,6 @@
 {
     "bindFunctionName": "BindMyOwnClusterFunctions",
-    "wasmDeclaredModule": "my-own-cluster",
-    "targetGoPackage": "core",
+    "moduleName": "core",
     "functions": {
         "get_input_buffer_id": {
             "args": [],

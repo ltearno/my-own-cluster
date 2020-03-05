@@ -9,7 +9,7 @@ package apicore
     
 
 func BindMyOwnClusterFunctionsWASM(wctx enginewasm.WasmProcessContext) {
-	wctx.BindAPIFunction("my-own-cluster", "get_input_buffer_id", "i()", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "get_input_buffer_id", "i()", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         
 
         
@@ -22,7 +22,7 @@ func BindMyOwnClusterFunctionsWASM(wctx enginewasm.WasmProcessContext) {
         return uint32(res), err
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "get_output_buffer_id", "i()", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "get_output_buffer_id", "i()", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         
 
         
@@ -35,7 +35,7 @@ func BindMyOwnClusterFunctionsWASM(wctx enginewasm.WasmProcessContext) {
         return uint32(res), err
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "create_exchange_buffer", "i()", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "create_exchange_buffer", "i()", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         
 
         
@@ -48,7 +48,7 @@ func BindMyOwnClusterFunctionsWASM(wctx enginewasm.WasmProcessContext) {
         return uint32(res), err
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "write_exchange_buffer", "i(iii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "write_exchange_buffer", "i(iii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         bufferId := cs.GetParamInt(0)
 content := cs.GetParamByteBuffer(1, 2)
 
@@ -63,7 +63,7 @@ content := cs.GetParamByteBuffer(1, 2)
         return uint32(res), err
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "write_exchange_buffer_header", "i(iiiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "write_exchange_buffer_header", "i(iiiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         bufferId := cs.GetParamInt(0)
 name := cs.GetParamString(1, 2)
 value := cs.GetParamString(3, 4)
@@ -79,7 +79,7 @@ value := cs.GetParamString(3, 4)
         return uint32(res), err
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "get_exchange_buffer_size", "i(i)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "get_exchange_buffer_size", "i(i)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         bufferId := cs.GetParamInt(0)
 
 
@@ -93,7 +93,7 @@ value := cs.GetParamString(3, 4)
         return uint32(res), err
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "read_exchange_buffer", "i(iii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "read_exchange_buffer", "i(iii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         bufferId := cs.GetParamInt(0)
 
 
@@ -113,7 +113,7 @@ value := cs.GetParamString(3, 4)
                 }
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "read_exchange_buffer_headers", "i(i)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "read_exchange_buffer_headers", "i(i)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         bufferId := cs.GetParamInt(0)
 
 
@@ -131,7 +131,7 @@ value := cs.GetParamString(3, 4)
                     return uint32(resultBufferID), nil
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "get_buffer_headers", "i(i)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "get_buffer_headers", "i(i)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         bufferId := cs.GetParamInt(0)
 
 
@@ -169,7 +169,7 @@ value := cs.GetParamString(3, 4)
                 return uint32(resultBufferID), nil
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "base64_decode", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "base64_decode", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         encoded := cs.GetParamString(0, 1)
 
 
@@ -187,7 +187,7 @@ value := cs.GetParamString(3, 4)
                     return uint32(resultBufferID), nil
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "base64_encode", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "base64_encode", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         input := cs.GetParamByteBuffer(0, 1)
 
 
@@ -205,7 +205,7 @@ value := cs.GetParamString(3, 4)
                 return uint32(resultBufferID), nil
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "register_blob_with_name", "i(iiiiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "register_blob_with_name", "i(iiiiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         name := cs.GetParamString(0, 1)
 contentType := cs.GetParamString(2, 3)
 content := cs.GetParamByteBuffer(4, 5)
@@ -225,7 +225,7 @@ content := cs.GetParamByteBuffer(4, 5)
                 return uint32(resultBufferID), nil
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "register_blob", "i(iiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "register_blob", "i(iiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         contentType := cs.GetParamString(0, 1)
 content := cs.GetParamByteBuffer(2, 3)
 
@@ -244,7 +244,7 @@ content := cs.GetParamByteBuffer(2, 3)
                 return uint32(resultBufferID), nil
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "get_blob_tech_id_from_name", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "get_blob_tech_id_from_name", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         name := cs.GetParamString(0, 1)
 
 
@@ -262,7 +262,7 @@ content := cs.GetParamByteBuffer(2, 3)
                 return uint32(resultBufferID), nil
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "get_blob_bytes_as_string", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "get_blob_bytes_as_string", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         name := cs.GetParamString(0, 1)
 
 
@@ -280,7 +280,7 @@ content := cs.GetParamByteBuffer(2, 3)
                 return uint32(resultBufferID), nil
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "plug_function", "i(iiiiiiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "plug_function", "i(iiiiiiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         method := cs.GetParamString(0, 1)
 path := cs.GetParamString(2, 3)
 name := cs.GetParamString(4, 5)
@@ -297,7 +297,7 @@ startFunction := cs.GetParamString(6, 7)
         return uint32(res), err
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "plug_file", "i(iiiiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "plug_file", "i(iiiiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         method := cs.GetParamString(0, 1)
 path := cs.GetParamString(2, 3)
 name := cs.GetParamString(4, 5)
@@ -313,7 +313,7 @@ name := cs.GetParamString(4, 5)
         return uint32(res), err
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "get_status", "i()", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "get_status", "i()", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         
 
         
@@ -330,7 +330,7 @@ name := cs.GetParamString(4, 5)
                 return uint32(resultBufferID), nil
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "persistence_set", "i(iiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "persistence_set", "i(iiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         key := cs.GetParamByteBuffer(0, 1)
 value := cs.GetParamByteBuffer(2, 3)
 
@@ -345,7 +345,7 @@ value := cs.GetParamByteBuffer(2, 3)
         return uint32(res), err
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "get_url", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "get_url", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         url := cs.GetParamString(0, 1)
 
 
@@ -363,7 +363,7 @@ value := cs.GetParamByteBuffer(2, 3)
                     return uint32(resultBufferID), nil
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "persistence_get", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "persistence_get", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         key := cs.GetParamByteBuffer(0, 1)
 
 
@@ -381,7 +381,7 @@ value := cs.GetParamByteBuffer(2, 3)
                     return uint32(resultBufferID), nil
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "persistence_get_subset", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "persistence_get_subset", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         prefix := cs.GetParamString(0, 1)
 
 
@@ -419,7 +419,7 @@ value := cs.GetParamByteBuffer(2, 3)
                 return uint32(resultBufferID), nil
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "print_debug", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "print_debug", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         text := cs.GetParamString(0, 1)
 
 
@@ -433,7 +433,7 @@ value := cs.GetParamByteBuffer(2, 3)
         return uint32(res), err
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "get_time", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "get_time", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         dest := cs.GetParamByteBuffer(0, 1)
 
 
@@ -447,7 +447,7 @@ value := cs.GetParamByteBuffer(2, 3)
         return uint32(res), err
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "free_buffer", "i(i)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "free_buffer", "i(i)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         bufferId := cs.GetParamInt(0)
 
 
@@ -461,7 +461,7 @@ value := cs.GetParamByteBuffer(2, 3)
         return uint32(res), err
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "call_function", "i(iiiiiiiiiiiiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "call_function", "i(iiiiiiiiiiiiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         name := cs.GetParamString(0, 1)
 startFunction := cs.GetParamString(2, 3)
 arguments := []int{} // TODO : To be implemented !!!

@@ -302,7 +302,7 @@ function getWasmAdditionalPrototype(type) {
 // output code for binding js engine to core api
 function generateWasmBindings(apiDescription, out) {
     let needBytesPackage = Object.values(apiDescription.functions).some(fct => fct.returnType == "map[string]string")
-    out(`package api${apiDescription.targetGoPackage}
+    out(`package api${apiDescription.moduleName}
 
     import (
         "my-own-cluster/enginewasm"
@@ -321,7 +321,7 @@ function generateWasmBindings(apiDescription, out) {
         let goCallParams = ["wctx.Fctx"]
         goCallParams = goCallParams.concat(...goParamExtraction.argNames)
         out(`
-	wctx.BindAPIFunction("${apiDescription.wasmDeclaredModule}", "${wasmName}", "${mapReturnType(fct.returnType)}(${fct.args.map(arg => mapArgumentType(arg.type)).join('')}${getWasmAdditionalPrototype(fct.returnType)})", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("${apiDescription.moduleName}", "${wasmName}", "${mapReturnType(fct.returnType)}(${fct.args.map(arg => mapArgumentType(arg.type)).join('')}${getWasmAdditionalPrototype(fct.returnType)})", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         ${goParamExtraction.code}
 
         ${getGoPreCallCode(fct, goParamExtraction)}
@@ -339,7 +339,7 @@ function generateWasmBindings(apiDescription, out) {
 }
 
 function generateJsBindings(apiDescription, out) {
-    out(`package api${apiDescription.targetGoPackage}
+    out(`package api${apiDescription.moduleName}
 
     import (
         "my-own-cluster/enginejs"
@@ -407,12 +407,12 @@ function mapTypescriptType(tag) {
 
 function generateGuestTypescriptBindings(apiDescription, out) {
     out(`
-// type definitions for module '${apiDescription.targetGoPackage}'
+// type definitions for module '${apiDescription.moduleName}'
 //
 //  you can use them by adding this at the beginning of your js file :
-//  /// reference path="./${apiDescription.targetGoPackage}-api-guest.d.ts"
+//  /// reference path="./${apiDescription.moduleName}-api-guest.d.ts"
 //
-declare function requireApi(name: "${apiDescription.targetGoPackage}") : {
+declare function requireApi(name: "${apiDescription.moduleName}") : {
 `)
 
     for (let fctName in apiDescription.functions) {
@@ -467,8 +467,8 @@ function getCArgument(arg) {
 
 function generateGuestCBindings(apiDescription, out) {
     out(`
-#ifndef ${apiDescription.targetGoPackage}_api_h
-#define ${apiDescription.targetGoPackage}_api_h
+#ifndef ${apiDescription.moduleName}_api_h
+#define ${apiDescription.moduleName}_api_h
 
 #include <stdint.h>
 
@@ -488,7 +488,7 @@ function generateGuestCBindings(apiDescription, out) {
             args.push(`void *result_bytes, int result_length`)
         if (fct.comment)
             out(`// ${fct.comment}\n`)
-        out(`WASM_IMPORT("${apiDescription.wasmDeclaredModule}", "${fctName}") ${getCReturnType(fct.returnType)} ${fctName}(${args.join(', ')});\n`)
+        out(`WASM_IMPORT("${apiDescription.moduleName}", "${fctName}") ${getCReturnType(fct.returnType)} ${fctName}(${args.join(', ')});\n`)
     }
 
     out(`
@@ -500,6 +500,63 @@ function generateGuestCSymsBindings(apiDescription, out) {
     for (let fctName in apiDescription.functions) {
         out(`${fctName}\n`)
     }
+}
+
+function getRustArgument(arg) {
+    switch (arg.type) {
+        case "int":
+            return `${arg.name}:u32`
+
+        case "bytes":
+            return `${arg.name}_bytes: *const u8, ${arg.name}_length: u32`
+
+        case "string":
+            return `${arg.name}_string: *const u8, ${arg.name}_length: u32`
+
+        case "[]int":
+            return `${arg.name}_int_array: *const u32, ${arg.name}_length: u32`
+
+        case "[]string":
+            return `${arg.name}_string_array: *const u8, ${arg.name}_length: u32`
+    }
+
+    throw `unknown return type '${tag}'`
+}
+
+function generateGuestRustBindings(apiDescription, out) {
+    out(`
+use std::collections::HashMap;
+use std::io::{Cursor, Read};
+use byteorder::{LittleEndian, ReadBytesExt};
+
+/**
+ * '${apiDescription.moduleName}' guest API bindings for rust
+ * 
+ * it can be called from rust code compiled into wasm and executed by my-own-cluster
+ */
+
+// import the '${apiDescription.moduleName}' module
+pub mod raw {
+    #[link(wasm_import_module = "${apiDescription.moduleName}")]
+    extern {
+`)
+
+        for (let fctName in apiDescription.functions) {
+            let fct = apiDescription.functions[fctName]
+    
+            let args = fct.args.map(getRustArgument)
+            if (fct.returnType == "bytes")
+                args.push(`result_bytes: *mut u8, result_length: u32`)
+            if (fct.comment)
+                out(`        // ${fct.comment}\n`)
+            out(`        pub fn ${fctName}(${args.join(', ')}) -> u32;\n`)
+        }
+
+        out(`
+    }
+}
+    
+    `)
 }
 
 function makeOut(fileName) {
@@ -514,12 +571,13 @@ function makeOut(fileName) {
 for (let apiName of ["core", "gpu"]) {
     let apiDescription = JSON.parse(fs.readFileSync(`../src/my-own-cluster/api${apiName}/api.json`))
 
+    // bindings for host
     generateJsBindings(apiDescription, makeOut(`../src/my-own-cluster/api${apiName}/${apiName}-api-js.go`))
-
     generateWasmBindings(apiDescription, makeOut(`../src/my-own-cluster/api${apiName}/${apiName}-api-wasm.go`))
 
-    // assets
+    // bindings for guest
     generateGuestCBindings(apiDescription, makeOut(`../assets/${apiName}-api-guest.h`))
     generateGuestCSymsBindings(apiDescription, makeOut(`../assets/${apiName}-api-guest.syms`))
     generateGuestTypescriptBindings(apiDescription, makeOut(`../assets/${apiName}-api-guest.d.ts`))
+    generateGuestRustBindings(apiDescription, makeOut(`../assets/${apiName}_api_guest.rs`))
 }

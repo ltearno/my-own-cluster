@@ -1,7 +1,6 @@
 {
     "bindFunctionName": "BindOpenGLFunctions",
-    "wasmDeclaredModule": "gpu",
-    "targetGoPackage": "gpu",
+    "moduleName": "gpu",
     "functions": {
         "compute_shader": {
             "args": [
