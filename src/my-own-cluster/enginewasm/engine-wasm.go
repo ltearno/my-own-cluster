@@ -19,24 +19,6 @@ func NewMyOwnClusterWASMAPIPlugin() WASMAPIPlugin {
 }
 
 func (p *MyOwnClusterWASMAPIPlugin) Bind(wctx *WasmProcessContext) {
-	importedModules := wctx.GetImportedModules()
-	if _, ok := importedModules["my-own-cluster"]; !ok {
-		return
-	}
-
-	if wctx.Fctx.Trace {
-		fmt.Println("binding wasm api providers...")
-	}
-
-	for module, _ := range importedModules {
-		apiProvider := wctx.Fctx.Orchestrator.GetAPIProvider(module)
-		if apiProvider == nil {
-			fmt.Printf("error : cannot bind module '%s' because api provider is not found. It might be found in stored functions though...\n", module)
-			continue
-		}
-
-		apiProvider.BindToExecutionEngineContext(wctx)
-	}
 }
 
 // WasmProcessContext represents a running WASM context
@@ -325,9 +307,19 @@ func (wctx *WasmProcessContext) Run() error {
 	// auto import and dynamically link functions together
 	// TODO watch for updates on https://webassembly.org/docs/dynamic-linking/
 	for m := range wctx.GetImportedModules() {
-		if moduleFunctionTechID, err := wctx.Fctx.Orchestrator.GetBlobTechIDFromName(m); err == nil {
+		apiProvider := wctx.Fctx.Orchestrator.GetAPIProvider(m)
+		if apiProvider != nil {
 			if wctx.Fctx.Trace {
-				fmt.Printf("emulating %s imported module with function %s techID:%s...\n", m, m, moduleFunctionTechID)
+				fmt.Printf("emulating '%s' imported module with api provider '%s'\n", m, m)
+			}
+			apiProvider.BindToExecutionEngineContext(wctx)
+			continue
+		}
+
+		moduleFunctionTechID, err := wctx.Fctx.Orchestrator.GetBlobTechIDFromName(m)
+		if err == nil {
+			if wctx.Fctx.Trace {
+				fmt.Printf("emulating '%s' imported module with function '%s' techID:%s\n", m, m, moduleFunctionTechID)
 			}
 
 			for i := 0; i < wctx.Module.NumFunctions(); i++ {
@@ -385,10 +377,10 @@ func (wctx *WasmProcessContext) Run() error {
 					})
 				}
 			}
-		} else {
-			// should process api providers at the same time
-			fmt.Printf("not found module '%s' for auto importation !\n", m)
+			continue
 		}
+
+		return fmt.Errorf("cannot emulate imported module '%s', cannot execute", m)
 	}
 
 	// WITHOUT CALLING THIS, THE fn.Call() call fails ! need to investigate
