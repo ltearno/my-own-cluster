@@ -460,4 +460,25 @@ value := cs.GetParamByteBuffer(2, 3)
         
         return uint32(res), err
     })
+    
+	wctx.BindAPIFunction("my-own-cluster", "call_function", "i(iiiiiiiiiiiiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        name := cs.GetParamString(0, 1)
+startFunction := cs.GetParamString(2, 3)
+arguments := []int{} // TODO : To be implemented !!!
+mode := cs.GetParamString(6, 7)
+inputExchangeBufferId := cs.GetParamInt(8)
+outputExchangeBufferId := cs.GetParamInt(9)
+posixFileName := cs.GetParamString(10, 11)
+posixArguments := []string{} // TODO : To be implemented !!!
+
+
+        
+
+        res, err := CallFunction(wctx.Fctx, name, startFunction, arguments, mode, inputExchangeBufferId, outputExchangeBufferId, posixFileName, posixArguments)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        return uint32(res), err
+    })
     }

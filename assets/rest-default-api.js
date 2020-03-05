@@ -104,10 +104,16 @@ function callFunction() {
         req.posix_arguments || [""]
     )
 
-    // read output buffer and base 64 encode it
-    result.output = moc.base64Encode(result.output)
+    var response = {
+        status: true,
+        result: result,
+        output: moc.base64Encode(moc.readExchangeBuffer(outputExchangeBufferId))
+    }
 
-    moc.writeExchangeBuffer(moc.getOutputBufferId(), JSON.stringify(result))
+    moc.writeExchangeBuffer(moc.getOutputBufferId(), JSON.stringify(response))
+
+    moc.freeBuffer(inputExchangeBufferId)
+    moc.freeBuffer(outputExchangeBufferId)
 
     return 200
 }

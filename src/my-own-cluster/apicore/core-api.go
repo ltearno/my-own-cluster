@@ -12,8 +12,6 @@ import (
 	"net/http"
 	"time"
 	"unsafe"
-
-	"gopkg.in/ltearno/go-duktape.v3"
 )
 
 type CoreAPIProvider struct{}
@@ -45,10 +43,6 @@ func (p *CoreAPIProvider) BindToExecutionEngineContext(ctx common.ExecutionEngin
 
 	jsctx, ok := ctx.(*enginejs.JSProcessContext)
 	if ok {
-		// those wrappers are written by hand...
-		BindMocFunctionsMano(*jsctx)
-
-		// soon will be completely replaced by those ones, generated from 'my-own-cluster.api.json'
 		BindMyOwnClusterFunctionsJs(*jsctx)
 	}
 }
@@ -232,8 +226,26 @@ func GetStatus(ctx *common.FunctionExecutionContext) (string, error) {
 	return ctx.Orchestrator.GetStatus(), nil
 }
 
-func CallFunction(ctx *common.FunctionExecutionContext) error {
-	return nil
+func CallFunction(ctx *common.FunctionExecutionContext, name string, startFunction string, arguments []int, mode string, inputExchangeBufferID int, outputExchangeBufferID int, posixFileName string, posixArguments []string) (int, error) {
+	newCtx := ctx.Orchestrator.NewFunctionExecutionContext(
+		name,
+		startFunction,
+		arguments,
+		ctx.Trace,
+		mode,
+		&posixFileName,
+		&posixArguments,
+		inputExchangeBufferID,
+		outputExchangeBufferID,
+	)
+
+	err := newCtx.Run()
+	if err != nil {
+		fmt.Printf("[ERROR] callFunction failed (%v)\n", err)
+		return -1, err
+	}
+
+	return newCtx.Result, nil
 }
 
 func PersistenceGetSubset(ctx *common.FunctionExecutionContext, prefix string) (map[string]string, error) {
@@ -251,70 +263,4 @@ func PersistenceGetSubset(ctx *common.FunctionExecutionContext, prefix string) (
 		res[string(k)] = string(v)
 	}
 	return res, nil
-}
-
-func BindMocFunctionsMano(ctx enginejs.JSProcessContext) {
-	ctx.Context.PushGoFunction(func(c *duktape.Context) int {
-		name := c.SafeToString(-8)
-		startFunction := c.SafeToString(-7)
-		arguments := []int{}
-		c.Enum(-6, (1 << 5))
-		for c.Next(-1, true) {
-			arguments = append(arguments, c.GetInt(-1))
-			c.Pop()
-			c.Pop()
-		}
-		c.Pop()
-		mode := c.SafeToString(-5)
-		inputExchangeBufferID := c.GetInt(-4)
-		outputExchangeBufferID := c.GetInt(-3)
-		posixFileName := c.SafeToString(-2)
-		// #define DUK_ENUM_ARRAY_INDICES_ONLY       (1U << 5)    /* only enumerate array indices */
-		posixArguments := []string{}
-		c.Enum(-1, (1 << 5))
-		for c.Next(-1, true) {
-			posixArguments = append(posixArguments, c.SafeToString(-1))
-			c.Pop()
-			c.Pop()
-		}
-		c.Pop()
-
-		newCtx := ctx.Fctx.Orchestrator.NewFunctionExecutionContext(
-			name,
-			startFunction,
-			arguments,
-			ctx.Fctx.Trace,
-			mode,
-			&posixFileName,
-			&posixArguments,
-			inputExchangeBufferID,
-			outputExchangeBufferID,
-		)
-
-		err := newCtx.Run()
-		if err != nil {
-			fmt.Printf("[ERROR] callFunction failed (%v)\n", err)
-			return 0
-		}
-
-		outputExchangeBuffer := ctx.Fctx.Orchestrator.GetExchangeBuffer(outputExchangeBufferID)
-		outputBytes := outputExchangeBuffer.GetBuffer()
-
-		// push a json with status result and output
-		c.PushObject()
-		c.PushBoolean(true)
-		c.PutPropString(-2, "status")
-		c.PushInt(newCtx.Result)
-		c.PutPropString(-2, "result")
-		dest := (*[1 << 30]byte)(c.PushBuffer(len(outputBytes), false))[:len(outputBytes):len(outputBytes)]
-		copy(dest, outputBytes)
-		c.PutPropString(-2, "output")
-
-		// release exchange buffers
-		ctx.Fctx.Orchestrator.ReleaseExchangeBuffer(inputExchangeBufferID)
-		ctx.Fctx.Orchestrator.ReleaseExchangeBuffer(outputExchangeBufferID)
-
-		return 1
-	})
-	ctx.Context.PutPropString(-2, "callFunction")
 }

@@ -256,6 +256,43 @@
                 }
             ],
             "returnType": "int"
+        },
+        "call_function": {
+            "args": [
+                {
+                    "name": "name",
+                    "type": "string"
+                },
+                {
+                    "name": "start_function",
+                    "type": "string"
+                },
+                {
+                    "name": "arguments",
+                    "type": "[]int"
+                },
+                {
+                    "name": "mode",
+                    "type": "string"
+                },
+                {
+                    "name": "input_exchange_buffer_id",
+                    "type": "int"
+                },
+                {
+                    "name": "output_exchange_buffer_id",
+                    "type": "int"
+                },
+                {
+                    "name": "posix_file_name",
+                    "type": "string"
+                },
+                {
+                    "name": "posix_arguments",
+                    "type": "[]string"
+                }
+            ],
+            "returnType": "int"
         }
     }
 }

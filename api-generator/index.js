@@ -32,6 +32,12 @@ function mapArgumentType(tag) {
 
         case "string":
             return "ii"
+
+        case "[]int":
+            return "ii"
+
+        case "[]string":
+            return "ii"
     }
 
     throw `unknown return type '${tag}'`
@@ -94,16 +100,29 @@ function getGoParamExtractionCode(args) {
                 code += `cs.GetParamInt(${currentWasmParamIndex})`
                 currentWasmParamIndex++
                 break
+
             case "buffer":
                 code += `cs.GetParamByteBuffer(${currentWasmParamIndex}, ${currentWasmParamIndex + 1})`
                 currentWasmParamIndex += 2
                 break
+
             case "bytes":
                 code += `cs.GetParamByteBuffer(${currentWasmParamIndex}, ${currentWasmParamIndex + 1})`
                 currentWasmParamIndex += 2
                 break
+
             case "string":
                 code += `cs.GetParamString(${currentWasmParamIndex}, ${currentWasmParamIndex + 1})`
+                currentWasmParamIndex += 2
+                break
+
+            case "[]int":
+                code += `[]int{} // TODO : To be implemented !!!`
+                currentWasmParamIndex += 2
+                break
+
+            case "[]string":
+                code += `[]string{} // TODO : To be implemented !!!`
                 currentWasmParamIndex += 2
                 break
         }
@@ -129,14 +148,41 @@ function getJsParamExtractionCode(args) {
             case "int":
                 code += `int(c.GetNumber(${stackPosition}))`
                 break
+
             case "buffer":
                 code += `c.SafeToBytes(${stackPosition})`
                 break
+
             case "bytes":
                 code += `c.SafeToBytes(${stackPosition})`
                 break
+
             case "string":
                 code += `c.SafeToString(${stackPosition})`
+                break
+
+            case "[]int":
+                code += `[]int{}
+                // #define DUK_ENUM_ARRAY_INDICES_ONLY       (1U << 5)    // only enumerate array indices
+                c.Enum(${stackPosition}, (1 << 5))
+                for c.Next(-1, true) {
+                    ${argName} = append(${argName}, c.GetInt(-1))
+                    c.Pop()
+                    c.Pop()
+                }
+                c.Pop()`
+                break
+
+            case "[]string":
+                code += `[]string{}
+                // #define DUK_ENUM_ARRAY_INDICES_ONLY       (1U << 5)    // only enumerate array indices
+                c.Enum(${stackPosition}, (1 << 5))
+                for c.Next(-1, true) {
+                    ${argName} = append(${argName}, c.SafeToString(-1))
+                    c.Pop()
+                    c.Pop()
+                }
+                c.Pop()`
                 break
         }
         code += "\n"
