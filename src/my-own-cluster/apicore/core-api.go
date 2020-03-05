@@ -187,7 +187,7 @@ func PersistenceGet(ctx *common.FunctionExecutionContext, key []byte) ([]byte, e
 }
 
 func PrintDebug(ctx *common.FunctionExecutionContext, text string) (int, error) {
-	fmt.Printf("\n[my-own-cluster api, ctx %s, print_debug]: %s\n", ctx.Name, text)
+	fmt.Printf("[print_debug %s::%s] %s\n", ctx.Name, ctx.StartFunction, text)
 
 	return 0, nil
 }

@@ -48,12 +48,12 @@ func NewOrchestrator(db *leveldb.DB) *Orchestrator {
 
 func (o *Orchestrator) AddExecutionEngine(contentType string, engine ExecutionEngine) {
 	o.executionEngines[contentType] = engine
-	fmt.Printf("added execution engine for '%s'\n", contentType)
+	fmt.Printf("registered '%s' execution engine\n", contentType)
 }
 
 func (o *Orchestrator) AddAPIProvider(moduleName string, apiProvider APIProvider) {
 	o.apiProviders[moduleName] = apiProvider
-	fmt.Printf("added api provider for '%s'\n", moduleName)
+	fmt.Printf("registered '%s' api provider\n", moduleName)
 }
 
 func (o *Orchestrator) GetAPIProvider(moduleName string) APIProvider {
@@ -144,6 +144,8 @@ func (fctx *FunctionExecutionContext) Run() error {
 		if err != nil || ectx == nil {
 			return fmt.Errorf("cannot create %s context for function: %v", pluggedFunctionAbstract.ContentType, err)
 		}
+
+		fmt.Printf("call '%s'::'%s' type:%s mode:%s\n", fctx.Name, fctx.StartFunction, pluggedFunctionAbstract.ContentType, fctx.Mode)
 
 		err = ectx.Run()
 		if err != nil {

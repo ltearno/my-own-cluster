@@ -246,20 +246,6 @@ func (e *WasmWasm3Engine) PrepareContext(fctx *common.FunctionExecutionContext) 
 		return nil, errors.New("cannot create wasm context")
 	}
 
-	// TODO : maybe elsewhere
-	wctx.AddAPIPlugin(NewTinyGoWASMAPIPlugin())
-
-	// TODO : provide the WASI interface by a rust program doing it with the core api compiled to wasm and pushed as a wasm module (but we need api descriptions for that !)
-	if fctx.Mode == "posix" {
-		inputExchangeBuffer := fctx.Orchestrator.GetExchangeBuffer(fctx.InputExchangeBufferID)
-
-		wctx.AddAPIPlugin(NewWASIHostPlugin(fctx.POSIXFileName, fctx.POSIXArguments, map[int]VirtualFile{
-			0: CreateStdInVirtualFile(wctx, inputExchangeBuffer.GetBuffer()),
-			1: wctx.Fctx.Orchestrator.GetExchangeBuffer(wctx.Fctx.OutputExchangeBufferID),
-			2: CreateStdErrVirtualFile(wctx),
-		}))
-	}
-
 	return wctx, nil
 }
 
@@ -372,18 +358,32 @@ func (wctx *WasmProcessContext) Run() error {
 			continue
 		}
 
-		if m == "wasi_snapshot_preview1" {
-			// TODO inject WASI now will be handled by WASI plugin for TinyGo
-			continue
-		}
+		if wctx.Fctx.Mode == "posix" {
+			if m == "wasi_unstable" || m == "wasi_snapshot_preview1" {
+				if wctx.Fctx.Trace {
+					fmt.Printf("emulating '%s' imported module with WASI runtime layer\n", m)
+				}
 
-		if m == "wasi_unstable" {
-			// TODO inject WASI now will be handled by WASI plugin
-			continue
+				inputExchangeBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(wctx.Fctx.InputExchangeBufferID)
+
+				// TODO : provide the WASI interface by a rust program doing it with the core api compiled to wasm and pushed as a wasm module (but we need api descriptions for that !)
+				wasiHostPlugin := NewWASIHostPlugin(wctx.Fctx.POSIXFileName, wctx.Fctx.POSIXArguments, map[int]VirtualFile{
+					0: CreateStdInVirtualFile(wctx, inputExchangeBuffer.GetBuffer()),
+					1: wctx.Fctx.Orchestrator.GetExchangeBuffer(wctx.Fctx.OutputExchangeBufferID),
+					2: CreateStdErrVirtualFile(wctx),
+				})
+				wasiHostPlugin.Bind(wctx)
+
+				continue
+			}
 		}
 
 		if m == "env" {
-			// TODO inject WASI now will be handled by WASI plugin
+			if wctx.Fctx.Trace {
+				fmt.Printf("emulating '%s' imported module with TinyGo runtime layer\n", m)
+			}
+
+			BindTinyGoRuntimeAPI(wctx)
 			continue
 		}
 
@@ -397,8 +397,6 @@ func (wctx *WasmProcessContext) Run() error {
 	if err != nil {
 		return fmt.Errorf("not found '%s' function (using module.GetFunctionByName)", wctx.Fctx.StartFunction)
 	}
-
-	fmt.Printf("calling function_name:\"%s\" start_function:\"%s\" mode:%s ...\n", wctx.Fctx.Name, wctx.Fctx.StartFunction, wctx.Fctx.Mode)
 
 	wctx.Fctx.Result = 0
 	result, err := fn.Call2(wctx.Fctx.Arguments)
@@ -441,7 +439,7 @@ func (wctx *WasmProcessContext) BindAPIFunction(moduleName string, functionName 
 // BindNotYetImplementedFunction exits the whole process when not yet implemented function is called
 func (wctx *WasmProcessContext) BindNotYetImplementedFunction(module string, name string, signature string) {
 	if wctx.Fctx.Trace {
-		fmt.Printf("binding NOT YET IMPLEMENTED stub function '%s'::'%s' signature:%s\n", module, functionName, signature)
+		fmt.Printf("binding not_test_implemented stub function '%s'::'%s' signature:%s\n", module, name, signature)
 	}
 
 	wctx.Runtime.AttachFunction(module, name, signature, func(runtime wasm3.RuntimeT, sp unsafe.Pointer, mem unsafe.Pointer) int {

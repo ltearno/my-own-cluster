@@ -32,7 +32,8 @@ build-releases: build-embed-assets
 .PHONY: run-serve
 run-serve: build-embed-assets tls.cert.pem
 	@echo "run binaries..."
-	@go run my-own-cluster serve -trace true
+	@go run my-own-cluster serve
+	# -trace true
 
 tls.cert.pem:
 	@echo Generating TLS key files, you can leave default values everywhere by typing [ENTER] until the end

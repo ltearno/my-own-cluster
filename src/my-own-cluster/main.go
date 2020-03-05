@@ -128,8 +128,6 @@ func main() {
 		}
 		defer db.Close()
 
-		dumpDB(db)
-
 		orchestrator := common.NewOrchestrator(db)
 
 		// register execution engines
@@ -155,9 +153,8 @@ func main() {
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/file/plug", "core-api", "plugFile")
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/plug", "core-api", "plugFunction")
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/call", "core-api", "callFunction")
-			fmt.Printf("core-api loaded and bound\n")
 		} else {
-			fmt.Printf("[ERROR] cannot load rest-default-api.js, things will go bad quickly...\n")
+			fmt.Printf("[error] cannot load rest-default-api.js, things may go bad quickly...\n")
 		}
 
 		port := 8443
@@ -170,6 +167,10 @@ func main() {
 		}
 
 		trace := verbs[0].GetOptionOr("trace", "false") == "true"
+
+		if trace {
+			dumpDB(db)
+		}
 
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
