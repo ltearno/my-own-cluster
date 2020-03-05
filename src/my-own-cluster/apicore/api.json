@@ -54,7 +54,7 @@
             "returnType": "int"
         },
         "read_exchange_buffer": {
-            "comment":"returns the written size if result_bytes was not NULL and the exchange buffer size otherwise",
+            "comment": "returns the written size if result_bytes was not NULL and the exchange buffer size otherwise",
             "args": [
                 {
                     "name": "buffer_id",
@@ -65,15 +65,6 @@
         },
         "read_exchange_buffer_headers": {
             "comment": "returns the buffer headers in JSON format",
-            "args": [
-                {
-                    "name": "buffer_id",
-                    "type": "int"
-                }
-            ],
-            "returnType": "buffer"
-        },
-        "get_buffer_headers": {
             "args": [
                 {
                     "name": "buffer_id",

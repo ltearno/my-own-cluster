@@ -114,21 +114,6 @@ value := c.SafeToString(-1)
                 return 0
             }
             
-            dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
-                copy(dest, res)
-    
-            return 1
-        })
-        ctx.Context.PutPropString(-2, "readExchangeBufferHeaders")
-        
-        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
-            bufferId := int(c.GetNumber(-1))
-
-            res, err := GetBufferHeaders(ctx.Fctx, bufferId)
-            if err != nil {
-                return 0
-            }
-            
             
             c.PushObject()
             for k, v := range res {
@@ -138,7 +123,7 @@ value := c.SafeToString(-1)
     
             return 1
         })
-        ctx.Context.PutPropString(-2, "getBufferHeaders")
+        ctx.Context.PutPropString(-2, "readExchangeBufferHeaders")
         
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             encoded := c.SafeToString(-1)

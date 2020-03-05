@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::str;
 
-mod my_own_cluster_guest_api;
-use my_own_cluster_guest_api::*;
+mod core_api_guest;
+use core_api_guest::*;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -53,7 +53,7 @@ pub extern fn getStatus() -> u32 {
         services: HashMap::new(),
     };
 
-    let entries = persistence_get_subset("/watchdog-v1/status/services/");
+    let entries = persistence_get_subset("/watchdog-v1/status/services/").unwrap();
     for (k, v) in entries.iter() {
         if k.ends_with("/timestamp") {
             let service_name = k.trim_start_matches("/watchdog-v1/status/services/").trim_end_matches("/timestamp").to_string();
@@ -73,24 +73,31 @@ pub extern fn getStatus() -> u32 {
 
 #[no_mangle]
 pub extern fn addStatus() -> u32 {
-    let headers = get_buffer_headers(get_input_buffer_id());
+    let headers = read_exchange_buffer_headers(get_input_buffer_id()).unwrap();
     let service_name = &headers["x-moc-path-param-service"];
 
-    persistence_set(&format!("/watchdog-v1/status/services/{}/timestamp", service_name), &format!("{}", get_time()/1000));
+    let timestampBytes = [0x56, 0x34, 0x12, 0x90, 0x78, 0x56, 0x34, 0x12];
+    get_time(&timestampBytes);
+    let mut timestamp : i64 = i64::from_le_bytes(timestampBytes) / 1000;
+    persistence_set(&format!("/watchdog-v1/status/services/{}/timestamp", service_name).as_bytes(), &format!("{}", timestamp).as_bytes());
 
-    message_response(&format!("status for '{}' saved for timestamp {}, thanks", service_name, get_time()/1000));
+    message_response(&format!("status for '{}' saved for timestamp {}, thanks", service_name, timestamp));
     200 as u32
 }
 
 #[no_mangle]
 pub extern fn postStatus() -> u32 {
-    let body = read_buffer_as_string(get_input_buffer_id());
+    let body_buffer = read_exchange_buffer(get_input_buffer_id()).unwrap();
+    let body = String::from_utf8(body_buffer).unwrap();
     let status = serde_json::from_str::<WatchdogServicePostStatus>(&body);
     match status {
         Ok(status) => {
-            persistence_set(&format!("/watchdog-v1/status/services/{}/timestamp", status.name), &format!("{}", get_time()/1000));
+            let timestampBytes = [0x56, 0x34, 0x12, 0x90, 0x78, 0x56, 0x34, 0x12];
+            get_time(&timestampBytes);
+            let mut timestamp : i64 = i64::from_le_bytes(timestampBytes) / 1000;
+            persistence_set(&format!("/watchdog-v1/status/services/{}/timestamp", status.name).as_bytes(), &format!("{}", timestamp).as_bytes());
 
-            message_response(&format!("status for '{}' saved for timestamp {}, thanks", status.name, get_time()/1000));
+            message_response(&format!("status for '{}' saved for timestamp {}, thanks", status.name, timestamp));
             200 as u32
         },
         Err(err) =>{

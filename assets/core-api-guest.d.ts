@@ -14,8 +14,7 @@ declare function requireApi(name: "core") : {
     // returns the written size if result_bytes was not NULL and the exchange buffer size otherwise
     readExchangeBuffer(bufferId: number) : Uint8Array
     // returns the buffer headers in JSON format
-    readExchangeBufferHeaders(bufferId: number) : Uint8Array
-    getBufferHeaders(bufferId: number) : { [key: string]: string }
+    readExchangeBufferHeaders(bufferId: number) : { [key: string]: string }
     base64Decode(encoded: string) : Uint8Array
     base64Encode(input: Uint8Array) : string
     registerBlobWithName(name: string, contentType: string, content: Uint8Array) : string

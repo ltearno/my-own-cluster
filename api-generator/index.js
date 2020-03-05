@@ -264,7 +264,7 @@ function getGoReturnCode(fct) {
                 bs := make([]byte, 4)
 
                 // pair count
-                binary.LittleEndian.PutUint32(bs, uint32(len(res)))
+                binary.LittleEndian.PutUint32(bs, uint32(2*len(res)))
                 b.Write(bs)
 
                 for k, v := range res {
@@ -523,6 +523,177 @@ function getRustArgument(arg) {
     throw `unknown return type '${tag}'`
 }
 
+
+
+
+function getRustGentleArgument(arg) {
+    switch (arg.type) {
+        case "int":
+            return `${arg.name}:u32`
+
+        case "bytes":
+            return `${arg.name}: &[u8]`
+
+        case "string":
+            return `${arg.name}: &str`
+
+        case "[]int":
+            return `${arg.name}: &[u32]`
+
+        case "[]string":
+            return `${arg.name}: &[&str]`
+    }
+
+    throw `unknown return type '${tag}'`
+}
+
+function getRustGentleArgumentTransform(arg) {
+    switch (arg.type) {
+        case "int":
+            return `${arg.name}`
+
+        case "bytes":
+            return `${arg.name}.as_ptr(), ${arg.name}.len() as u32`
+
+        case "string":
+            return `${arg.name}.as_bytes().as_ptr(), ${arg.name}.as_bytes().len() as u32`
+
+        case "[]int":
+            return `${arg.name}.as_ptr(), ${arg.name}.len() as u32`
+
+        case "[]string":
+            return `std::ptr::null(), 0`
+    }
+
+    throw `unknown return type '${tag}'`
+}
+
+
+function getRustGentleReturnType(type) {
+    switch (type) {
+        case "int":
+            return `u32`
+
+        case "bytes":
+            return `Result<Vec<u8>, u32>`
+
+        case "buffer":
+            return `Result<Vec<u8>, u32>`
+
+        case "string":
+            return `Result<String, u32>`
+
+        case "map[string]string":
+            return `Result<HashMap<String,String>, u32>`
+    }
+
+    throw `unknown return type '${type}'`
+}
+
+function getRustGentleCall(fctName, fct) {
+    switch (fct.returnType) {
+        case "bytes":
+            return `let result_size = unsafe { raw::${fctName}(${fct.args.map(getRustGentleArgumentTransform).join(', ')}, std::ptr::null_mut(), 0) };
+    let mut result = Vec::with_capacity(result_size as usize);
+    result.resize(result_size as usize, 0);
+    unsafe { raw::${fctName}(${fct.args.map(getRustGentleArgumentTransform).join(', ')}, result.as_mut_ptr(), result_size) };
+    Ok(result)`
+
+        case "buffer":
+            return `let result_buffer_id = unsafe { raw::${fctName}(${fct.args.map(getRustGentleArgumentTransform).join(', ')}) };
+    if result_buffer_id == 0xffff {
+        Err(1)
+    }
+    else {
+        let result = read_exchange_buffer(result_buffer_id);
+        match result {
+            Ok(result) => {
+                //free_buffer(result_buffer_id);
+                Ok(result)
+            },
+            Err(err) => {
+                Err(2)
+            },
+        }
+    }`
+
+        case "string":
+            return `let result_buffer_id = unsafe { raw::${fctName}(${fct.args.map(getRustGentleArgumentTransform).join(', ')}) };
+    if result_buffer_id == 0xffff {
+        Err(3)
+    }
+    else {
+        let result_buffer = read_exchange_buffer(result_buffer_id);
+        match result_buffer {
+            Ok(result_buffer) => {
+                let result = String::from_utf8(result_buffer).unwrap();
+                //free_buffer(result_buffer_id);
+                Ok(result)
+            },
+            Err(err) => {
+                Err(4)
+            },
+        }
+    }`
+
+        case "map[string]string":
+            return `let result_buffer_id = unsafe { raw::${fctName}(${fct.args.map(getRustGentleArgumentTransform).join(', ')}) };
+    if result_buffer_id == 0xffff {
+        Err(5)
+    }
+    else {
+        let result_buffer = read_exchange_buffer(result_buffer_id);
+        match result_buffer {
+            Ok(result_buffer) => {
+                let mut result = HashMap::new();
+                let buffer = result_buffer.as_slice();
+                free_buffer(result_buffer_id);
+
+                let mut rdr = Cursor::new(buffer);
+                let mut current_key : String = "".to_string();
+
+                let mut nb_buffers = rdr.read_u32::<LittleEndian>().unwrap();
+                while nb_buffers > 0 {
+                    let buffer_size = rdr.read_u32::<LittleEndian>().unwrap();
+                    
+                    let mut buffer = Vec::with_capacity(buffer_size as usize);
+                    unsafe { buffer.set_len(buffer_size as usize); }
+                    rdr.read(&mut buffer);
+
+                    let s = String::from_utf8(buffer.to_vec()).unwrap();
+                    
+                    if nb_buffers % 2 == 0 {
+                        current_key = s;
+                    } else {
+                        result.insert(current_key.clone(), s);
+                    }
+
+                    nb_buffers = nb_buffers - 1;        
+                }
+
+                Ok(result)
+            },
+            Err(err) => {
+                Err(6)
+            },
+        }
+    }`
+
+        case "int":
+            return `unsafe { raw::${fctName}(${fct.args.map(getRustGentleArgumentTransform).join(', ')}) }`
+    }
+
+    throw `unknown gentle call '${fct.returnType}'`
+}
+
+function generateRustGentleFunction(fctName, fct, out) {
+    out(`pub fn ${fctName}(${fct.args.map(getRustGentleArgument).join(', ')}) -> ${getRustGentleReturnType(fct.returnType)} {
+    ${getRustGentleCall(fctName, fct)}
+}
+
+`)
+}
+
 function generateGuestRustBindings(apiDescription, out) {
     out(`
 use std::collections::HashMap;
@@ -533,6 +704,11 @@ use byteorder::{LittleEndian, ReadBytesExt};
  * '${apiDescription.moduleName}' guest API bindings for rust
  * 
  * it can be called from rust code compiled into wasm and executed by my-own-cluster
+ * 
+ * you can use it by adding that in your rust source files at the beginning :
+ * 
+ *  mod ${apiDescription.moduleName}_api_guest;
+ *  use ${apiDescription.moduleName}_api_guest::*;
  */
 
 // import the '${apiDescription.moduleName}' module
@@ -541,22 +717,28 @@ pub mod raw {
     extern {
 `)
 
-        for (let fctName in apiDescription.functions) {
-            let fct = apiDescription.functions[fctName]
-    
-            let args = fct.args.map(getRustArgument)
-            if (fct.returnType == "bytes")
-                args.push(`result_bytes: *mut u8, result_length: u32`)
-            if (fct.comment)
-                out(`        // ${fct.comment}\n`)
-            out(`        pub fn ${fctName}(${args.join(', ')}) -> u32;\n`)
-        }
+    for (let fctName in apiDescription.functions) {
+        let fct = apiDescription.functions[fctName]
 
-        out(`
+        let args = fct.args.map(getRustArgument)
+        if (fct.returnType == "bytes")
+            args.push(`result_bytes: *mut u8, result_length: u32`)
+        if (fct.comment)
+            out(`        // ${fct.comment}\n`)
+        out(`        pub fn ${fctName}(${args.join(', ')}) -> u32;\n`)
+    }
+
+    out(`
     }
 }
-    
-    `)
+
+`)
+
+    for (let fctName in apiDescription.functions) {
+        let fct = apiDescription.functions[fctName]
+
+        generateRustGentleFunction(fctName, fct, out)
+    }
 }
 
 function makeOut(fileName) {

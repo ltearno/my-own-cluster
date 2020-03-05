@@ -1,1 +1,0 @@
-../../../assets/my_own_cluster_guest_api.rs

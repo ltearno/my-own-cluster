@@ -125,29 +125,11 @@ value := cs.GetParamString(3, 4)
         }
         
         
-                    resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
-                    resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
-                    resultBuffer.Write(res)
-                    return uint32(resultBufferID), nil
-    })
-    
-	wctx.BindAPIFunction("core", "get_buffer_headers", "i(i)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
-        bufferId := cs.GetParamInt(0)
-
-
-        
-
-        res, err := GetBufferHeaders(wctx.Fctx, bufferId)
-        if err != nil {
-            return uint32(0xffff), err
-        }
-        
-        
                 var b bytes.Buffer
                 bs := make([]byte, 4)
 
                 // pair count
-                binary.LittleEndian.PutUint32(bs, uint32(len(res)))
+                binary.LittleEndian.PutUint32(bs, uint32(2*len(res)))
                 b.Write(bs)
 
                 for k, v := range res {
@@ -397,7 +379,7 @@ value := cs.GetParamByteBuffer(2, 3)
                 bs := make([]byte, 4)
 
                 // pair count
-                binary.LittleEndian.PutUint32(bs, uint32(len(res)))
+                binary.LittleEndian.PutUint32(bs, uint32(2*len(res)))
                 b.Write(bs)
 
                 for k, v := range res {

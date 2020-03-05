@@ -2,7 +2,6 @@ package apicore
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -18,20 +17,6 @@ type CoreAPIProvider struct{}
 
 func NewCoreAPIProvider() (common.APIProvider, error) {
 	return &CoreAPIProvider{}, nil
-}
-
-func GetBufferHeaders(ctx *common.FunctionExecutionContext, bufferID int) (map[string]string, error) {
-	res := make(map[string]string)
-
-	exchangeBuffer := ctx.Orchestrator.GetExchangeBuffer(int(bufferID))
-	if exchangeBuffer == nil {
-		return nil, nil
-	}
-
-	exchangeBuffer.GetHeaders(func(name string, value string) {
-		res[name] = value
-	})
-	return res, nil
 }
 
 func (p *CoreAPIProvider) BindToExecutionEngineContext(ctx common.ExecutionEngineContextBounding) {
@@ -166,15 +151,18 @@ func CreateExchangeBuffer(ctx *common.FunctionExecutionContext) (int, error) {
 	return ctx.Orchestrator.CreateExchangeBuffer(), nil
 }
 
-func ReadExchangeBufferHeaders(ctx *common.FunctionExecutionContext, bufferID int) ([]byte, error) {
-	buffer := ctx.Orchestrator.GetExchangeBuffer(bufferID)
-	headers := make(map[string]string)
-	buffer.GetHeaders(func(name string, value string) { headers[name] = value })
-	b, err := json.Marshal(headers)
-	if err != nil {
-		return nil, err
+func ReadExchangeBufferHeaders(ctx *common.FunctionExecutionContext, bufferID int) (map[string]string, error) {
+	res := make(map[string]string)
+
+	exchangeBuffer := ctx.Orchestrator.GetExchangeBuffer(int(bufferID))
+	if exchangeBuffer == nil {
+		return nil, nil
 	}
-	return b, nil
+
+	exchangeBuffer.GetHeaders(func(name string, value string) {
+		res[name] = value
+	})
+	return res, nil
 }
 
 func GetUrl(ctx *common.FunctionExecutionContext, url string) ([]byte, error) {

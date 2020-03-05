@@ -3,7 +3,8 @@ WASM_FILE := target/wasm32-unknown-unknown/debug/watchdog.wasm
 
 all: register
 
-$(WASM_FILE): src/lib.rs src/my_own_cluster_guest_api.rs
+$(WASM_FILE): src/lib.rs
+	@$(MOC) guest-api core rust > src/core_api_guest.rs
 	@echo compiling rust program to webassembly
 	@rustup target add wasm32-unknown-unknown
 	@cargo build --target=wasm32-unknown-unknown

@@ -3,9 +3,7 @@ const gpu = requireApi('gpu')
 
 function getRequestParameters() {
     var bufferId = moc.getInputBufferId();
-    var bufferBytes = moc.readExchangeBufferHeaders(bufferId);
-    var reqText = new TextDecoder("utf-8").decode(bufferBytes);
-    var headers = JSON.parse(reqText);
+    var headers = moc.readExchangeBufferHeaders(bufferId);
     var query = headers["x-moc-url-query"] || "{}";
     query = decodeURI(query);
     var params = JSON.parse(query) || {};

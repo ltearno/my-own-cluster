@@ -372,6 +372,21 @@ func (wctx *WasmProcessContext) Run() error {
 			continue
 		}
 
+		if m == "wasi_snapshot_preview1" {
+			// TODO inject WASI now will be handled by WASI plugin for TinyGo
+			continue
+		}
+
+		if m == "wasi_unstable" {
+			// TODO inject WASI now will be handled by WASI plugin
+			continue
+		}
+
+		if m == "env" {
+			// TODO inject WASI now will be handled by WASI plugin
+			continue
+		}
+
 		return fmt.Errorf("cannot emulate imported module '%s'", m)
 	}
 

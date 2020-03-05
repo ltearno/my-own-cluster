@@ -6,7 +6,6 @@ write_exchange_buffer_header
 get_exchange_buffer_size
 read_exchange_buffer
 read_exchange_buffer_headers
-get_buffer_headers
 base64_decode
 base64_encode
 register_blob_with_name

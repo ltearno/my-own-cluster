@@ -19,7 +19,6 @@ WASM_IMPORT("core", "get_exchange_buffer_size") uint32_t get_exchange_buffer_siz
 WASM_IMPORT("core", "read_exchange_buffer") uint32_t read_exchange_buffer(int buffer_id, void *result_bytes, int result_length);
 // returns the buffer headers in JSON format
 WASM_IMPORT("core", "read_exchange_buffer_headers") uint32_t read_exchange_buffer_headers(int buffer_id);
-WASM_IMPORT("core", "get_buffer_headers") uint32_t get_buffer_headers(int buffer_id);
 WASM_IMPORT("core", "base64_decode") uint32_t base64_decode(const char *encoded_string, int encoded_length);
 WASM_IMPORT("core", "base64_encode") uint32_t base64_encode(const void *input_bytes, int input_length);
 WASM_IMPORT("core", "register_blob_with_name") uint32_t register_blob_with_name(const char *name_string, int name_length, const char *content_type_string, int content_type_length, const void *content_bytes, int content_length);

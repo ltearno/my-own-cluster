@@ -222,6 +222,7 @@ var bindingsExtensions map[string]string = map[string]string{
 	"c":      ".h",
 	"c-syms": ".syms",
 	"ts":     ".d.ts",
+	"rust":   ".rs",
 }
 
 func PrintBindings(module string, language string) {
@@ -230,7 +231,11 @@ func PrintBindings(module string, language string) {
 		panic("unknown language for bindings, you can contribute to language bindings at https://github.com/ltearno/my-own-cluster")
 	}
 
-	cGuestBindingCode, err := assetsgen.Asset(fmt.Sprintf("assets/%s-api-guest%s", module, extension))
+	resourceName := fmt.Sprintf("assets/%s-api-guest%s", module, extension)
+	if language == "rust" {
+		resourceName = strings.ReplaceAll(resourceName, "-", "_")
+	}
+	cGuestBindingCode, err := assetsgen.Asset(resourceName)
 	if err != nil {
 		panic("library bindings not found, you can contribute to language bindings at https://github.com/ltearno/my-own-cluster")
 	}
