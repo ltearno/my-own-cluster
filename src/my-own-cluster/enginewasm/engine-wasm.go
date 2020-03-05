@@ -246,8 +246,10 @@ func (e *WasmWasm3Engine) PrepareContext(fctx *common.FunctionExecutionContext) 
 		return nil, errors.New("cannot create wasm context")
 	}
 
+	// TODO : maybe elsewhere
 	wctx.AddAPIPlugin(NewTinyGoWASMAPIPlugin())
-	wctx.AddAPIPlugin(NewAutoLinkWASMAPIPlugin())
+
+	// TODO : provide the WASI interface by a rust program doing it with the core api compiled to wasm and pushed as a wasm module (but we need api descriptions for that !)
 	if fctx.Mode == "posix" {
 		inputExchangeBuffer := fctx.Orchestrator.GetExchangeBuffer(fctx.InputExchangeBufferID)
 
