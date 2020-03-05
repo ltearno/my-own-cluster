@@ -1,3 +1,6 @@
+/// reference path="./core-api-guest.d.ts"
+/// reference path="./gpu-api-guest.d.ts"
+
 const moc = requireApi('core')
 const gpu = requireApi('gpu')
 
@@ -19,7 +22,7 @@ function getRequestParameters() {
 function launchMandelbrotShader() {
     var req = getRequestParameters()
 
-    console.log("init data for query " + JSON.stringify(req))
+    console.log("processing query " + JSON.stringify(req))
 
     var dataSize = 1024;
     var textureWidth = dataSize;
