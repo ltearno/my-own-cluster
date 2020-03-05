@@ -302,7 +302,7 @@ function getWasmAdditionalPrototype(type) {
 // output code for binding js engine to core api
 function generateWasmBindings(apiDescription, out) {
     let needBytesPackage = Object.values(apiDescription.functions).some(fct => fct.returnType == "map[string]string")
-    out(`package ${apiDescription.targetGoPackage}
+    out(`package api${apiDescription.targetGoPackage}
 
     import (
         "my-own-cluster/enginewasm"
@@ -339,7 +339,7 @@ function generateWasmBindings(apiDescription, out) {
 }
 
 function generateJsBindings(apiDescription, out) {
-    out(`package ${apiDescription.targetGoPackage}
+    out(`package api${apiDescription.targetGoPackage}
 
     import (
         "my-own-cluster/enginejs"
@@ -371,6 +371,59 @@ function generateJsBindings(apiDescription, out) {
         ctx.Context.PutPropString(-2, "${jsName}")
         `)
     }
+    out(`}`)
+}
+
+function getTypescriptArgument(arg) {
+    return `${mapJsName(arg.name)}: ${mapTypescriptType(arg.type)}`
+}
+
+function mapTypescriptType(tag) {
+    switch (tag) {
+        case "int":
+            return "number"
+
+        case "bytes":
+            return "Uint8Array"
+
+        case "buffer":
+            return "Uint8Array"
+
+        case "string":
+            return "string"
+
+        case "[]int":
+            return "int[]"
+
+        case "[]string":
+            return "string[]"
+
+        case "map[string]string":
+            return "{ [key: string]: string }"
+    }
+
+    throw `unknown return type '${tag}'`
+}
+
+function generateGuestTypescriptBindings(apiDescription, out) {
+    out(`
+// type definitions for module '${apiDescription.targetGoPackage}'
+//
+//  you can use them by adding this at the beginning of your js file :
+//  /// reference path="./${apiDescription.targetGoPackage}-api-guest.d.ts"
+//
+declare function requireApi(name: "${apiDescription.targetGoPackage}") : {
+`)
+
+    for (let fctName in apiDescription.functions) {
+        let fct = apiDescription.functions[fctName]
+
+        let jsName = mapJsName(fctName)
+        if (fct.comment)
+            out(`    // ${fct.comment}\n`)
+        out(`    ${jsName}(${fct.args.map(getTypescriptArgument).join(', ')}) : ${mapTypescriptType(fct.returnType)}\n`)
+    }
+
     out(`}`)
 }
 
@@ -431,9 +484,9 @@ function generateGuestCBindings(apiDescription, out) {
         let fct = apiDescription.functions[fctName]
 
         let args = fct.args.map(getCArgument)
-        if(fct.returnType=="bytes")
+        if (fct.returnType == "bytes")
             args.push(`void *result_bytes, int result_length`)
-        if(fct.comment)
+        if (fct.comment)
             out(`// ${fct.comment}\n`)
         out(`WASM_IMPORT("${apiDescription.wasmDeclaredModule}", "${fctName}") ${getCReturnType(fct.returnType)} ${fctName}(${args.join(', ')});\n`)
     }
@@ -457,15 +510,16 @@ function makeOut(fileName) {
     }
 }
 
-// read api description
-let apiDescription = JSON.parse(fs.readFileSync("../src/my-own-cluster/apicore/api.json"))
-generateJsBindings(apiDescription, makeOut("../src/my-own-cluster/apicore/core-api-js.go"))
-generateWasmBindings(apiDescription, makeOut("../src/my-own-cluster/apicore/core-api-wasm.go"))
-generateGuestCBindings(apiDescription, makeOut("../assets/core-api-guest.h"))
-generateGuestCSymsBindings(apiDescription, makeOut("../assets/core-api-guest.syms"))
+// generate files
+for (let apiName of ["core", "gpu"]) {
+    let apiDescription = JSON.parse(fs.readFileSync(`../src/my-own-cluster/api${apiName}/api.json`))
 
-apiDescription = JSON.parse(fs.readFileSync("../src/my-own-cluster/apigpu/api.json"))
-generateJsBindings(apiDescription, makeOut("../src/my-own-cluster/apigpu/opengl-api-js.go"))
-generateWasmBindings(apiDescription, makeOut("../src/my-own-cluster/apigpu/opengl-api-wasm.go"))
-generateGuestCBindings(apiDescription, makeOut("../assets/gpu-api-guest.h"))
-generateGuestCSymsBindings(apiDescription, makeOut("../assets/gpu-api-guest.syms"))
+    generateJsBindings(apiDescription, makeOut(`../src/my-own-cluster/api${apiName}/${apiName}-api-js.go`))
+
+    generateWasmBindings(apiDescription, makeOut(`../src/my-own-cluster/api${apiName}/${apiName}-api-wasm.go`))
+
+    // assets
+    generateGuestCBindings(apiDescription, makeOut(`../assets/${apiName}-api-guest.h`))
+    generateGuestCSymsBindings(apiDescription, makeOut(`../assets/${apiName}-api-guest.syms`))
+    generateGuestTypescriptBindings(apiDescription, makeOut(`../assets/${apiName}-api-guest.d.ts`))
+}

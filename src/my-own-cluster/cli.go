@@ -218,17 +218,19 @@ func CliUploadDir(verbs []Verb) {
 	fmt.Printf("uploaded %d files (%d errors).\n", count, countError)
 }
 
-func PrintCBindings(module string) {
-	cGuestBindingCode, err := assetsgen.Asset(fmt.Sprintf("assets/%s-api-guest.h", module))
-	if err != nil {
-		panic("library bindings not found, you can contribute to language bindings at https://github.com/ltearno/my-own-cluster")
-	}
-
-	fmt.Print(string(cGuestBindingCode))
+var bindingsExtensions map[string]string = map[string]string{
+	"c":      ".h",
+	"c-syms": ".syms",
+	"ts":     ".d.ts",
 }
 
-func PrintCSymsBindings(module string) {
-	cGuestBindingCode, err := assetsgen.Asset(fmt.Sprintf("assets/%s-api-guest.syms", module))
+func PrintBindings(module string, language string) {
+	extension, ok := bindingsExtensions[language]
+	if !ok {
+		panic("unknown language for bindings, you can contribute to language bindings at https://github.com/ltearno/my-own-cluster")
+	}
+
+	cGuestBindingCode, err := assetsgen.Asset(fmt.Sprintf("assets/%s-api-guest%s", module, extension))
 	if err != nil {
 		panic("library bindings not found, you can contribute to language bindings at https://github.com/ltearno/my-own-cluster")
 	}
@@ -242,19 +244,8 @@ func CliGuestApi(verbs []Verb) {
 	module := verbs[0].Name
 	language := verbs[1].Name
 
-	switch language {
-	case "c":
-		PrintCBindings(module)
-		break
-
-	case "c-syms":
-		PrintCSymsBindings(module)
-		break
-
-	default:
-		fmt.Printf("unknown language '%s'\n", language)
-		panic("unknown language")
-	}
+	// will panic if not handled
+	PrintBindings(module, language)
 }
 
 func CliPlugFunction(verbs []Verb) {

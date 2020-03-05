@@ -1,6 +1,8 @@
+/// reference path="./core-api-guest.d.ts"
+
 console.log("js initialisation")
 
-const moc = require('core')
+const moc = requireApi('core')
 
 // we use the doT.js template engine to render server-side
 
@@ -162,7 +164,7 @@ function getDashboardHtml() {
     }
     status.plugs = plugs
 
-    var templateTechID = moc.getBlobTechIDFromName("dashboard-template");
+    var templateTechID = moc.getBlobTechIdFromName("dashboard-template");
     var templateContent = moc.getBlobBytesAsString(templateTechID);
 
     var tempFn = doT.template(templateContent);

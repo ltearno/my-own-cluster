@@ -1,7 +1,7 @@
 {
     "bindFunctionName": "BindOpenGLFunctions",
-    "wasmDeclaredModule": "my-own-cluster",
-    "targetGoPackage": "apigpu",
+    "wasmDeclaredModule": "gpu",
+    "targetGoPackage": "gpu",
     "functions": {
         "compute_shader": {
             "args": [

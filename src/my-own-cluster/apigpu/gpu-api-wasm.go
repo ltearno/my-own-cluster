@@ -9,7 +9,7 @@ package apigpu
     
 
 func BindOpenGLFunctionsWASM(wctx enginewasm.WasmProcessContext) {
-	wctx.BindAPIFunction("my-own-cluster", "compute_shader", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("gpu", "compute_shader", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         specification := cs.GetParamString(0, 1)
 
 
@@ -23,7 +23,7 @@ func BindOpenGLFunctionsWASM(wctx enginewasm.WasmProcessContext) {
         return uint32(res), err
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "create_image_from_rgba_float_pixels", "i(iiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("gpu", "create_image_from_rgba_float_pixels", "i(iiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         width := cs.GetParamInt(0)
 height := cs.GetParamInt(1)
 pixelsExchangeBufferId := cs.GetParamInt(2)
@@ -40,7 +40,7 @@ pngExchangeBufferId := cs.GetParamInt(3)
         return uint32(res), err
     })
     
-	wctx.BindAPIFunction("my-own-cluster", "create_image_from_r_float_pixels", "i(iiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("gpu", "create_image_from_r_float_pixels", "i(iiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         width := cs.GetParamInt(0)
 height := cs.GetParamInt(1)
 pixelsExchangeBufferId := cs.GetParamInt(2)

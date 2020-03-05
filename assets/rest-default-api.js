@@ -12,6 +12,8 @@
  * It is normally bound to the cluster web endpoint during startup (in main.go)
  */
 
+/// reference path="./core-api-guest.d.ts"
+
 const moc = requireApi('core')
 
 function getInputRequest() {

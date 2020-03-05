@@ -1,6 +1,6 @@
 
-#ifndef apicore_api_h
-#define apicore_api_h
+#ifndef core_api_h
+#define core_api_h
 
 #include <stdint.h>
 

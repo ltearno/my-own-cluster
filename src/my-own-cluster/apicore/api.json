@@ -1,7 +1,7 @@
 {
     "bindFunctionName": "BindMyOwnClusterFunctions",
     "wasmDeclaredModule": "my-own-cluster",
-    "targetGoPackage": "apicore",
+    "targetGoPackage": "core",
     "functions": {
         "get_input_buffer_id": {
             "args": [],
