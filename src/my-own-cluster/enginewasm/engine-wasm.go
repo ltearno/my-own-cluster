@@ -358,7 +358,9 @@ func (wctx *WasmProcessContext) Run() error {
 					})
 				}
 			}
-
+		} else {
+			// should process api providers at the same time
+			fmt.Printf("not found module '%s' for auto importation !\n", m)
 		}
 	}
 

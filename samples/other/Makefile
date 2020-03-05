@@ -9,24 +9,35 @@ http-request.wasm: http-request.c
 uppercase.wasm: uppercase.c
 	wasicc uppercase.c -o uppercase.wasm
 
-api-demo-c.wasm: api-demo-c.c my-own-cluster-guest-api.h api-demo-c.syms
-	wasicc  -Os                                        \
-        -z stack-size=4096 -Wl,--initial-memory=65536  \
-        -Wl,--allow-undefined-file=api-demo-c.syms     \
-        -Wl,--strip-all -Wl,--no-entry -nostdlib                      \
+api-demo-c.wasm: api-demo-c.c
+	# generate api stubs
+	$(MOC) guest-api core c > api-demo-guest-api.h
+	$(MOC) guest-api core c-syms > api-demo-guest-api.syms
+	# compile
+	wasicc  -Os                                             \
+        -z stack-size=4096 -Wl,--initial-memory=65536       \
+        -Wl,--allow-undefined-file=api-demo-guest-api.syms  \
+        -Wl,--strip-all -Wl,--no-entry -nostdlib            \
         -o api-demo-c.wasm api-demo-c.c
-
 	# Optimize (optional)
 	#wasm-opt -O3 api-demo-c.wasm -o api-demo-c.wasm
-	#wasm-strip api-demo-c.wasm
-
+	wasm-strip api-demo-c.wasm
+	# dump wasm text format
 	wasm2wat api-demo-c.wasm > api-demo-c.wat
 
-interop.wasm: interop.c my-own-cluster-guest-api.h
-	wasicc  -Os                                        \
-        -z stack-size=4096 -Wl,--initial-memory=65536  \
-        -Wl,--allow-undefined-file=interop.syms     \
-        -Wl,--strip-all -Wl,--no-entry -nostdlib                      \
+interop.wasm: interop.c
+	# generate api stubs
+	$(MOC) guest-api core c > interop-guest-api.h
+	$(MOC) guest-api core c-syms > interop-guest-api.syms
+	# add imported functions to wasicc linker white list
+	echo "get_size_of_passed_buffer" >> interop-guest-api.syms
+	echo "rustDivide" >> interop-guest-api.syms
+	echo "rustMultiply" >> interop-guest-api.syms
+	# compile
+	wasicc  -Os                                             \
+        -z stack-size=4096 -Wl,--initial-memory=65536       \
+        -Wl,--allow-undefined-file=interop-guest-api.syms   \
+        -Wl,--strip-all -Wl,--no-entry -nostdlib            \
         -o interop.wasm interop.c
 
 wasi-write.wasm: wasi-write.wat

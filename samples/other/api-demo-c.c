@@ -1,4 +1,4 @@
-#include "my-own-cluster-guest-api.h"
+#include "api-demo-guest-api.h"
 
 #define NULL 0
 

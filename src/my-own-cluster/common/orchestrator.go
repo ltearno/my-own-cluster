@@ -57,7 +57,11 @@ func (o *Orchestrator) AddAPIProvider(moduleName string, apiProvider APIProvider
 }
 
 func (o *Orchestrator) GetAPIProvider(moduleName string) APIProvider {
-	v, _ := o.apiProviders[moduleName]
+	v, present := o.apiProviders[moduleName]
+	if !present {
+		return nil
+	}
+
 	return v
 }
 

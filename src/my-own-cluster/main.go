@@ -214,6 +214,10 @@ func main() {
 		TestKVM()
 		break
 
+	case "guest-api":
+		CliGuestApi(verbs)
+		break
+
 	default:
 		fmt.Printf("No argument received !\n")
 		printHelp()

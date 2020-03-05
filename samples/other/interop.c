@@ -1,9 +1,9 @@
-#include "my-own-cluster-guest-api.h"
+#include "interop-guest-api.h"
 
-WASM_IMPORT("rust-multiply", "rustMultiply")
+WASM_IMPORT("watchdog-backend", "rustMultiply")
 uint32_t rustMultiply(uint32_t a, uint32_t b);
 
-WASM_IMPORT("rust-multiply", "rustDivide")
+WASM_IMPORT("watchdog-backend", "rustDivide")
 uint32_t rustDivide(uint32_t a, uint32_t b);
 
 WASM_IMPORT("api-demo-c", "get_size_of_passed_buffer")

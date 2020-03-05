@@ -443,6 +443,12 @@ function generateGuestCBindings(apiDescription, out) {
     `)
 }
 
+function generateGuestCSymsBindings(apiDescription, out) {
+    for (let fctName in apiDescription.functions) {
+        out(`${fctName}\n`)
+    }
+}
+
 function makeOut(fileName) {
     if (fs.existsSync(fileName))
         fs.unlinkSync(fileName)
@@ -456,7 +462,10 @@ let apiDescription = JSON.parse(fs.readFileSync("../src/my-own-cluster/apicore/a
 generateJsBindings(apiDescription, makeOut("../src/my-own-cluster/apicore/core-api-js.go"))
 generateWasmBindings(apiDescription, makeOut("../src/my-own-cluster/apicore/core-api-wasm.go"))
 generateGuestCBindings(apiDescription, makeOut("../assets/core-api-guest.h"))
+generateGuestCSymsBindings(apiDescription, makeOut("../assets/core-api-guest.syms"))
 
 apiDescription = JSON.parse(fs.readFileSync("../src/my-own-cluster/apigpu/api.json"))
 generateJsBindings(apiDescription, makeOut("../src/my-own-cluster/apigpu/opengl-api-js.go"))
 generateWasmBindings(apiDescription, makeOut("../src/my-own-cluster/apigpu/opengl-api-wasm.go"))
+generateGuestCBindings(apiDescription, makeOut("../assets/gpu-api-guest.h"))
+generateGuestCSymsBindings(apiDescription, makeOut("../assets/gpu-api-guest.syms"))

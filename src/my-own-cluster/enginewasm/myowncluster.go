@@ -22,6 +22,10 @@ func (p *MyOwnClusterWASMAPIPlugin) Bind(wctx *WasmProcessContext) {
 
 	for module, _ := range importedModules {
 		apiProvider := wctx.Fctx.Orchestrator.GetAPIProvider(module)
+		if apiProvider == nil {
+			fmt.Printf("error : cannot bind module '%s' because api provider is not found. It might be found in stored functions though...\n", module)
+			continue
+		}
 
 		apiProvider.BindToExecutionEngineContext(wctx)
 	}
