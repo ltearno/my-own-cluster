@@ -109,7 +109,9 @@ func ComputeShader(ctx *common.FunctionExecutionContext, specificationJSON strin
 			continue
 		}
 
-		fmt.Printf("copying out for binding %d on target %s\n", binding, bindingSpec.Target)
+		if ctx.Trace {
+			fmt.Printf("copying out for binding %d on target %s\n", binding, bindingSpec.Target)
+		}
 
 		switch bindingSpec.Target {
 		case "STORAGE":
@@ -151,11 +153,15 @@ func ComputeShader(ctx *common.FunctionExecutionContext, specificationJSON strin
 
 	// done !
 	for _, bufferIndex := range storageIndices {
-		fmt.Printf("delete buffer %d\n", bufferIndex)
+		if ctx.Trace {
+			fmt.Printf("delete buffer %d\n", bufferIndex)
+		}
 		openglCtx.DeleteBuffer(bufferIndex)
 	}
 	for _, textureIndex := range textureIndices {
-		fmt.Printf("delete texture %d\n", textureIndex)
+		if ctx.Trace {
+			fmt.Printf("delete texture %d\n", textureIndex)
+		}
 		openglCtx.DeleteTexture(textureIndex)
 	}
 
