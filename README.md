@@ -229,6 +229,9 @@ Run `make clean-db` to remove all persistence files. Your state will be lost.
 - define guest/host api over wasi/libc
 - provide persistent key-value storage
 - allow function to read/write in key-value storage
+- Provide GPU access (through WebGPU or other)
+- finish a mandelbrot sample with opengl
+- integrate esgl3 for broader compatibility
 
 ## TODO
 
@@ -240,8 +243,6 @@ Run `make clean-db` to remove all persistence files. Your state will be lost.
 - upgrading, hot-reloading
 - demo of ACL filter
 - begin distribution of nodes
-- finish a mandelbrot sample with opengl
-- integrate esgl3 for broader compatibility
 - sqlite engine
 - include project templates in the CLI : rust, c, js, ...
 - isolate wasm3 execution in KVM
@@ -258,7 +259,6 @@ Run `make clean-db` to remove all persistence files. Your state will be lost.
 - think about distributing, replicating and scaling
 - export and import to and from a tar.gz file (even if leveldb files should be enough...)
 - SSO, User Federation, and security implemented as custom hooks
-- Provide GPU access (through WebGPU or other)
 
 ## TO SORT Usefult links
 
