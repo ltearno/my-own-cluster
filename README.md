@@ -232,6 +232,8 @@ Run `make clean-db` to remove all persistence files. Your state will be lost.
 
 ## TODO
 
+- auto reload
+- update process
 - multi input buffers
 - sequencer/orchestrator, cost eestimation and exec plan.
 - integrate client machine into the exec model (a client with webgl or js engine or wasm engine could execute some processing for local speed-up with the same processing being launched also on server later for verification. With a consensus algo maybe blockchain like to prevent fraud).
