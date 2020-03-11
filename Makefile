@@ -63,3 +63,6 @@ core-api:
 
 clean-db:
 	rm -rf my-own-cluster-database-provisional/
+
+install: build
+	cp my-own-cluster /usr/local/bin/
