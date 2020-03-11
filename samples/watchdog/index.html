@@ -75,7 +75,7 @@
                         let timestamp = new Date(status.services[serviceName].timestamp / 1000)
                         let evtOld = ((new Date().getTime() - timestamp.getTime()) / (60 * 1000)).toFixed(0)
 
-                        return `<tr class="code ${evtOld > 3 ? 'alert' : ''}"><td>${serviceName}</td><td>${evtOld} minutes ago at ${timestamp.toLocaleTimeString({ weekday: 'long', day: 'numeric', month: 'long' })}</td></tr>`
+                        return `<tr class="code ${evtOld > 70 ? 'alert' : ''}"><td>${serviceName}</td><td>${evtOld} minutes ago at ${timestamp.toLocaleTimeString({ weekday: 'long', day: 'numeric', month: 'long' })}</td></tr>`
                     })
                     .join('')
             }
