@@ -64,10 +64,12 @@ core-api:
 clean-db:
 	rm -rf my-own-cluster-database-provisional/
 
+.PHONY: install
 install: build
-	cp my-own-cluster /usr/local/bin/
+	sudo cp my-own-cluster /usr/local/bin/
 
+.PHONY: install-systemd
 install-systemd: install
-	cp my-own-cluster.service /etc/systemd/system/
-	systemctl daemon-reload
-	systemctl enable my-own-cluster.service
+	sudo cp my-own-cluster.service /etc/systemd/system/
+	sudo systemctl daemon-reload
+	sudo systemctl enable my-own-cluster.service
