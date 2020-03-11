@@ -219,6 +219,10 @@ func main() {
 		CliGuestApi(verbs)
 		break
 
+	case "version":
+		CliVersion(verbs)
+		break
+
 	default:
 		fmt.Printf("No argument received !\n")
 		printHelp()

@@ -253,6 +253,11 @@ func CliGuestApi(verbs []Verb) {
 	PrintBindings(module, language)
 }
 
+func CliVersion(verbs []Verb) {
+	fmt.Println("my-own-cluster")
+	fmt.Println("Version: " + GetVersion())
+}
+
 func CliPlugFunction(verbs []Verb) {
 	serverBaseUrl := getAPIBaseURL(verbs[0])
 	method := verbs[0].GetOptionOr("method", "get")
@@ -301,9 +306,7 @@ func CliPlugFunction(verbs []Verb) {
 		return
 	}
 
-	if response.Status {
-		fmt.Printf("ok, done\n")
-	} else {
+	if !response.Status {
 		fmt.Printf("error (response:%v)!\n", response)
 	}
 }
