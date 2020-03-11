@@ -66,3 +66,8 @@ clean-db:
 
 install: build
 	cp my-own-cluster /usr/local/bin/
+
+install-systemd: install
+	cp my-own-cluster.service /etc/systemd/system/
+	systemctl daemon-reload
+	systemctl enable my-own-cluster.service

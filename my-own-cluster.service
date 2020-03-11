@@ -10,7 +10,7 @@ Group=arnaud
 UMask=007
 
 WorkingDirectory=/home/arnaud
-ExecStart=/usr/local/bin/my-own-cluster serve
+ExecStart=/usr/local/bin/my-own-cluster serve -port 9870
  
 Restart=always
  
