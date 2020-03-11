@@ -1,0 +1,21 @@
+[Unit]
+Description=MyOwnCluster service
+After=network-online.target
+ 
+[Service]
+Type=simple
+ 
+User=arnaud
+Group=arnaud
+UMask=007
+
+WorkingDirectory=/home/arnaud
+ExecStart=/usr/local/bin/my-own-cluster serve
+ 
+Restart=always
+ 
+# Configures the time to wait before service is stopped forcefully.
+TimeoutStopSec=300
+ 
+[Install]
+WantedBy=multi-user.target
