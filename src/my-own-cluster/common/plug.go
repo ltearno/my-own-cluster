@@ -68,7 +68,7 @@ func (o *Orchestrator) findPlug(method string, path string) (bool, string, inter
 		}
 
 		if o.trace {
-			fmt.Printf("(%s) [%s] '%s' '%s' '%s', currently_matching:'%s'\n", method, path, walker.Key(), prefix, path, askedPathPart)
+			fmt.Printf("plug seek [%s] [%s] key:'%s' prefix:'%s' askedPathPart:'%s'\n", method, path, walker.Key(), prefix, askedPathPart)
 		}
 
 		starKey := prefix + "/!"
@@ -94,7 +94,9 @@ func (o *Orchestrator) findPlug(method string, path string) (bool, string, inter
 			path = path[len(askedPathPart):]
 
 			// we have a plug that consumes the path part
-			fmt.Printf(" we have '%s' = '%s'\n", partName, partValue)
+			if o.trace {
+				fmt.Printf("plug seek we have partName:'%s' = partValue:'%s'\n", partName, partValue)
+			}
 			boundParameters[partName] = partValue
 		} else {
 			prefix = prefix + askedPathPart
@@ -102,7 +104,7 @@ func (o *Orchestrator) findPlug(method string, path string) (bool, string, inter
 
 			ok := walker.Seek(prefix)
 			if !ok {
-				fmt.Printf("PLUG NOT FOUND (prefix:%s)\n", prefix)
+				fmt.Printf("plug seek cannot seek to prefix:'%s'\n", prefix)
 				return false, "", nil, nil
 			}
 		}
