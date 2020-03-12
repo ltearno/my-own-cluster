@@ -187,15 +187,21 @@ function getJsReturnCode(type) {
             return `c.PushInt(res)`
 
         case "buffer":
-            return `dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
+            return `if res == nil {
+                    return 0
+                }
+                dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
                 copy(dest, res)`
 
         case "string":
             return `c.PushString(res)`
 
         case "bytes":
-            return `dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
-                    copy(dest, res)`
+            return `if res == nil {
+                    return 0
+                }
+                dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
+                copy(dest, res)`
 
         case "map[string]string":
             return `

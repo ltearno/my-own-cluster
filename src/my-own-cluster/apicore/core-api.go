@@ -183,11 +183,14 @@ func GetUrl(ctx *common.FunctionExecutionContext, url string) ([]byte, error) {
 }
 
 func PersistenceGet(ctx *common.FunctionExecutionContext, key []byte) ([]byte, error) {
+	fmt.Printf("persistence_get '%s'\n", string(key))
 	value, present := ctx.Orchestrator.PersistenceGet(key)
 	if !present {
+		fmt.Printf("persistence_get : not present\n")
 		return nil, nil
 	}
 
+	fmt.Printf("persistence_get : present\n")
 	return value, nil
 }
 

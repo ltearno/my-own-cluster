@@ -99,8 +99,11 @@ value := c.SafeToString(-1)
                 return 0
             }
             
-            dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
-                    copy(dest, res)
+            if res == nil {
+                    return 0
+                }
+                dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
+                copy(dest, res)
     
             return 1
         })
@@ -133,7 +136,10 @@ value := c.SafeToString(-1)
                 return 0
             }
             
-            dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
+            if res == nil {
+                    return 0
+                }
+                dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
                 copy(dest, res)
     
             return 1
@@ -297,7 +303,10 @@ value := c.SafeToBytes(-1)
                 return 0
             }
             
-            dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
+            if res == nil {
+                    return 0
+                }
+                dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
                 copy(dest, res)
     
             return 1
@@ -312,7 +321,10 @@ value := c.SafeToBytes(-1)
                 return 0
             }
             
-            dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
+            if res == nil {
+                    return 0
+                }
+                dest := (*[1 << 30]byte)(c.PushBuffer(len(res), false))[:len(res):len(res)]
                 copy(dest, res)
     
             return 1
