@@ -45,7 +45,7 @@ func (o *Orchestrator) findPlug(method string, path string) (bool, string, inter
 		basePrefix: fmt.Sprintf("/plugs/byspec/%s/", method),
 	}
 
-	//originalPath := path
+	originalPath := path
 
 	boundParameters := make(map[string]string)
 
@@ -67,7 +67,9 @@ func (o *Orchestrator) findPlug(method string, path string) (bool, string, inter
 			askedPathPart = askedPathPart[:nextPartIndex]
 		}
 
-		//fmt.Printf("(%s) [%s] '%s' '%s' '%s', currently_matching:'%s'\n", method, path, walker.Key(), prefix, path, askedPathPart)
+		if o.trace {
+			fmt.Printf("(%s) [%s] '%s' '%s' '%s', currently_matching:'%s'\n", method, path, walker.Key(), prefix, path, askedPathPart)
+		}
 
 		starKey := prefix + "/!"
 		if strings.HasPrefix(string(walker.Key()), starKey) {
@@ -106,14 +108,18 @@ func (o *Orchestrator) findPlug(method string, path string) (bool, string, inter
 		}
 	}
 
-	//fmt.Printf("(%s) [%s] '%s' '%s' '%s'\n", method, path, walker.Key(), prefix, path)
+	if o.trace {
+		fmt.Printf("plug seek (%s) [%s] '%s' '%s' '%s'\n", method, path, walker.Key(), prefix, path)
+	}
 
 	if prefix != walker.Key() {
 		fmt.Printf("PATH NOT MATCHING RESIDUAL KEY '%s'/'%s'\n", prefix, walker.Key())
 		return false, "", nil, nil
 	}
 
-	//fmt.Printf("plugged path '%s' matched with '%s'\n", walker.Key(), originalPath)
+	if o.trace {
+		fmt.Printf("plugged path '%s' matched with '%s'\n", walker.Key(), originalPath)
+	}
 	data := &Plug{}
 	err := json.Unmarshal(walker.it.Value(), data)
 	if err != nil {

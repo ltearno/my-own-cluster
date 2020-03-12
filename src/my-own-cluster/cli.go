@@ -94,9 +94,9 @@ func registerBlobWithName(baseURL string, name string, contentType string, fileN
 	}
 
 	if response.Status {
-		fmt.Printf("registered blob '%s' content_type:%s techID:%s\n", name, contentType, response.TechID)
+		fmt.Printf("[%s] registered blob '%s' content_type:%s techID:%s\n", baseURL, name, contentType, response.TechID)
 	} else {
-		return "", fmt.Errorf("ERROR while registration of '%s' content_type:%s techID:%s", name, contentType, response.TechID)
+		return "", fmt.Errorf("[%s] ERROR while registration of '%s' content_type:%s techID:%s", baseURL, name, contentType, response.TechID)
 	}
 
 	return response.TechID, nil

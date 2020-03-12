@@ -107,6 +107,8 @@ func main() {
 	// execute the verb
 	switch verbs[0].Name {
 	case "serve":
+		trace := verbs[0].GetOptionOr("trace", "false") == "true"
+
 		sigs := make(chan os.Signal, 1)
 		done := make(chan bool, 2)
 
@@ -128,7 +130,7 @@ func main() {
 		}
 		defer db.Close()
 
-		orchestrator := common.NewOrchestrator(db)
+		orchestrator := common.NewOrchestrator(db, trace)
 
 		// register execution engines
 		orchestrator.AddExecutionEngine("text/javascript", enginejs.NewJavascriptDuktapeEngine())
@@ -165,8 +167,6 @@ func main() {
 				return
 			}
 		}
-
-		trace := verbs[0].GetOptionOr("trace", "false") == "true"
 
 		if trace {
 			dumpDB(db)

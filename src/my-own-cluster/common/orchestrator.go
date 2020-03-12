@@ -34,15 +34,18 @@ type Orchestrator struct {
 
 	executionEngines map[string]ExecutionEngine
 	apiProviders     map[string]APIProvider
+
+	trace bool
 }
 
-func NewOrchestrator(db *leveldb.DB) *Orchestrator {
+func NewOrchestrator(db *leveldb.DB, trace bool) *Orchestrator {
 	return &Orchestrator{
 		nextExchangeBufferID: 0,
 		exchangeBuffers:      make(map[int]*ExchangeBuffer),
 		db:                   db,
 		executionEngines:     make(map[string]ExecutionEngine),
 		apiProviders:         make(map[string]APIProvider),
+		trace:                trace,
 	}
 }
 
