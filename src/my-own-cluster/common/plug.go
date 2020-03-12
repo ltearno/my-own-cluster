@@ -38,6 +38,19 @@ func (w *walker) Seek(key string) bool {
 	return strings.HasPrefix(string(w.it.Key()), key)
 }
 
+/****
+
+BUG TO FIX :
+
+when there is those path plugged :
+
+/api/toto
+/api/toto/!param
+
+the query to /api/toto/coucou is 404 but should be routed to the second plug
+
+*****/
+
 func (o *Orchestrator) findPlug(method string, path string) (bool, string, interface{}, map[string]string) {
 	walker := &walker{
 		db:         o.db,
@@ -73,8 +86,6 @@ func (o *Orchestrator) findPlug(method string, path string) (bool, string, inter
 
 		starKey := prefix + "/!"
 		if strings.HasPrefix(string(walker.Key()), starKey) {
-			//ok := walker.Seek(starKey)
-			//if ok {
 			currentKey := walker.Key()
 			partName := currentKey[len(prefix)+2:]
 			nextPrefix := currentKey
