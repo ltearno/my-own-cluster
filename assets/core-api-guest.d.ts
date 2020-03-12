@@ -23,6 +23,7 @@ declare function requireApi(name: "core") : {
     getBlobBytesAsString(name: string) : string
     plugFunction(method: string, path: string, name: string, startFunction: string) : number
     plugFile(method: string, path: string, name: string) : number
+    unplugPath(method: string, path: string) : number
     getStatus() : string
     persistenceSet(key: Uint8Array, value: Uint8Array) : number
     getUrl(url: string) : Uint8Array

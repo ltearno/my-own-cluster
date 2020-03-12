@@ -59,6 +59,11 @@ func PlugFile(ctx *common.FunctionExecutionContext, method string, path string, 
 	return 0, nil
 }
 
+func UnplugPath(ctx *common.FunctionExecutionContext, method string, path string) (int, error) {
+	ctx.Orchestrator.UnplugPath(method, path)
+	return 0, nil
+}
+
 func RegisterBlobWithName(ctx *common.FunctionExecutionContext, name string, contentType string, contentBytes []byte) (string, error) {
 	techID, err := ctx.Orchestrator.RegisterBlobWithName(name, contentType, contentBytes)
 	if err != nil {

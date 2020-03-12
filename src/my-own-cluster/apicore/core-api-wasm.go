@@ -295,6 +295,21 @@ name := cs.GetParamString(4, 5)
         return uint32(res), err
     })
     
+	wctx.BindAPIFunction("core", "unplug_path", "i(iiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        method := cs.GetParamString(0, 1)
+path := cs.GetParamString(2, 3)
+
+
+        
+
+        res, err := UnplugPath(wctx.Fctx, method, path)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        return uint32(res), err
+    })
+    
 	wctx.BindAPIFunction("core", "get_status", "i()", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         
 

@@ -154,6 +154,7 @@ func main() {
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/blob/register", "core-api", "registerBlob")
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/file/plug", "core-api", "plugFile")
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/plug", "core-api", "plugFunction")
+			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/unplug", "core-api", "unplugPath")
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/call", "core-api", "callFunction")
 		} else {
 			fmt.Printf("[error] cannot load rest-default-api.js, things may go bad quickly...\n")
@@ -209,6 +210,10 @@ func main() {
 
 	case "plug":
 		CliPlugFunction(verbs)
+		break
+
+	case "unplug":
+		CliUnplug(verbs)
 		break
 
 	case "kvm_test":

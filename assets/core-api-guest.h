@@ -27,6 +27,7 @@ WASM_IMPORT("core", "get_blob_tech_id_from_name") uint32_t get_blob_tech_id_from
 WASM_IMPORT("core", "get_blob_bytes_as_string") uint32_t get_blob_bytes_as_string(const char *name_string, int name_length);
 WASM_IMPORT("core", "plug_function") uint32_t plug_function(const char *method_string, int method_length, const char *path_string, int path_length, const char *name_string, int name_length, const char *start_function_string, int start_function_length);
 WASM_IMPORT("core", "plug_file") uint32_t plug_file(const char *method_string, int method_length, const char *path_string, int path_length, const char *name_string, int name_length);
+WASM_IMPORT("core", "unplug_path") uint32_t unplug_path(const char *method_string, int method_length, const char *path_string, int path_length);
 WASM_IMPORT("core", "get_status") uint32_t get_status();
 WASM_IMPORT("core", "persistence_set") uint32_t persistence_set(const void *key_bytes, int key_length, const void *value_bytes, int value_length);
 WASM_IMPORT("core", "get_url") uint32_t get_url(const char *url_string, int url_length);

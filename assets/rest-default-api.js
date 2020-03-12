@@ -58,6 +58,21 @@ function plugFile() {
     return 200
 }
 
+function unplugPath() {
+    var req = getInputRequest()
+
+    moc.unplugPath(
+        req.method,
+        req.path
+    )
+
+    moc.writeExchangeBuffer(moc.getOutputBufferId(), JSON.stringify({
+        status: true,
+    }))
+
+    return 200
+}
+
 function registerBlob() {
     var req = getInputRequest()
 

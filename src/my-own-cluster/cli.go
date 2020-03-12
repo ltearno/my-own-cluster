@@ -54,6 +54,15 @@ type PlugResponse struct {
 	Status bool `json:"status"`
 }
 
+type UnplugFunctionRequest struct {
+	Method string `json:"method"`
+	Path   string `json:"path"`
+}
+
+type UnplugResponse struct {
+	Status bool `json:"status"`
+}
+
 func registerBlobWithName(baseURL string, name string, contentType string, fileName string) (string, error) {
 	contentBytes, err := ioutil.ReadFile(fileName)
 	if err != nil {
@@ -301,6 +310,52 @@ func CliPlugFunction(verbs []Verb) {
 	bytes, _ := ioutil.ReadAll(resp.Body)
 
 	response := &PlugResponse{}
+	if json.Unmarshal(bytes, response) != nil {
+		fmt.Printf("cannot unmarshall server response : %s\n", string(bytes))
+		return
+	}
+
+	if !response.Status {
+		fmt.Printf("error (response:%v)!\n", response)
+	}
+}
+
+func CliUnplug(verbs []Verb) {
+	serverBaseUrl := getAPIBaseURL(verbs[0])
+	method := verbs[0].GetOptionOr("method", "get")
+	verbs = verbs[1:]
+
+	path := verbs[0].Name
+
+	reqBody := &UnplugFunctionRequest{
+		Method: method,
+		Path:   path,
+	}
+
+	bodyBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		fmt.Printf("cannot marshal json (%v)\n", err)
+		return
+	}
+
+	bodyReader := bytes.NewReader(bodyBytes)
+
+	client := &http.Client{Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}}
+
+	resp, err := client.Post(serverBaseUrl+"/api/function/unplug", "application/json", bodyReader)
+	if err != nil {
+		fmt.Printf("error during http request (%v)\n", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	bytes, _ := ioutil.ReadAll(resp.Body)
+
+	response := &UnplugResponse{}
 	if json.Unmarshal(bytes, response) != nil {
 		fmt.Printf("cannot unmarshall server response : %s\n", string(bytes))
 		return

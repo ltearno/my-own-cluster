@@ -36,6 +36,7 @@ pub mod raw {
         pub fn get_blob_bytes_as_string(name_string: *const u8, name_length: u32) -> u32;
         pub fn plug_function(method_string: *const u8, method_length: u32, path_string: *const u8, path_length: u32, name_string: *const u8, name_length: u32, start_function_string: *const u8, start_function_length: u32) -> u32;
         pub fn plug_file(method_string: *const u8, method_length: u32, path_string: *const u8, path_length: u32, name_string: *const u8, name_length: u32) -> u32;
+        pub fn unplug_path(method_string: *const u8, method_length: u32, path_string: *const u8, path_length: u32) -> u32;
         pub fn get_status() -> u32;
         pub fn persistence_set(key_bytes: *const u8, key_length: u32, value_bytes: *const u8, value_length: u32) -> u32;
         pub fn get_url(url_string: *const u8, url_length: u32) -> u32;
@@ -250,6 +251,10 @@ pub fn plug_function(method: &str, path: &str, name: &str, start_function: &str)
 
 pub fn plug_file(method: &str, path: &str, name: &str) -> u32 {
     unsafe { raw::plug_file(method.as_bytes().as_ptr(), method.as_bytes().len() as u32, path.as_bytes().as_ptr(), path.as_bytes().len() as u32, name.as_bytes().as_ptr(), name.as_bytes().len() as u32) }
+}
+
+pub fn unplug_path(method: &str, path: &str) -> u32 {
+    unsafe { raw::unplug_path(method.as_bytes().as_ptr(), method.as_bytes().len() as u32, path.as_bytes().as_ptr(), path.as_bytes().len() as u32) }
 }
 
 pub fn get_status() -> Result<String, u32> {

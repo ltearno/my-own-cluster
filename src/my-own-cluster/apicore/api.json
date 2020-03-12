@@ -177,6 +177,19 @@
             ],
             "returnType": "int"
         },
+        "unplug_path": {
+            "args": [
+                {
+                    "name": "method",
+                    "type": "string"
+                },
+                {
+                    "name": "path",
+                    "type": "string"
+                }
+            ],
+            "returnType": "int"
+        },
         "get_status": {
             "args": [],
             "returnType": "string"

@@ -286,6 +286,16 @@ func (o *Orchestrator) PlugFile(method string, path string, name string) error {
 	return nil
 }
 
+func (o *Orchestrator) UnplugPath(method string, path string) error {
+	method = strings.ToLower(method)
+
+	o.db.Delete([]byte(fmt.Sprintf("/plugs/byspec/%s/%s", method, path)), nil)
+
+	fmt.Printf("unplugged_path on method:%s, path:'%s'\n", method, path)
+
+	return nil
+}
+
 func (o *Orchestrator) GetPlugs() map[string]string {
 	r := make(map[string]string, 0)
 
