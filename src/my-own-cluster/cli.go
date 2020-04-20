@@ -263,8 +263,15 @@ func CliGuestApi(verbs []Verb) {
 }
 
 func CliVersion(verbs []Verb) {
+	serverBaseUrl := getAPIBaseURL(verbs[0])
+
 	fmt.Println("my-own-cluster")
 	fmt.Println("Version: " + GetVersion())
+	fmt.Println("Remote: " + serverBaseUrl)
+}
+
+func CliRemote(verbs []Verb) {
+	fmt.Println(getAPIBaseURL(verbs[0]))
 }
 
 func CliPlugFunction(verbs []Verb) {

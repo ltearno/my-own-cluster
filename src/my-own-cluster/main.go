@@ -228,6 +228,10 @@ func main() {
 		CliVersion(verbs)
 		break
 
+	case "remote":
+		CliRemote(verbs)
+		break
+
 	default:
 		fmt.Printf("No argument received !\n")
 		printHelp()

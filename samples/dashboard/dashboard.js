@@ -1,6 +1,6 @@
 /// reference path="./core-api-guest.d.ts"
 
-console.log("js initialisation")
+console.log("dashboard invocation")
 
 const moc = requireApi('core')
 
