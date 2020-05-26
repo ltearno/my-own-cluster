@@ -7,6 +7,7 @@ import (
 
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 type walker struct {
@@ -36,6 +37,79 @@ func (w *walker) Seek(key string) bool {
 	w.it.Seek([]byte(key))
 
 	return strings.HasPrefix(string(w.it.Key()), key)
+}
+
+/**
+URL plugging and routing
+*/
+
+func (o *Orchestrator) PlugFunction(method string, path string, name string, startFunction string) error {
+	method = strings.ToLower(method)
+
+	data := &PluggedFunction{
+		Type:          "function",
+		Name:          name,
+		StartFunction: startFunction,
+	}
+
+	dataJSON, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	o.db.Put([]byte(fmt.Sprintf("/plugs/byspec/%s/%s", method, path)), dataJSON, nil)
+
+	fmt.Printf("plugged_function on method:%s, path:'%s', name:%s, start_function:%s\n", method, path, name, startFunction)
+
+	return nil
+}
+
+func (o *Orchestrator) PlugFile(method string, path string, name string) error {
+	method = strings.ToLower(method)
+
+	// register plug
+	data := &PluggedFile{
+		Type: "file",
+		Name: name,
+	}
+
+	dataJSON, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	o.db.Put([]byte(fmt.Sprintf("/plugs/byspec/%s/%s", method, path)), dataJSON, nil)
+
+	fmt.Printf("plugged_file on method:%s, path:'%s', name:%s\n", method, path, name)
+
+	return nil
+}
+
+func (o *Orchestrator) UnplugPath(method string, path string) error {
+	method = strings.ToLower(method)
+
+	o.db.Delete([]byte(fmt.Sprintf("/plugs/byspec/%s/%s", method, path)), nil)
+
+	fmt.Printf("unplugged_path on method:%s, path:'%s'\n", method, path)
+
+	return nil
+}
+
+func (o *Orchestrator) GetPlugs() map[string]string {
+	r := make(map[string]string, 0)
+
+	prefix := []byte("/plugs/byspec/")
+
+	iter := o.db.NewIterator(util.BytesPrefix(prefix), nil)
+	for iter.Next() {
+		key := iter.Key()[len(prefix):]
+		value := iter.Value()
+
+		r[string(dup(key))] = string(dup(value))
+	}
+	iter.Release()
+
+	return r
 }
 
 /****
