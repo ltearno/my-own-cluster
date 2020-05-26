@@ -96,12 +96,7 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 		outputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
 		inputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
 		inputExchangeBuffer := server.orchestrator.GetExchangeBuffer(inputExchangeBufferID)
-		body, err := ioutil.ReadAll(r.Body)
-		if err == nil {
-			inputExchangeBuffer.Write(body)
-		} else {
-			fmt.Printf("CANNOT READ BODY\n")
-		}
+
 		for k, v := range r.Header {
 			// TODO why not support multiple values ? would add complexity and one header with clear syntax parsing should be enough
 			inputExchangeBuffer.SetHeader(strings.ToLower(k), v[0])
@@ -115,6 +110,13 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 		inputExchangeBuffer.SetHeader("x-moc-url-query", r.URL.RawQuery)
 		for k, v := range boundParameters {
 			inputExchangeBuffer.SetHeader(fmt.Sprintf("x-moc-path-param-%s", strings.ToLower(k)), v)
+		}
+
+		body, err := ioutil.ReadAll(r.Body)
+		if err == nil {
+			inputExchangeBuffer.Write(body)
+		} else {
+			fmt.Printf("CANNOT READ BODY\n")
 		}
 
 		// create a function execution context ...
