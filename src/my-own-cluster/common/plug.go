@@ -10,35 +10,6 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
-type walker struct {
-	db         *leveldb.DB
-	it         iterator.Iterator
-	basePrefix string
-}
-
-func (w *walker) Key() string {
-	if w.it.Key() == nil {
-		return ""
-	}
-
-	return string(w.it.Key()[len(w.basePrefix):])
-}
-
-func (w *walker) Seek(key string) bool {
-	key = w.basePrefix + key
-
-	if w.it.Key() != nil {
-		// check that maybe we are already on it
-		if strings.HasPrefix(string(w.it.Key()), key) {
-			return true
-		}
-	}
-
-	w.it.Seek([]byte(key))
-
-	return strings.HasPrefix(string(w.it.Key()), key)
-}
-
 /**
 URL plugging and routing
 */
@@ -124,6 +95,35 @@ when there is those path plugged :
 the query to /api/toto/coucou is 404 but should be routed to the second plug
 
 *****/
+
+type walker struct {
+	db         *leveldb.DB
+	it         iterator.Iterator
+	basePrefix string
+}
+
+func (w *walker) Key() string {
+	if w.it.Key() == nil {
+		return ""
+	}
+
+	return string(w.it.Key()[len(w.basePrefix):])
+}
+
+func (w *walker) Seek(key string) bool {
+	key = w.basePrefix + key
+
+	if w.it.Key() != nil {
+		// check that maybe we are already on it
+		if strings.HasPrefix(string(w.it.Key()), key) {
+			return true
+		}
+	}
+
+	w.it.Seek([]byte(key))
+
+	return strings.HasPrefix(string(w.it.Key()), key)
+}
 
 func (o *Orchestrator) findPlug(method string, path string) (bool, string, interface{}, map[string]string) {
 	walker := &walker{
