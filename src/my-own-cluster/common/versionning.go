@@ -30,7 +30,8 @@ MyOwnCluster provides this API:
 RegisterDomainHandler(name: String) : registers a code for handling data migration of a domain
 GetDomainWriteVersion():String : returns the schema version the user code should use when storing a data. This is this version that is implicitely used as a reference in the IsDomainBackwardCompatible()
 IsDomainBackwardCompatible():boolean : returns true if the data is actual stored in both the domain's WRITE_VERSION and its predecessor, or if all data is at the domain's WRITE_VERSION
-
+Hold(domain:String):Unholder : all read and writes to a domain should be contained between a Hold and Unhold() call. Acts like a critical section, so only one thread at a time. This is important to maintain database migrations' consistency.
+Unholder.Unhold():void : releases a domain
 
 
 
