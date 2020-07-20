@@ -1,6 +1,7 @@
 package common
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -427,4 +428,26 @@ func (o *Orchestrator) GetStatus() string {
 	}
 
 	return string(b)
+}
+
+func (o *Orchestrator) GetDatabaseExport(prefixString string) ([]byte, error) {
+	prefix := []byte(prefixString)
+	r := make(map[string]string)
+
+	iter := o.db.NewIterator(util.BytesPrefix(prefix), nil)
+	for iter.Next() {
+		key := iter.Key()[len(prefix):]
+		value := iter.Value()
+
+		encodedValue := base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(value)
+		r[string(dup(key))] = encodedValue
+	}
+	iter.Release()
+
+	b, err := json.Marshal(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return b, nil
 }

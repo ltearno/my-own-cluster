@@ -134,3 +134,11 @@ function callFunction() {
 
     return 200
 }
+
+function exportDatabase() {
+    var exp = moc.exportDatabase()
+
+    moc.writeExchangeBuffer(moc.getOutputBufferId(), exp)
+
+    return 200
+}

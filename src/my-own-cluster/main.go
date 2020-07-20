@@ -156,6 +156,7 @@ func main() {
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/plug", "core-api", "plugFunction")
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/unplug", "core-api", "unplugPath")
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/call", "core-api", "callFunction")
+			orchestrator.PlugFunction("GET", "/my-own-cluster/api/admin/export-database", "core-api", "exportDatabase")
 		} else {
 			fmt.Printf("[error] cannot load rest-default-api.js, things may go bad quickly...\n")
 		}
@@ -198,6 +199,10 @@ func main() {
 
 	case "call":
 		CliCallFunction(verbs)
+		break
+
+	case "export-db":
+		CliExportDatabase(verbs)
 		break
 
 	case "upload":

@@ -33,4 +33,5 @@ declare function requireApi(name: "core") : {
     getTime(dest: Uint8Array) : number
     freeBuffer(bufferId: number) : number
     callFunction(name: string, startFunction: string, arguments: int[], mode: string, inputExchangeBufferId: number, outputExchangeBufferId: number, posixFileName: string, posixArguments: string[]) : number
+    exportDatabase() : Uint8Array
 }

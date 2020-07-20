@@ -478,4 +478,21 @@ posixArguments := []string{} // TODO : To be implemented !!!
         
         return uint32(res), err
     })
+    
+	wctx.BindAPIFunction("core", "export_database", "i()", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        
+
+        
+
+        res, err := ExportDatabase(wctx.Fctx)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        
+                    resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
+                    resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
+                    resultBuffer.Write(res)
+                    return uint32(resultBufferID), nil
+    })
     }

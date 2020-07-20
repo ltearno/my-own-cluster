@@ -270,6 +270,25 @@ func CliVersion(verbs []Verb) {
 	fmt.Println("Remote: " + serverBaseUrl)
 }
 
+func CliExportDatabase(verbs []Verb) {
+	baseURL := getAPIBaseURL(verbs[0])
+
+	client := &http.Client{Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}}
+	resp, err := client.Get(baseURL + "/api/admin/export-database")
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	bytes, _ := ioutil.ReadAll(resp.Body)
+
+	fmt.Println(string(bytes))
+}
+
 func CliRemote(verbs []Verb) {
 	fmt.Println(getAPIBaseURL(verbs[0]))
 }

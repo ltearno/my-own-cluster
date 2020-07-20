@@ -257,3 +257,12 @@ func PersistenceGetSubset(ctx *common.FunctionExecutionContext, prefix string) (
 	}
 	return res, nil
 }
+
+func ExportDatabase(ctx *common.FunctionExecutionContext) ([]byte, error) {
+	res, err := ctx.Orchestrator.GetDatabaseExport("")
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}

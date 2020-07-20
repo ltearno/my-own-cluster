@@ -297,6 +297,10 @@
                 }
             ],
             "returnType": "int"
+        },
+        "export_database": {
+            "args": [],
+            "returnType": "buffer"
         }
     }
 }

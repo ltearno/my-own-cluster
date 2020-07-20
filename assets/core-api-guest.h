@@ -37,6 +37,7 @@ WASM_IMPORT("core", "print_debug") uint32_t print_debug(const char *text_string,
 WASM_IMPORT("core", "get_time") uint32_t get_time(const void *dest_bytes, int dest_length);
 WASM_IMPORT("core", "free_buffer") uint32_t free_buffer(int bufferId);
 WASM_IMPORT("core", "call_function") uint32_t call_function(const char *name_string, int name_length, const char *start_function_string, int start_function_length, const void *arguments_int_array, int arguments_length, const char *mode_string, int mode_length, int input_exchange_buffer_id, int output_exchange_buffer_id, const char *posix_file_name_string, int posix_file_name_length, const void *posix_arguments_string_array, int posix_arguments_length);
+WASM_IMPORT("core", "export_database") uint32_t export_database();
 
 #endif
     
