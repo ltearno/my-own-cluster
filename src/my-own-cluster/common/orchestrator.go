@@ -27,7 +27,7 @@ type APIProvider interface {
 
 type Orchestrator struct {
 	nextExchangeBufferID int32
-	exchangeBuffers      map[int]*ExchangeBuffer
+	exchangeBuffers      map[int]ExchangeBuffer
 
 	lock sync.Mutex
 
@@ -44,7 +44,7 @@ type Orchestrator struct {
 func NewOrchestrator(db *leveldb.DB, trace bool) *Orchestrator {
 	return &Orchestrator{
 		nextExchangeBufferID: 0,
-		exchangeBuffers:      make(map[int]*ExchangeBuffer),
+		exchangeBuffers:      make(map[int]ExchangeBuffer),
 		db:                   db,
 		executionEngines:     make(map[string]ExecutionEngine),
 		apiProviders:         make(map[string]APIProvider),

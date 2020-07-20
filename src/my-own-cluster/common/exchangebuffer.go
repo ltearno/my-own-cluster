@@ -13,7 +13,21 @@ import (
 
 	Of course, headers are case-insensitive.
 */
-type ExchangeBuffer struct {
+type ExchangeBuffer interface {
+	GetHeader(name string) (string, bool)
+	SetHeader(name string, value string)
+	GetHeadersCount() int
+	GetHeaders(cb func(name string, value string))
+	GetBuffer() []byte
+	Read(buffer []byte) int
+	Write(buffer []byte) (int, error)
+	Close() int
+}
+
+/*
+	In memory implementation of ExchangeBuffer
+*/
+type InMemoryExchangeBuffer struct {
 	headers map[string]string
 	buffer  []byte
 }
@@ -24,13 +38,13 @@ func (o *Orchestrator) CreateExchangeBuffer() int {
 	lock.Lock()
 	bufferID := o.nextExchangeBufferID
 	o.nextExchangeBufferID++
-	o.exchangeBuffers[int(bufferID)] = newExchangeBuffer()
+	o.exchangeBuffers[int(bufferID)] = NewMemoryExchangeBuffer()
 	lock.Unlock()
 
 	return int(bufferID)
 }
 
-func (o *Orchestrator) GetExchangeBuffer(bufferID int) *ExchangeBuffer {
+func (o *Orchestrator) GetExchangeBuffer(bufferID int) ExchangeBuffer {
 	return o.exchangeBuffers[bufferID]
 }
 
@@ -38,51 +52,51 @@ func (o *Orchestrator) ReleaseExchangeBuffer(bufferID int) {
 	delete(o.exchangeBuffers, bufferID)
 }
 
-func newExchangeBuffer() *ExchangeBuffer {
-	return &ExchangeBuffer{
+func NewMemoryExchangeBuffer() *InMemoryExchangeBuffer {
+	return &InMemoryExchangeBuffer{
 		headers: make(map[string]string),
 		buffer:  []byte{},
 	}
 }
 
-func (p *ExchangeBuffer) GetHeader(name string) (string, bool) {
+func (p *InMemoryExchangeBuffer) GetHeader(name string) (string, bool) {
 	s, ok := p.headers[name]
 	return s, ok
 }
 
-func (p *ExchangeBuffer) SetHeader(name string, value string) {
+func (p *InMemoryExchangeBuffer) SetHeader(name string, value string) {
 	p.headers[name] = value
 }
 
-func (p *ExchangeBuffer) GetHeadersCount() int {
+func (p *InMemoryExchangeBuffer) GetHeadersCount() int {
 	return len(p.headers)
 }
 
-func (p *ExchangeBuffer) GetHeaders(cb func(name string, value string)) {
+func (p *InMemoryExchangeBuffer) GetHeaders(cb func(name string, value string)) {
 	for name, value := range p.headers {
 		cb(name, value)
 	}
 }
 
-func (p *ExchangeBuffer) GetBuffer() []byte {
+func (p *InMemoryExchangeBuffer) GetBuffer() []byte {
 	return p.buffer
 }
 
-func (p *ExchangeBuffer) Read(buffer []byte) int {
+func (p *InMemoryExchangeBuffer) Read(buffer []byte) int {
 	return 0
 }
 
-func (p *ExchangeBuffer) Write(buffer []byte) (int, error) {
+func (p *InMemoryExchangeBuffer) Write(buffer []byte) (int, error) {
 	// TODO WARNING THIS DOES NOT TAKE WRITE POS IN ACCOUNT !!!
 	p.buffer = appendSlice(p.buffer, buffer)
 
 	return len(buffer), nil
 }
 
-/**
-TODO : should be called 'Release' and trigger the exchange buffer GC
+/*
+	TODO : should be called 'Release' and trigger the exchange buffer GC
 */
-func (p *ExchangeBuffer) Close() int {
+func (p *InMemoryExchangeBuffer) Close() int {
 	return 0
 }
 
