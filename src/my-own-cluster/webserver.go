@@ -119,7 +119,7 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// normally this should be called by the releasing of the output buffer
-			defer c.Close()
+			//defer c.Close()
 
 			inputExchangeBufferID, outputExchangeBufferID = server.orchestrator.CreateWrappedWebSocketExchangeBuffers(r, c)
 

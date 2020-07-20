@@ -17,7 +17,8 @@
     <script>
         var input = document.getElementById("input");
         var output = document.getElementById("output");
-        var socket = new WebSocket("wss://localhost:8443/reverseproxy/assets/bulma/bulma.css");
+        var socket = new WebSocket("wss://localhost:8443/reverseproxy/ws");
+        //var socket = new WebSocket("wss://home.lteconsulting.fr/blockchain-js/events")
 
         socket.onopen = function () {
             output.innerHTML += "Status: Connected\n";

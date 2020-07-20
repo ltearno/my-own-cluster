@@ -9,7 +9,7 @@ function invoke() {
     if (!("x-moc-plug-data" in headers)) {
         moc.writeExchangeBufferHeader(moc.getOutputBufferId(), "Content-Type", "application/json")
         moc.writeExchangeBuffer(moc.getOutputBufferId(), JSON.stringify({ error: "no proxying specs, you forgot to set the proxy base url in the plug data, aborting..." }))
-        return 404
+        return 500
     }
 
     var requestedPath = headers["x-moc-path-param-path"] || ""
@@ -21,8 +21,13 @@ function invoke() {
     console.log("proxying to " + url)
 
     var result = moc.getUrl(url)
+    
     //moc.writeExchangeBufferHeader(moc.getOutputBufferId(), "Content-Type", "application/json")
     moc.writeExchangeBuffer(moc.getOutputBufferId(), result)
-    
+
     return 200
+}
+
+function webSocketEchoServer() {
+
 }

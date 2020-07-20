@@ -7,7 +7,8 @@ reverseproxy: reverseproxy.js core-api-guest.d.ts
 	@echo pushing files
 	@$(MOC) upload /test-ws index.html
 	@$(MOC) push reverseproxy reverseproxy.js
-	@$(MOC) plug '/reverseproxy/*path' reverseproxy invoke 'http://server:8081'
+	@$(MOC) plug '/reverseproxy/ws' reverseproxy invoke 'wss://home.lteconsulting.fr/blockchain-js/events'
+	@$(MOC) plug '/reverseproxy/star/*path' reverseproxy invoke 'http://server:8081'
 	@echo you can go to https://localhost:8443/reverseproxy/ in your browser
 
 core-api-guest.d.ts:
