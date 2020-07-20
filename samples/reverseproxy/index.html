@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test websocket</title>
+</head>
+
+<body>
+    Test WS
+
+
+    <input id="input" type="text" />
+    <button onclick="send()">Send</button>
+    <pre id="output"></pre>
+    <script>
+        function send() {
+            var input = document.getElementById("input");
+            var output = document.getElementById("output");
+            var socket = new WebSocket("wss://localhost:8443/reverseproxy/assets/bulma/bulma.css");
+
+            socket.onopen = function () {
+                output.innerHTML += "Status: Connected\n";
+
+                socket.send(input.value);
+                input.value = "";
+            };
+
+            socket.onmessage = function (e) {
+                output.innerHTML += "Server: " + e.data + "\n";
+            };
+        }
+    </script>
+</body>
+
+</html>

@@ -106,6 +106,17 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			fmt.Printf("received plugged function request, path:'%s', type:%s, name:%s, start_function:%s\n", path, plugType, pluggedFunction.Name, pluggedFunction.StartFunction)
 		}
 
+		if r.Header.Get("Upgrade") == "websocket" {
+			fmt.Printf("WE ARE ON A WEBSOCKET CONNECTION !!!\n")
+
+			c, err := upgrader.Upgrade(w, r, nil)
+			if err != nil {
+				log.Print("upgrade:", err)
+				return
+			}
+			defer c.Close()
+		}
+
 		// create exchange buffers and provide informations about current http request
 		outputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
 		inputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
