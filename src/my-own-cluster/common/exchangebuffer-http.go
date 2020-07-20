@@ -82,10 +82,7 @@ func (b *HttpReaderExchangeBuffer) ensureHeadersReadFromRequest() {
 
 	b.headersRead = true
 
-	fmt.Printf("http req - read headers\n")
-
 	for k, v := range b.r.Header {
-		// TODO why not support multiple values ? would add complexity and one header with clear syntax parsing should be enough
 		b.headers[strings.ToLower(k)] = v[0]
 	}
 }
@@ -98,8 +95,6 @@ func (b *HttpReaderExchangeBuffer) ensureBodyReadFromRequest() {
 	body, err := ioutil.ReadAll(b.r.Body)
 
 	b.bodyRead = true
-
-	fmt.Printf("http req - read body\n")
 
 	if err == nil {
 		b.body = body
