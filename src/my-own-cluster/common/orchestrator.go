@@ -300,8 +300,6 @@ func (o *Orchestrator) UnplugPath(method string, path string) error {
 
 	o.plugs.UnplugPath(method, path)
 
-	fmt.Printf("unplugged_path on method:%s, path:'%s'\n", method, path)
-
 	return nil
 }
 

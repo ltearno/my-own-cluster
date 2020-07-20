@@ -113,7 +113,6 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 			inputExchangeBuffer.SetHeader(fmt.Sprintf("x-moc-path-param-%s", strings.ToLower(k)), v)
 		}
 		inputExchangeBuffer.SetHeader("x-moc-plug-data", pluggedFunction.Data)
-		fmt.Printf("PLUG DATA: %s\n", pluggedFunction.Data)
 
 		body, err := ioutil.ReadAll(r.Body)
 		if err == nil {

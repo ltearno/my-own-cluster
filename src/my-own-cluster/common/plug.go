@@ -36,6 +36,18 @@ func NewPlugSystem(db *leveldb.DB, identifier string, trace bool) *PlugSystem {
 	}
 }
 
+func (p *PlugSystem) getPlugsStartKey() []byte {
+	return []byte(fmt.Sprintf("/plug_system/%s/byspec/", p.identifier))
+}
+
+func (p *PlugSystem) getPlugsStartKeyByMethod(method string) []byte {
+	return []byte(fmt.Sprintf("/plug_system/%s/byspec/%s/", p.identifier, method))
+}
+
+func (p *PlugSystem) getPlugKey(method string, path string) []byte {
+	return []byte(fmt.Sprintf("/plug_system/%s/byspec/%s/%s", p.identifier, method, path))
+}
+
 /**
 URL plugging and routing
 */
@@ -43,7 +55,7 @@ URL plugging and routing
 func (p *PlugSystem) PlugPath(method string, path string, data []byte) error {
 	method = strings.ToLower(method)
 
-	p.db.Put([]byte(fmt.Sprintf("/plugs/%s/byspec/%s/%s", p.identifier, method, path)), data, nil)
+	p.db.Put(p.getPlugKey(method, path), data, nil)
 
 	return nil
 }
@@ -51,7 +63,7 @@ func (p *PlugSystem) PlugPath(method string, path string, data []byte) error {
 func (p *PlugSystem) UnplugPath(method string, path string) error {
 	method = strings.ToLower(method)
 
-	p.db.Delete([]byte(fmt.Sprintf("/plugs/%s/byspec/%s/%s", p.identifier, method, path)), nil)
+	p.db.Delete(p.getPlugKey(method, path), nil)
 
 	fmt.Printf("unplugged_path '%s' on method:%s, path:'%s'\n", p.identifier, method, path)
 
@@ -61,7 +73,7 @@ func (p *PlugSystem) UnplugPath(method string, path string) error {
 func (p *PlugSystem) GetPlugs() map[string]string {
 	r := make(map[string]string, 0)
 
-	prefix := []byte(fmt.Sprintf("/plugs/%s/byspec/", p.identifier))
+	prefix := p.getPlugsStartKey()
 
 	iter := p.db.NewIterator(util.BytesPrefix(prefix), nil)
 	for iter.Next() {
@@ -105,10 +117,14 @@ func (w *walker) Seek(key string) bool {
 }
 
 func (p *PlugSystem) findPlug(method string, path string) (bool, []byte, map[string]string) {
+	if p.trace {
+		fmt.Printf("START findPlug '%s' '%s'\n", method, path)
+	}
+
 	walker := &walker{
 		db:         p.db,
 		it:         p.db.NewIterator(nil, nil),
-		basePrefix: fmt.Sprintf("/plugs/%s/byspec/%s/", p.identifier, method),
+		basePrefix: string(p.getPlugsStartKeyByMethod(method)),
 	}
 
 	originalPath := path
@@ -137,8 +153,20 @@ func (p *PlugSystem) findPlug(method string, path string) (bool, []byte, map[str
 			fmt.Printf("plug '%s' seek [%s] [%s] key:'%s' prefix:'%s' askedPathPart:'%s'\n", p.identifier, method, path, walker.Key(), prefix, askedPathPart)
 		}
 
-		starKey := prefix + "/!"
-		if strings.HasPrefix(string(walker.Key()), starKey) {
+		if strings.HasPrefix(string(walker.Key()), prefix+"/*") {
+			currentKey := walker.Key()
+			partName := currentKey[len(prefix)+2:]
+
+			// we have a plug that consumes the whole path
+			if p.trace {
+				fmt.Printf("plug '%s' seek we have partName:'%s' = partValue:'%s'\n", p.identifier, partName, path[1:])
+			}
+			boundParameters[partName] = path[1:]
+
+			// fucked up surely
+			prefix = walker.Key()
+			path = ""
+		} else if strings.HasPrefix(string(walker.Key()), prefix+"/!") {
 			currentKey := walker.Key()
 			partName := currentKey[len(prefix)+2:]
 			nextPrefix := currentKey
@@ -162,7 +190,7 @@ func (p *PlugSystem) findPlug(method string, path string) (bool, []byte, map[str
 				fmt.Printf("plug '%s' seek we have partName:'%s' = partValue:'%s'\n", p.identifier, partName, partValue)
 			}
 			boundParameters[partName] = partValue
-		} else {
+		} else { // general case
 			prefix = prefix + askedPathPart
 			path = path[len(askedPathPart):]
 
