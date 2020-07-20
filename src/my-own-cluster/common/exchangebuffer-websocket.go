@@ -47,7 +47,7 @@ func (b *WebSocketExchangeBuffer) GetHeaders(cb func(name string, value string))
 
 func (b *WebSocketExchangeBuffer) GetStatusCode() int {
 	fmt.Printf("WARNING: GetStatusCode() called on a wrapped web socket, not implemented, should use GetBuffer()")
-	return -1
+	return 101
 }
 
 func (b *WebSocketExchangeBuffer) GetBuffer() []byte {

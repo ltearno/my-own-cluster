@@ -11,8 +11,6 @@ type HttpReaderExchangeBuffer struct {
 	r           *http.Request
 	headersRead bool
 	headers     map[string]string
-	bodyRead    bool
-	body        []byte
 }
 
 func WrapHttpReaderAsExchangeBuffer(r *http.Request) *HttpReaderExchangeBuffer {
@@ -20,8 +18,6 @@ func WrapHttpReaderAsExchangeBuffer(r *http.Request) *HttpReaderExchangeBuffer {
 		r:           r,
 		headersRead: false,
 		headers:     make(map[string]string),
-		bodyRead:    false,
-		body:        nil,
 	}
 }
 
@@ -54,8 +50,13 @@ func (b *HttpReaderExchangeBuffer) GetStatusCode() int {
 }
 
 func (b *HttpReaderExchangeBuffer) GetBuffer() []byte {
-	b.ensureBodyReadFromRequest()
-	return b.body
+	body, err := ioutil.ReadAll(b.r.Body)
+	if err == nil {
+		return body
+	} else {
+		fmt.Printf("ERROR http wrapped request CANNOT READ BODY, maybe tried to read it twice ? (%v)\n", err)
+		return nil
+	}
 }
 
 func (b *HttpReaderExchangeBuffer) WriteStatusCode(statusCode int) {
@@ -79,23 +80,6 @@ func (b *HttpReaderExchangeBuffer) ensureHeadersReadFromRequest() {
 
 	for k, v := range b.r.Header {
 		b.headers[strings.ToLower(k)] = v[0]
-	}
-}
-
-func (b *HttpReaderExchangeBuffer) ensureBodyReadFromRequest() {
-	if b.bodyRead {
-		return
-	}
-
-	body, err := ioutil.ReadAll(b.r.Body)
-
-	b.bodyRead = true
-
-	if err == nil {
-		b.body = body
-	} else {
-		fmt.Printf("http wrapped request CANNOT READ BODY\n")
-		b.body = nil
 	}
 }
 
