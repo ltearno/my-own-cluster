@@ -15,21 +15,20 @@
     <button onclick="send()">Send</button>
     <pre id="output"></pre>
     <script>
+        var input = document.getElementById("input");
+        var output = document.getElementById("output");
+        var socket = new WebSocket("wss://localhost:8443/reverseproxy/assets/bulma/bulma.css");
+
+        socket.onopen = function () {
+            output.innerHTML += "Status: Connected\n";
+        };
+
+        socket.onmessage = function (e) {
+            output.innerHTML += "Server: " + e.data + "\n";
+        };
+
         function send() {
-            var input = document.getElementById("input");
-            var output = document.getElementById("output");
-            var socket = new WebSocket("wss://localhost:8443/reverseproxy/assets/bulma/bulma.css");
-
-            socket.onopen = function () {
-                output.innerHTML += "Status: Connected\n";
-
-                socket.send(input.value);
-                input.value = "";
-            };
-
-            socket.onmessage = function (e) {
-                output.innerHTML += "Server: " + e.data + "\n";
-            };
+            socket.send(input.value);
         }
     </script>
 </body>

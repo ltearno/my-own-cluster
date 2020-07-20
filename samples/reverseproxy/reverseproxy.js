@@ -21,7 +21,8 @@ function invoke() {
     console.log("proxying to " + url)
 
     var result = moc.getUrl(url)
-    moc.writeExchangeBufferHeader(moc.getOutputBufferId(), "Content-Type", "application/json")
+    //moc.writeExchangeBufferHeader(moc.getOutputBufferId(), "Content-Type", "application/json")
     moc.writeExchangeBuffer(moc.getOutputBufferId(), result)
+    
     return 200
 }

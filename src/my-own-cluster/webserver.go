@@ -106,6 +106,9 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			fmt.Printf("received plugged function request, path:'%s', type:%s, name:%s, start_function:%s\n", path, plugType, pluggedFunction.Name, pluggedFunction.StartFunction)
 		}
 
+		var outputExchangeBufferID int
+		var inputExchangeBufferID int
+
 		if r.Header.Get("Upgrade") == "websocket" {
 			fmt.Printf("WE ARE ON A WEBSOCKET CONNECTION !!!\n")
 
@@ -114,13 +117,31 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				log.Print("upgrade:", err)
 				return
 			}
+
+			// normally this should be called by the releasing of the output buffer
 			defer c.Close()
+
+			inputExchangeBufferID, outputExchangeBufferID = server.orchestrator.CreateWrappedWebSocketExchangeBuffers(r, c)
+
+			/*for {
+				mt, message, err := c.ReadMessage()
+				if err != nil {
+					log.Println("read:", err)
+					break
+				}
+				log.Printf("recv: %d %s", mt, message)
+				err = c.WriteMessage(mt, message)
+				if err != nil {
+					log.Println("write:", err)
+					break
+				}
+			}*/
+		} else {
+			// create exchange buffers and provide informations about current http request
+			outputExchangeBufferID = server.orchestrator.CreateWrappedHttpResponseWriterExchangeBuffer(w)
+			inputExchangeBufferID = server.orchestrator.CreateWrappedHttpRequestExchangeBuffer(r)
 		}
 
-		// create exchange buffers and provide informations about current http request
-		outputExchangeBufferID := server.orchestrator.CreateWrappedHttpResponseWriterExchangeBuffer(w)
-
-		inputExchangeBufferID := server.orchestrator.CreateWrappedHttpRequestExchangeBuffer(r)
 		inputExchangeBuffer := server.orchestrator.GetExchangeBuffer(inputExchangeBufferID)
 
 		for k, v := range r.Header {
