@@ -13,12 +13,17 @@ import "net/http"
 */
 type ExchangeBuffer interface {
 	GetHeader(name string) (string, bool)
-	SetHeader(name string, value string)
 	GetHeadersCount() int
 	GetHeaders(cb func(name string, value string))
+
 	GetBuffer() []byte
 	Read(buffer []byte) int
+
+	SetHeader(name string, value string)
+
+	WriteStatusCode(statusCode int)
 	Write(buffer []byte) (int, error)
+
 	Close() int
 }
 
@@ -28,6 +33,10 @@ func (o *Orchestrator) CreateExchangeBuffer() int {
 
 func (o *Orchestrator) CreateWrappedHttpRequestExchangeBuffer(r *http.Request) int {
 	return o.RegisterExchangeBuffer(WrapHttpReaderAsExchangeBuffer(r))
+}
+
+func (o *Orchestrator) CreateWrappedHttpResponseWriterExchangeBuffer(w http.ResponseWriter) int {
+	return o.RegisterExchangeBuffer(WrapHttpWriterAsExchangeBuffer(w))
 }
 
 func (o *Orchestrator) RegisterExchangeBuffer(exchangeBuffer ExchangeBuffer) int {

@@ -118,7 +118,7 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// create exchange buffers and provide informations about current http request
-		outputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
+		outputExchangeBufferID := server.orchestrator.CreateWrappedHttpResponseWriterExchangeBuffer(w)
 
 		inputExchangeBufferID := server.orchestrator.CreateWrappedHttpRequestExchangeBuffer(r)
 		inputExchangeBuffer := server.orchestrator.GetExchangeBuffer(inputExchangeBufferID)
@@ -158,16 +158,6 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			errorResponse(w, 500, fmt.Sprintf("error while executing the function: %v", err))
 			return
 		}
-
-		// copy output exchange buffer headers to the response headers
-		outputExchangeBuffer := server.orchestrator.GetExchangeBuffer(outputExchangeBufferID)
-		outputExchangeBuffer.GetHeaders(func(name string, value string) {
-			w.Header().Set(name, value)
-		})
-		w.WriteHeader(fctx.Result)
-
-		// copy output exchange buffer content to response body
-		w.Write(outputExchangeBuffer.GetBuffer())
 
 		// release exchange buffers
 		server.orchestrator.ReleaseExchangeBuffer(inputExchangeBufferID)

@@ -58,6 +58,10 @@ func (b *HttpReaderExchangeBuffer) Read(buffer []byte) int {
 	return 0
 }
 
+func (b *HttpReaderExchangeBuffer) WriteStatusCode(statusCode int) {
+	fmt.Printf("ERROR cannot call WriteStatusCode on HttpReaderExchangeBuffer instance\n")
+}
+
 func (b *HttpReaderExchangeBuffer) Write(buffer []byte) (int, error) {
 	return -1, fmt.Errorf("cannot write on a wrapped http request")
 }
@@ -98,4 +102,62 @@ func (b *HttpReaderExchangeBuffer) ensureBodyReadFromRequest() {
 		fmt.Printf("http wrapped request CANNOT READ BODY\n")
 		b.body = nil
 	}
+}
+
+/*
+	WRITER
+*/
+
+type HttpWriterExchangeBuffer struct {
+	w http.ResponseWriter
+}
+
+func WrapHttpWriterAsExchangeBuffer(w http.ResponseWriter) *HttpWriterExchangeBuffer {
+	return &HttpWriterExchangeBuffer{
+		w: w,
+	}
+}
+
+func (b *HttpWriterExchangeBuffer) GetHeader(name string) (string, bool) {
+	return b.w.Header().Get(name), true
+}
+
+func (b *HttpWriterExchangeBuffer) SetHeader(name string, value string) {
+	b.w.Header().Set(name, value)
+}
+
+func (b *HttpWriterExchangeBuffer) GetHeadersCount() int {
+	fmt.Printf("ERROR cannot call GetHeadersCount on HttpWriterExchangeBuffer instance\n")
+	return -1
+}
+
+func (b *HttpWriterExchangeBuffer) GetHeaders(cb func(name string, value string)) {
+	fmt.Printf("ERROR cannot call GetHeaders on HttpWriterExchangeBuffer instance\n")
+}
+
+func (b *HttpWriterExchangeBuffer) GetBuffer() []byte {
+	fmt.Printf("ERROR cannot call GetBuffer on HttpWriterExchangeBuffer instance\n")
+	return nil
+}
+
+func (b *HttpWriterExchangeBuffer) Read(buffer []byte) int {
+	fmt.Printf("ERROR cannot call Read on HttpWriterExchangeBuffer instance\n")
+	return 0
+}
+
+func (b *HttpWriterExchangeBuffer) WriteStatusCode(statusCode int) {
+	b.w.WriteHeader(statusCode)
+}
+
+func (b *HttpWriterExchangeBuffer) Write(buffer []byte) (int, error) {
+	_, err := b.w.Write(buffer)
+	if err != nil {
+		return -1, err
+	}
+
+	return len(buffer), nil
+}
+
+func (b *HttpWriterExchangeBuffer) Close() int {
+	return 0
 }

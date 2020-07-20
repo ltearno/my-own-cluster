@@ -1,11 +1,14 @@
 package common
 
+import "fmt"
+
 /*
 	In memory implementation of ExchangeBuffer
 */
 type InMemoryExchangeBuffer struct {
-	headers map[string]string
-	buffer  []byte
+	headers    map[string]string
+	buffer     []byte
+	statusCode int
 }
 
 func NewMemoryExchangeBuffer() *InMemoryExchangeBuffer {
@@ -40,6 +43,10 @@ func (p *InMemoryExchangeBuffer) GetBuffer() []byte {
 
 func (p *InMemoryExchangeBuffer) Read(buffer []byte) int {
 	return 0
+}
+
+func (p *InMemoryExchangeBuffer) WriteStatusCode(statusCode int) {
+	fmt.Printf("ERROR cannot call WriteStatusCode on InMemoryExchangeBuffer instance\n")
 }
 
 func (p *InMemoryExchangeBuffer) Write(buffer []byte) (int, error) {
