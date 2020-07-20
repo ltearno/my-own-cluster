@@ -1,5 +1,13 @@
 package common
 
+func NewMemoryExchangeBuffer() *InMemoryExchangeBuffer {
+	return &InMemoryExchangeBuffer{
+		headers:    make(map[string]string),
+		buffer:     []byte{},
+		statusCode: 200,
+	}
+}
+
 /*
 	In memory implementation of ExchangeBuffer
 */
@@ -9,12 +17,8 @@ type InMemoryExchangeBuffer struct {
 	statusCode int
 }
 
-func NewMemoryExchangeBuffer() *InMemoryExchangeBuffer {
-	return &InMemoryExchangeBuffer{
-		headers:    make(map[string]string),
-		buffer:     []byte{},
-		statusCode: 200,
-	}
+func (o *Orchestrator) CreateExchangeBuffer() int {
+	return o.RegisterExchangeBuffer(NewMemoryExchangeBuffer())
 }
 
 func (p *InMemoryExchangeBuffer) GetHeader(name string) (string, bool) {

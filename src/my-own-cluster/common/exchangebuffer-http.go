@@ -7,6 +7,14 @@ import (
 	"strings"
 )
 
+func (o *Orchestrator) CreateWrappedHttpRequestExchangeBuffer(r *http.Request) int {
+	return o.RegisterExchangeBuffer(WrapHttpReaderAsExchangeBuffer(r))
+}
+
+func (o *Orchestrator) CreateWrappedHttpResponseWriterExchangeBuffer(w http.ResponseWriter) int {
+	return o.RegisterExchangeBuffer(WrapHttpWriterAsExchangeBuffer(w))
+}
+
 type HttpReaderExchangeBuffer struct {
 	r           *http.Request
 	headersRead bool

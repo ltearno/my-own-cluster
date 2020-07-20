@@ -8,6 +8,10 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+func (o *Orchestrator) CreateWrappedWebSocketExchangeBuffers(r *http.Request, c *websocket.Conn) (int, int) {
+	return o.RegisterExchangeBuffer(WrapWebSocketAsExchangeBuffer(r, c)), o.RegisterExchangeBuffer(WrapWebSocketAsExchangeBuffer(r, c))
+}
+
 type WebSocketExchangeBuffer struct {
 	r       *http.Request
 	c       *websocket.Conn
