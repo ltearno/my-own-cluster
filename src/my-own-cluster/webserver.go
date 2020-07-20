@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/gorilla/websocket"
 )
 
 type ErrorResponse struct {
@@ -72,8 +72,13 @@ func extractBodyAsJSON(r *http.Request, v interface{}) error {
 	return json.Unmarshal(body, v)
 }
 
-func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Params, server *WebServer) {
-	path := p.ByName("path")
+var upgrader = websocket.Upgrader{}
+
+func handlerGetGeneric(w http.ResponseWriter, r *http.Request, server *WebServer) {
+	path := r.URL.Path
+	method := r.Method
+
+	fmt.Printf("HANDLER METHOD='%s' PATH='%s'\n", method, path)
 
 	found, plugType, plug, boundParameters := server.orchestrator.GetPlugFromPath(r.Method, path)
 	if !found {
@@ -198,45 +203,32 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, p httprouter.Para
 	return
 }
 
-// injects the WebServer context in http-router handler
-func (server *WebServer) makeHandler(handler func(http.ResponseWriter, *http.Request, httprouter.Params, *WebServer)) func(http.ResponseWriter, *http.Request, httprouter.Params) {
-	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		handler(w, r, p, server)
-	}
-}
-
-func initRouting(server *WebServer) {
-	server.router.GET("/*path", server.makeHandler(handlerGetGeneric))
-	server.router.POST("/*path", server.makeHandler(handlerGetGeneric))
-}
-
 type WebServer struct {
 	name         string
 	orchestrator *common.Orchestrator
 	trace        bool
-	router       *httprouter.Router
+}
+
+func (h *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	handlerGetGeneric(w, r, h)
 }
 
 // StartWebServer runs a webserver hosting the application
 func StartWebServer(port int, workingDir string, orchestrator *common.Orchestrator, trace bool) {
-	router := httprouter.New()
-	if router == nil {
-		fmt.Printf("Failed to instantiate the router, exit\n")
-	}
-
 	server := &WebServer{
 		name:         "my-own-cluster",
 		orchestrator: orchestrator,
 		trace:        trace,
-		router:       router,
 	}
-
-	initRouting(server)
 
 	endSignal := make(chan bool, 1)
 
 	go func() {
-		log.Fatal(http.ListenAndServeTLS(fmt.Sprintf("0.0.0.0:%d", port), filepath.Join(workingDir, "tls.cert.pem"), filepath.Join(workingDir, "tls.key.pem"), router))
+		address := fmt.Sprintf("0.0.0.0:%d", port)
+		certPath := filepath.Join(workingDir, "tls.cert.pem")
+		keyPath := filepath.Join(workingDir, "tls.key.pem")
+
+		log.Fatal(http.ListenAndServeTLS(address, certPath, keyPath, server))
 
 		endSignal <- true
 	}()
