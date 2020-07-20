@@ -44,10 +44,6 @@ func (p *InMemoryExchangeBuffer) GetBuffer() []byte {
 	return p.buffer
 }
 
-func (p *InMemoryExchangeBuffer) Read(buffer []byte) int {
-	return 0
-}
-
 func (p *InMemoryExchangeBuffer) WriteStatusCode(statusCode int) {
 	p.statusCode = statusCode
 }

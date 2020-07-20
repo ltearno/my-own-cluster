@@ -58,11 +58,6 @@ func (b *HttpReaderExchangeBuffer) GetBuffer() []byte {
 	return b.body
 }
 
-func (b *HttpReaderExchangeBuffer) Read(buffer []byte) int {
-	fmt.Printf("WARNING: Read(...) called on a wrapped http request, not implemented, should use GetBuffer()")
-	return 0
-}
-
 func (b *HttpReaderExchangeBuffer) WriteStatusCode(statusCode int) {
 	fmt.Printf("ERROR cannot call WriteStatusCode on HttpReaderExchangeBuffer instance\n")
 }
@@ -143,11 +138,6 @@ func (b *HttpWriterExchangeBuffer) GetHeaders(cb func(name string, value string)
 func (b *HttpWriterExchangeBuffer) GetBuffer() []byte {
 	fmt.Printf("ERROR cannot call GetBuffer on HttpWriterExchangeBuffer instance\n")
 	return nil
-}
-
-func (b *HttpWriterExchangeBuffer) Read(buffer []byte) int {
-	fmt.Printf("ERROR cannot call Read on HttpWriterExchangeBuffer instance\n")
-	return 0
 }
 
 func (b *HttpWriterExchangeBuffer) WriteStatusCode(statusCode int) {

@@ -61,11 +61,6 @@ func (b *WebSocketExchangeBuffer) GetBuffer() []byte {
 	return buf
 }
 
-func (b *WebSocketExchangeBuffer) Read(buffer []byte) int {
-	fmt.Printf("WARNING: Read(...) called on a wrapped web socket, not implemented, should use GetBuffer()")
-	return 0
-}
-
 func (b *WebSocketExchangeBuffer) WriteStatusCode(statusCode int) {
 	fmt.Printf("ERROR cannot call WriteStatusCode on WebSocketExchangeBuffer instance\n")
 }

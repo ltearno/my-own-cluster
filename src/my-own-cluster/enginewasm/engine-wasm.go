@@ -251,6 +251,48 @@ func (e *WasmWasm3Engine) PrepareContext(fctx *common.FunctionExecutionContext) 
 	return wctx, nil
 }
 
+type WrappedExchangeBufferInVirtualFile struct {
+	buffer  []byte
+	b       common.ExchangeBuffer
+	readPos int
+}
+
+func WrapExchangeBufferInVirtualFile(b common.ExchangeBuffer) VirtualFile {
+	return &WrappedExchangeBufferInVirtualFile{
+		buffer: nil,
+		b:      b,
+	}
+}
+
+func (b WrappedExchangeBufferInVirtualFile) Read(buffer []byte) int {
+	if b.buffer == nil {
+		b.buffer = b.b.GetBuffer()
+	}
+
+	// refactored and not tested yet (2020/07/20)
+	notRead := len(b.buffer) - b.readPos
+	if notRead <= 0 {
+		return 0
+	}
+
+	toRead := tools.Min(notRead, len(buffer))
+	if toRead > 0 {
+		copy(buffer[0:toRead], b.buffer[b.readPos:b.readPos+toRead])
+		b.readPos += toRead
+	}
+
+	return toRead
+}
+
+func (b WrappedExchangeBufferInVirtualFile) Write(buffer []byte) (int, error) {
+	res, err := b.Write(buffer)
+	return res, err
+}
+
+func (b WrappedExchangeBufferInVirtualFile) Close() int {
+	return b.Close()
+}
+
 // Run runs the process
 func (wctx *WasmProcessContext) Run() error {
 	wctx.Runtime = wasm3.NewRuntime(&wasm3.Config{
@@ -373,7 +415,7 @@ func (wctx *WasmProcessContext) Run() error {
 				// TODO : provide the WASI interface by a rust program doing it with the core api compiled to wasm and pushed as a wasm module (but we need api descriptions for that !)
 				wasiHostPlugin := NewWASIHostPlugin(wctx.Fctx.POSIXFileName, wctx.Fctx.POSIXArguments, map[int]VirtualFile{
 					0: CreateStdInVirtualFile(wctx, inputExchangeBuffer.GetBuffer()),
-					1: wctx.Fctx.Orchestrator.GetExchangeBuffer(wctx.Fctx.OutputExchangeBufferID),
+					1: WrapExchangeBufferInVirtualFile(wctx.Fctx.Orchestrator.GetExchangeBuffer(wctx.Fctx.OutputExchangeBufferID)),
 					2: CreateStdErrVirtualFile(wctx),
 				})
 				wasiHostPlugin.Bind(wctx)

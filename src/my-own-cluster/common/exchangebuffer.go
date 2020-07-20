@@ -23,7 +23,6 @@ type ExchangeBuffer interface {
 	GetStatusCode() int
 
 	GetBuffer() []byte
-	Read(buffer []byte) int
 
 	SetHeader(name string, value string)
 
