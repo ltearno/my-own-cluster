@@ -8,7 +8,7 @@ reader
 writer
 domain
 version
-
+()
 Schemas are stored by "domain", which allows to segregate data migration between sub-components
 
 Vx-1 : fully transtionned to Vx-1 version, writes AND reads are done with the Vx-1 schema
