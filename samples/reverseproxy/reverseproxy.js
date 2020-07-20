@@ -8,7 +8,7 @@ function invoke() {
     var headers = moc.readExchangeBufferHeaders(moc.getInputBufferId());
     if (!("x-moc-plug-data" in headers)) {
         moc.writeExchangeBufferHeader(moc.getOutputBufferId(), "Content-Type", "application/json")
-        moc.writeExchangeBuffer(moc.getOutputBufferId(), JSON.stringify({ error: "no proxying specs, you forgot plaing the proxy base url in the plug data, aborting..." }))
+        moc.writeExchangeBuffer(moc.getOutputBufferId(), JSON.stringify({ error: "no proxying specs, you forgot to set the proxy base url in the plug data, aborting..." }))
         return 404
     }
 
