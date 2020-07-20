@@ -122,30 +122,16 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			//defer c.Close()
 
 			inputExchangeBufferID, outputExchangeBufferID = server.orchestrator.CreateWrappedWebSocketExchangeBuffers(r, c)
-
-			/*for {
-				mt, message, err := c.ReadMessage()
-				if err != nil {
-					log.Println("read:", err)
-					break
-				}
-				log.Printf("recv: %d %s", mt, message)
-				err = c.WriteMessage(mt, message)
-				if err != nil {
-					log.Println("write:", err)
-					break
-				}
-			}*/
 		} else {
-			// create exchange buffers and provide informations about current http request
+			// create exchange buffers
 			outputExchangeBufferID = server.orchestrator.CreateWrappedHttpResponseWriterExchangeBuffer(w)
 			inputExchangeBufferID = server.orchestrator.CreateWrappedHttpRequestExchangeBuffer(r)
 		}
 
+		// provide informations about current http request in the inputExchangeBuffer
 		inputExchangeBuffer := server.orchestrator.GetExchangeBuffer(inputExchangeBufferID)
 
 		for k, v := range r.Header {
-			// TODO why not support multiple values ? would add complexity and one header with clear syntax parsing should be enough
 			inputExchangeBuffer.SetHeader(strings.ToLower(k), v[0])
 		}
 		inputExchangeBuffer.SetHeader("x-moc-host", r.Host)
@@ -176,7 +162,7 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// ... and run it
 		err := fctx.Run()
 		if err != nil {
-			errorResponse(w, 500, fmt.Sprintf("error while executing the function: %v", err))
+			errorResponse(w, 500, fmt.Sprintf("error while executing the function: '%v'", err))
 			return
 		}
 

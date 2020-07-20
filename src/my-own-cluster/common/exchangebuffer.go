@@ -20,6 +20,8 @@ type ExchangeBuffer interface {
 	GetHeadersCount() int
 	GetHeaders(cb func(name string, value string))
 
+	GetStatusCode() int
+
 	GetBuffer() []byte
 	Read(buffer []byte) int
 

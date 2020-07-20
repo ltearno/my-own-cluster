@@ -10,6 +10,7 @@ declare function requireApi(name: "core") : {
     createExchangeBuffer() : number
     writeExchangeBuffer(bufferId: number, content: Uint8Array) : number
     writeExchangeBufferHeader(bufferId: number, name: string, value: string) : number
+    writeExchangeBufferStatusCode(bufferId: number, statusCode: number) : number
     getExchangeBufferSize(bufferId: number) : number
     // returns the written size if result_bytes was not NULL and the exchange buffer size otherwise
     readExchangeBuffer(bufferId: number) : Uint8Array
@@ -34,4 +35,5 @@ declare function requireApi(name: "core") : {
     freeBuffer(bufferId: number) : number
     callFunction(name: string, startFunction: string, arguments: int[], mode: string, inputExchangeBufferId: number, outputExchangeBufferId: number, posixFileName: string, posixArguments: string[]) : number
     exportDatabase() : Uint8Array
+    betaWebProxy(proxySpecJson: string) : number
 }

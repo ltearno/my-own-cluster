@@ -44,6 +44,19 @@
             ],
             "returnType": "int"
         },
+        "write_exchange_buffer_status_code": {
+            "args": [
+                {
+                    "name": "buffer_id",
+                    "type": "int"
+                },
+                {
+                    "name": "status_code",
+                    "type": "int"
+                }
+            ],
+            "returnType": "int"
+        },
         "get_exchange_buffer_size": {
             "args": [
                 {
@@ -305,6 +318,15 @@
         "export_database": {
             "args": [],
             "returnType": "buffer"
+        },
+        "beta_web_proxy": {
+            "args": [
+                {
+                    "name": "proxy_spec_json",
+                    "type": "string"
+                }
+            ],
+            "returnType": "int"
         }
     }
 }

@@ -48,6 +48,11 @@ func (b *HttpReaderExchangeBuffer) GetHeaders(cb func(name string, value string)
 	}
 }
 
+func (b *HttpReaderExchangeBuffer) GetStatusCode() int {
+	fmt.Printf("ERROR cannot call GetStatusCode on HttpReaderExchangeBuffer instance\n")
+	return -1
+}
+
 func (b *HttpReaderExchangeBuffer) GetBuffer() []byte {
 	b.ensureBodyReadFromRequest()
 	return b.body
@@ -120,6 +125,11 @@ func WrapHttpWriterAsExchangeBuffer(w http.ResponseWriter) *HttpWriterExchangeBu
 
 func (b *HttpWriterExchangeBuffer) GetHeader(name string) (string, bool) {
 	return b.w.Header().Get(name), true
+}
+
+func (b *HttpWriterExchangeBuffer) GetStatusCode() int {
+	fmt.Printf("ERROR cannot call GetStatusCode on HttpWriterExchangeBuffer instance\n")
+	return -1
 }
 
 func (b *HttpWriterExchangeBuffer) SetHeader(name string, value string) {

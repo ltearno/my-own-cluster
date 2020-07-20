@@ -128,18 +128,16 @@ function callFunction() {
         output: moc.base64Encode(moc.readExchangeBuffer(outputExchangeBufferId))
     }
 
+    moc.writeExchangeBufferStatusCode(moc.getOutputBufferId(), 200)
     moc.writeExchangeBuffer(moc.getOutputBufferId(), JSON.stringify(response))
 
     moc.freeBuffer(inputExchangeBufferId)
     moc.freeBuffer(outputExchangeBufferId)
-
-    return 200
 }
 
 function exportDatabase() {
     var exp = moc.exportDatabase()
 
+    moc.writeExchangeBufferStatusCode(moc.getOutputBufferId(), 200)
     moc.writeExchangeBuffer(moc.getOutputBufferId(), exp)
-
-    return 200
 }

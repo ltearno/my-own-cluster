@@ -14,6 +14,7 @@ WASM_IMPORT("core", "get_output_buffer_id") uint32_t get_output_buffer_id();
 WASM_IMPORT("core", "create_exchange_buffer") uint32_t create_exchange_buffer();
 WASM_IMPORT("core", "write_exchange_buffer") uint32_t write_exchange_buffer(int buffer_id, const void *content_bytes, int content_length);
 WASM_IMPORT("core", "write_exchange_buffer_header") uint32_t write_exchange_buffer_header(int buffer_id, const char *name_string, int name_length, const char *value_string, int value_length);
+WASM_IMPORT("core", "write_exchange_buffer_status_code") uint32_t write_exchange_buffer_status_code(int buffer_id, int status_code);
 WASM_IMPORT("core", "get_exchange_buffer_size") uint32_t get_exchange_buffer_size(int buffer_id);
 // returns the written size if result_bytes was not NULL and the exchange buffer size otherwise
 WASM_IMPORT("core", "read_exchange_buffer") uint32_t read_exchange_buffer(int buffer_id, void *result_bytes, int result_length);
@@ -38,6 +39,7 @@ WASM_IMPORT("core", "get_time") uint32_t get_time(const void *dest_bytes, int de
 WASM_IMPORT("core", "free_buffer") uint32_t free_buffer(int bufferId);
 WASM_IMPORT("core", "call_function") uint32_t call_function(const char *name_string, int name_length, const char *start_function_string, int start_function_length, const void *arguments_int_array, int arguments_length, const char *mode_string, int mode_length, int input_exchange_buffer_id, int output_exchange_buffer_id, const char *posix_file_name_string, int posix_file_name_length, const void *posix_arguments_string_array, int posix_arguments_length);
 WASM_IMPORT("core", "export_database") uint32_t export_database();
+WASM_IMPORT("core", "beta_web_proxy") uint32_t beta_web_proxy(const char *proxy_spec_json_string, int proxy_spec_json_length);
 
 #endif
     

@@ -23,6 +23,7 @@ pub mod raw {
         pub fn create_exchange_buffer() -> u32;
         pub fn write_exchange_buffer(buffer_id:u32, content_bytes: *const u8, content_length: u32) -> u32;
         pub fn write_exchange_buffer_header(buffer_id:u32, name_string: *const u8, name_length: u32, value_string: *const u8, value_length: u32) -> u32;
+        pub fn write_exchange_buffer_status_code(buffer_id:u32, status_code:u32) -> u32;
         pub fn get_exchange_buffer_size(buffer_id:u32) -> u32;
         // returns the written size if result_bytes was not NULL and the exchange buffer size otherwise
         pub fn read_exchange_buffer(buffer_id:u32, result_bytes: *mut u8, result_length: u32) -> u32;
@@ -47,6 +48,7 @@ pub mod raw {
         pub fn free_buffer(bufferId:u32) -> u32;
         pub fn call_function(name_string: *const u8, name_length: u32, start_function_string: *const u8, start_function_length: u32, arguments_int_array: *const u32, arguments_length: u32, mode_string: *const u8, mode_length: u32, input_exchange_buffer_id:u32, output_exchange_buffer_id:u32, posix_file_name_string: *const u8, posix_file_name_length: u32, posix_arguments_string_array: *const u8, posix_arguments_length: u32) -> u32;
         pub fn export_database() -> u32;
+        pub fn beta_web_proxy(proxy_spec_json_string: *const u8, proxy_spec_json_length: u32) -> u32;
 
     }
 }
@@ -69,6 +71,10 @@ pub fn write_exchange_buffer(buffer_id:u32, content: &[u8]) -> u32 {
 
 pub fn write_exchange_buffer_header(buffer_id:u32, name: &str, value: &str) -> u32 {
     unsafe { raw::write_exchange_buffer_header(buffer_id, name.as_bytes().as_ptr(), name.as_bytes().len() as u32, value.as_bytes().as_ptr(), value.as_bytes().len() as u32) }
+}
+
+pub fn write_exchange_buffer_status_code(buffer_id:u32, status_code:u32) -> u32 {
+    unsafe { raw::write_exchange_buffer_status_code(buffer_id, status_code) }
 }
 
 pub fn get_exchange_buffer_size(buffer_id:u32) -> u32 {
@@ -397,5 +403,9 @@ pub fn export_database() -> Result<Vec<u8>, u32> {
             },
         }
     }
+}
+
+pub fn beta_web_proxy(proxy_spec_json: &str) -> u32 {
+    unsafe { raw::beta_web_proxy(proxy_spec_json.as_bytes().as_ptr(), proxy_spec_json.as_bytes().len() as u32) }
 }
 

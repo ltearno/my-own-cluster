@@ -78,6 +78,21 @@ value := c.SafeToString(-1)
         ctx.Context.PutPropString(-2, "writeExchangeBufferHeader")
         
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            bufferId := int(c.GetNumber(-2))
+statusCode := int(c.GetNumber(-1))
+
+            res, err := WriteExchangeBufferStatusCode(ctx.Fctx, bufferId, statusCode)
+            if err != nil {
+                return 0
+            }
+            
+            c.PushInt(res)
+    
+            return 1
+        })
+        ctx.Context.PutPropString(-2, "writeExchangeBufferStatusCode")
+        
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             bufferId := int(c.GetNumber(-1))
 
             res, err := GetExchangeBufferSize(ctx.Fctx, bufferId)
@@ -446,4 +461,18 @@ posixArguments := []string{}
             return 1
         })
         ctx.Context.PutPropString(-2, "exportDatabase")
+        
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            proxySpecJson := c.SafeToString(-1)
+
+            res, err := BetaWebProxy(ctx.Fctx, proxySpecJson)
+            if err != nil {
+                return 0
+            }
+            
+            c.PushInt(res)
+    
+            return 1
+        })
+        ctx.Context.PutPropString(-2, "betaWebProxy")
         }

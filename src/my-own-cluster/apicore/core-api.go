@@ -2,6 +2,7 @@ package apicore
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -115,6 +116,18 @@ func WriteExchangeBufferHeader(ctx *common.FunctionExecutionContext, bufferID in
 	}
 
 	exchangeBuffer.SetHeader(string(name), string(value))
+
+	return 0, nil
+}
+
+func WriteExchangeBufferStatusCode(ctx *common.FunctionExecutionContext, bufferID int, statusCode int) (int, error) {
+	exchangeBuffer := ctx.Orchestrator.GetExchangeBuffer(bufferID)
+	if exchangeBuffer == nil {
+		fmt.Printf("GET EXCHANGE BUFFER FOR UNKNOWN BUFFER %d\n", bufferID)
+		return 0, nil
+	}
+
+	exchangeBuffer.WriteStatusCode(statusCode)
 
 	return 0, nil
 }
@@ -265,4 +278,33 @@ func ExportDatabase(ctx *common.FunctionExecutionContext) ([]byte, error) {
 	}
 
 	return res, nil
+}
+
+type ProxySpec struct {
+	Method                 string            `json:"method"`
+	Url                    string            `json:"url"`
+	Headers                map[string]string `json:"headers"`
+	InputExchangeBufferID  int               `json:"inputBufferId"`
+	OutputExchangeBufferID int               `json:"outputBufferId"`
+}
+
+func BetaWebProxy(ctx *common.FunctionExecutionContext, proxySpecJSON string) (int, error) {
+	spec := &ProxySpec{}
+	err := json.Unmarshal([]byte(proxySpecJSON), &spec)
+	if err != nil {
+		return -1, err
+	}
+
+	res, err := GetUrl(ctx, spec.Url)
+	if err != nil {
+		return -2, err
+	}
+
+	buffer := ctx.Orchestrator.GetExchangeBuffer(spec.OutputExchangeBufferID)
+
+	buffer.Write(res)
+
+	fmt.Printf("DLKJDHLKJDHLKDJHLKDJHLDKJ HDLKJHDLKJ HDLKJH BETA PROXY\n")
+
+	return 0, nil
 }

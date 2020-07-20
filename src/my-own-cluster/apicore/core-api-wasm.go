@@ -79,6 +79,21 @@ value := cs.GetParamString(3, 4)
         return uint32(res), err
     })
     
+	wctx.BindAPIFunction("core", "write_exchange_buffer_status_code", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        bufferId := cs.GetParamInt(0)
+statusCode := cs.GetParamInt(1)
+
+
+        
+
+        res, err := WriteExchangeBufferStatusCode(wctx.Fctx, bufferId, statusCode)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        return uint32(res), err
+    })
+    
 	wctx.BindAPIFunction("core", "get_exchange_buffer_size", "i(i)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         bufferId := cs.GetParamInt(0)
 
@@ -495,5 +510,19 @@ posixArguments := []string{} // TODO : To be implemented !!!
                     resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
                     resultBuffer.Write(res)
                     return uint32(resultBufferID), nil
+    })
+    
+	wctx.BindAPIFunction("core", "beta_web_proxy", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        proxySpecJson := cs.GetParamString(0, 1)
+
+
+        
+
+        res, err := BetaWebProxy(wctx.Fctx, proxySpecJson)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        return uint32(res), err
     })
     }
