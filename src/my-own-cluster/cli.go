@@ -42,6 +42,7 @@ type PlugFunctionRequest struct {
 	Path          string `json:"path"`
 	Name          string `json:"name"`
 	StartFunction string `json:"start_function"`
+	Data          string `json:"data"`
 }
 
 type PlugFileRequest struct {
@@ -304,12 +305,17 @@ func CliPlugFunction(verbs []Verb) {
 	if len(verbs) >= 3 {
 		startFunction = verbs[2].Name
 	}
+	data := ""
+	if len(verbs) >= 4 {
+		data = verbs[3].Name
+	}
 
 	reqBody := &PlugFunctionRequest{
 		Method:        method,
 		Path:          path,
 		Name:          name,
 		StartFunction: startFunction,
+		Data:          data,
 	}
 
 	bodyBytes, err := json.Marshal(reqBody)

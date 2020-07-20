@@ -50,10 +50,18 @@ func (e *JavascriptDuktapeEngine) PrepareContext(fctx *common.FunctionExecutionC
 }
 
 func (jsctx *JSProcessContext) Run() error {
+	if jsctx.Fctx.Trace {
+		fmt.Printf("- start run js function '%s'\n", jsctx.Fctx.StartFunction)
+	}
+
 	jsctx.Context.PushString(string(jsctx.Fctx.CodeBytes))
 	err := jsctx.Context.Peval()
 	if err != nil {
-		return fmt.Errorf("cannot eval script, probably syntax error")
+		return fmt.Errorf("cannot eval script, probably syntax error (%v)", err)
+	}
+
+	if jsctx.Fctx.Trace {
+		fmt.Println("- script eval-ed")
 	}
 
 	jsctx.Context.Pop()
@@ -63,14 +71,26 @@ func (jsctx *JSProcessContext) Run() error {
 		return fmt.Errorf("cannot find start function %s", jsctx.Fctx.StartFunction)
 	}
 
+	if jsctx.Fctx.Trace {
+		fmt.Printf("- function '%s' found\n", jsctx.Fctx.StartFunction)
+	}
+
 	res := jsctx.Context.Pcall(0)
 	if res != 0 {
 		return fmt.Errorf("error while executing js function '%s'", jsctx.Fctx.StartFunction)
 	}
 
+	if jsctx.Fctx.Trace {
+		fmt.Printf("- function executed\n")
+	}
+
 	jsctx.Fctx.Result = jsctx.Context.GetInt(-1)
 
 	jsctx.Context.DestroyHeap()
+
+	if jsctx.Fctx.Trace {
+		fmt.Printf("- heap destroyed, result:%d\n", jsctx.Fctx.Result)
+	}
 
 	return nil
 }

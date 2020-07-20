@@ -140,12 +140,12 @@ func main() {
 		coreAPILibrary, err := assetsgen.Asset("assets/rest-default-api.js")
 		if err == nil {
 			orchestrator.RegisterBlobWithName("core-api", "text/javascript", coreAPILibrary)
-			orchestrator.PlugFunction("POST", "/my-own-cluster/api/blob/register", "core-api", "registerBlob")
-			orchestrator.PlugFunction("POST", "/my-own-cluster/api/file/plug", "core-api", "plugFile")
-			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/plug", "core-api", "plugFunction")
-			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/unplug", "core-api", "unplugPath")
-			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/call", "core-api", "callFunction")
-			orchestrator.PlugFunction("GET", "/my-own-cluster/api/admin/export-database", "core-api", "exportDatabase")
+			orchestrator.PlugFunction("POST", "/my-own-cluster/api/blob/register", "core-api", "registerBlob", "")
+			orchestrator.PlugFunction("POST", "/my-own-cluster/api/file/plug", "core-api", "plugFile", "")
+			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/plug", "core-api", "plugFunction", "")
+			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/unplug", "core-api", "unplugPath", "")
+			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/call", "core-api", "callFunction", "")
+			orchestrator.PlugFunction("GET", "/my-own-cluster/api/admin/export-database", "core-api", "exportDatabase", "")
 		} else {
 			fmt.Printf("[error] cannot load rest-default-api.js, things may go bad quickly...\n")
 		}
@@ -190,7 +190,7 @@ func main() {
 		CliCallFunction(verbs)
 		break
 
-	case "export-db":
+	case "export-database":
 		CliExportDatabase(verbs)
 		break
 

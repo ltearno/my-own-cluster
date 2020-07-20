@@ -262,16 +262,17 @@ content := cs.GetParamByteBuffer(2, 3)
                 return uint32(resultBufferID), nil
     })
     
-	wctx.BindAPIFunction("core", "plug_function", "i(iiiiiiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "plug_function", "i(iiiiiiiiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         method := cs.GetParamString(0, 1)
 path := cs.GetParamString(2, 3)
 name := cs.GetParamString(4, 5)
 startFunction := cs.GetParamString(6, 7)
+data := cs.GetParamString(8, 9)
 
 
         
 
-        res, err := PlugFunction(wctx.Fctx, method, path, name, startFunction)
+        res, err := PlugFunction(wctx.Fctx, method, path, name, startFunction, data)
         if err != nil {
             return uint32(0xffff), err
         }

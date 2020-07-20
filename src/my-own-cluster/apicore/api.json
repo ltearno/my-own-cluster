@@ -156,6 +156,10 @@
                 {
                     "name": "start_function",
                     "type": "string"
+                },
+                {
+                    "name": "data",
+                    "type": "string"
                 }
             ],
             "returnType": "int"

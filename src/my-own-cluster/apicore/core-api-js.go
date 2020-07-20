@@ -220,12 +220,13 @@ content := c.SafeToBytes(-1)
         ctx.Context.PutPropString(-2, "getBlobBytesAsString")
         
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
-            method := c.SafeToString(-4)
-path := c.SafeToString(-3)
-name := c.SafeToString(-2)
-startFunction := c.SafeToString(-1)
+            method := c.SafeToString(-5)
+path := c.SafeToString(-4)
+name := c.SafeToString(-3)
+startFunction := c.SafeToString(-2)
+data := c.SafeToString(-1)
 
-            res, err := PlugFunction(ctx.Fctx, method, path, name, startFunction)
+            res, err := PlugFunction(ctx.Fctx, method, path, name, startFunction, data)
             if err != nil {
                 return 0
             }

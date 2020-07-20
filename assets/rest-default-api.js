@@ -32,7 +32,8 @@ function plugFunction() {
         req.method,
         req.path,
         req.name,
-        req.start_function
+        req.start_function,
+        req.data || ""
     )
 
     moc.writeExchangeBuffer(moc.getOutputBufferId(), JSON.stringify({

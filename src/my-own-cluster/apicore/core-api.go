@@ -49,8 +49,8 @@ func FreeBuffer(ctx *common.FunctionExecutionContext, bufferID int) (int, error)
 	return 0, nil
 }
 
-func PlugFunction(ctx *common.FunctionExecutionContext, method string, path string, name string, startFunction string) (int, error) {
-	ctx.Orchestrator.PlugFunction(method, path, name, startFunction)
+func PlugFunction(ctx *common.FunctionExecutionContext, method string, path string, name string, startFunction string, data string) (int, error) {
+	ctx.Orchestrator.PlugFunction(method, path, name, startFunction, data)
 	return 0, nil
 }
 

@@ -246,19 +246,21 @@ type PluggedFunction struct {
 	Type          string `json:"type"`
 	Name          string `json:"name"`
 	StartFunction string `json:"start_function"`
+	Data          string `json:"data,omitempty"`
 }
 
 /**
 URL plugging and routing
 */
 
-func (o *Orchestrator) PlugFunction(method string, path string, name string, startFunction string) error {
+func (o *Orchestrator) PlugFunction(method string, path string, name string, startFunction string, plugData string) error {
 	method = strings.ToLower(method)
 
 	data := &PluggedFunction{
 		Type:          "function",
 		Name:          name,
 		StartFunction: startFunction,
+		Data:          plugData,
 	}
 
 	dataJSON, err := json.Marshal(data)
@@ -268,7 +270,7 @@ func (o *Orchestrator) PlugFunction(method string, path string, name string, sta
 
 	o.plugs.PlugPath(method, path, dataJSON)
 
-	fmt.Printf("plugged_function on method:%s, path:'%s', name:%s, start_function:%s\n", method, path, name, startFunction)
+	fmt.Printf("plugged_function on method:%s, path:'%s', name:%s, start_function:%s, data:'%s'\n", method, path, name, startFunction, plugData)
 
 	return nil
 }
