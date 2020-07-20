@@ -47,6 +47,7 @@ func jsonResponse(w http.ResponseWriter, code int, value interface{}) {
 	body, err := json.Marshal(value)
 	if err != nil {
 		fmt.Fprintf(w, "{ \"message\": \"error 98AAGGD\" }")
+		httpResponse(w, code, "application/json", "{ \"message\": \"error 98AAGER\" }")
 		return
 	}
 
