@@ -23,8 +23,8 @@ pub mod raw {
         pub fn create_exchange_buffer() -> u32;
         pub fn write_exchange_buffer(buffer_id:u32, content_bytes: *const u8, content_length: u32) -> u32;
         pub fn write_exchange_buffer_header(buffer_id:u32, name_string: *const u8, name_length: u32, value_string: *const u8, value_length: u32) -> u32;
-        pub fn get_exchange_buffer_size(buffer_id:u32) -> u32;
-        // returns the written size if result_bytes was not NULL and the exchange buffer size otherwise
+        pub fn write_exchange_buffer_status_code(buffer_id:u32, status_code:u32) -> u32;
+        // returns the readden size if result_bytes was not NULL and the exchange buffer size otherwise
         pub fn read_exchange_buffer(buffer_id:u32, result_bytes: *mut u8, result_length: u32) -> u32;
         // returns the buffer headers in JSON format
         pub fn read_exchange_buffer_headers(buffer_id:u32) -> u32;
@@ -34,8 +34,9 @@ pub mod raw {
         pub fn register_blob(content_type_string: *const u8, content_type_length: u32, content_bytes: *const u8, content_length: u32) -> u32;
         pub fn get_blob_tech_id_from_name(name_string: *const u8, name_length: u32) -> u32;
         pub fn get_blob_bytes_as_string(name_string: *const u8, name_length: u32) -> u32;
-        pub fn plug_function(method_string: *const u8, method_length: u32, path_string: *const u8, path_length: u32, name_string: *const u8, name_length: u32, start_function_string: *const u8, start_function_length: u32) -> u32;
+        pub fn plug_function(method_string: *const u8, method_length: u32, path_string: *const u8, path_length: u32, name_string: *const u8, name_length: u32, start_function_string: *const u8, start_function_length: u32, data_string: *const u8, data_length: u32) -> u32;
         pub fn plug_file(method_string: *const u8, method_length: u32, path_string: *const u8, path_length: u32, name_string: *const u8, name_length: u32) -> u32;
+        pub fn unplug_path(method_string: *const u8, method_length: u32, path_string: *const u8, path_length: u32) -> u32;
         pub fn get_status() -> u32;
         pub fn persistence_set(key_bytes: *const u8, key_length: u32, value_bytes: *const u8, value_length: u32) -> u32;
         pub fn get_url(url_string: *const u8, url_length: u32) -> u32;
@@ -45,6 +46,8 @@ pub mod raw {
         pub fn get_time(dest_bytes: *const u8, dest_length: u32) -> u32;
         pub fn free_buffer(bufferId:u32) -> u32;
         pub fn call_function(name_string: *const u8, name_length: u32, start_function_string: *const u8, start_function_length: u32, arguments_int_array: *const u32, arguments_length: u32, mode_string: *const u8, mode_length: u32, input_exchange_buffer_id:u32, output_exchange_buffer_id:u32, posix_file_name_string: *const u8, posix_file_name_length: u32, posix_arguments_string_array: *const u8, posix_arguments_length: u32) -> u32;
+        pub fn export_database() -> u32;
+        pub fn beta_web_proxy(proxy_spec_json_string: *const u8, proxy_spec_json_length: u32) -> u32;
 
     }
 }
@@ -69,8 +72,8 @@ pub fn write_exchange_buffer_header(buffer_id:u32, name: &str, value: &str) -> u
     unsafe { raw::write_exchange_buffer_header(buffer_id, name.as_bytes().as_ptr(), name.as_bytes().len() as u32, value.as_bytes().as_ptr(), value.as_bytes().len() as u32) }
 }
 
-pub fn get_exchange_buffer_size(buffer_id:u32) -> u32 {
-    unsafe { raw::get_exchange_buffer_size(buffer_id) }
+pub fn write_exchange_buffer_status_code(buffer_id:u32, status_code:u32) -> u32 {
+    unsafe { raw::write_exchange_buffer_status_code(buffer_id, status_code) }
 }
 
 pub fn read_exchange_buffer(buffer_id:u32) -> Result<Vec<u8>, u32> {
@@ -244,12 +247,16 @@ pub fn get_blob_bytes_as_string(name: &str) -> Result<String, u32> {
     }
 }
 
-pub fn plug_function(method: &str, path: &str, name: &str, start_function: &str) -> u32 {
-    unsafe { raw::plug_function(method.as_bytes().as_ptr(), method.as_bytes().len() as u32, path.as_bytes().as_ptr(), path.as_bytes().len() as u32, name.as_bytes().as_ptr(), name.as_bytes().len() as u32, start_function.as_bytes().as_ptr(), start_function.as_bytes().len() as u32) }
+pub fn plug_function(method: &str, path: &str, name: &str, start_function: &str, data: &str) -> u32 {
+    unsafe { raw::plug_function(method.as_bytes().as_ptr(), method.as_bytes().len() as u32, path.as_bytes().as_ptr(), path.as_bytes().len() as u32, name.as_bytes().as_ptr(), name.as_bytes().len() as u32, start_function.as_bytes().as_ptr(), start_function.as_bytes().len() as u32, data.as_bytes().as_ptr(), data.as_bytes().len() as u32) }
 }
 
 pub fn plug_file(method: &str, path: &str, name: &str) -> u32 {
     unsafe { raw::plug_file(method.as_bytes().as_ptr(), method.as_bytes().len() as u32, path.as_bytes().as_ptr(), path.as_bytes().len() as u32, name.as_bytes().as_ptr(), name.as_bytes().len() as u32) }
+}
+
+pub fn unplug_path(method: &str, path: &str) -> u32 {
+    unsafe { raw::unplug_path(method.as_bytes().as_ptr(), method.as_bytes().len() as u32, path.as_bytes().as_ptr(), path.as_bytes().len() as u32) }
 }
 
 pub fn get_status() -> Result<String, u32> {
@@ -372,5 +379,28 @@ pub fn free_buffer(bufferId:u32) -> u32 {
 
 pub fn call_function(name: &str, start_function: &str, arguments: &[u32], mode: &str, input_exchange_buffer_id:u32, output_exchange_buffer_id:u32, posix_file_name: &str, posix_arguments: &[&str]) -> u32 {
     unsafe { raw::call_function(name.as_bytes().as_ptr(), name.as_bytes().len() as u32, start_function.as_bytes().as_ptr(), start_function.as_bytes().len() as u32, arguments.as_ptr(), arguments.len() as u32, mode.as_bytes().as_ptr(), mode.as_bytes().len() as u32, input_exchange_buffer_id, output_exchange_buffer_id, posix_file_name.as_bytes().as_ptr(), posix_file_name.as_bytes().len() as u32, std::ptr::null(), 0) }
+}
+
+pub fn export_database() -> Result<Vec<u8>, u32> {
+    let result_buffer_id = unsafe { raw::export_database() };
+    if result_buffer_id == 0xffff {
+        Err(1)
+    }
+    else {
+        let result = read_exchange_buffer(result_buffer_id);
+        match result {
+            Ok(result) => {
+                //free_buffer(result_buffer_id);
+                Ok(result)
+            },
+            Err(err) => {
+                Err(2)
+            },
+        }
+    }
+}
+
+pub fn beta_web_proxy(proxy_spec_json: &str) -> u32 {
+    unsafe { raw::beta_web_proxy(proxy_spec_json.as_bytes().as_ptr(), proxy_spec_json.as_bytes().len() as u32) }
 }
 

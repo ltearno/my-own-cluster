@@ -20,6 +20,8 @@ type WasmProcessContext struct {
 	Module  *wasm3.Module
 
 	APIPlugins []WASMAPIPlugin
+
+	GuestAllocatorFn func(int) int
 }
 
 type WASMAPIPlugin interface {
@@ -257,7 +259,9 @@ func (wctx *WasmProcessContext) Run() error {
 		EnableWASI:  false,
 	})
 
-	//wctx.Runtime.PrintRuntimeInfo()
+	if wctx.Fctx.Trace {
+		wctx.Runtime.PrintRuntimeInfo()
+	}
 
 	{
 		module, err := wctx.Runtime.ParseModule(wctx.Fctx.CodeBytes)
@@ -396,6 +400,20 @@ func (wctx *WasmProcessContext) Run() error {
 	fn, err := wctx.Module.GetFunctionByName(wctx.Fctx.StartFunction)
 	if err != nil {
 		return fmt.Errorf("not found '%s' function (using module.GetFunctionByName)", wctx.Fctx.StartFunction)
+	}
+
+	guestAllocatorFn, err := wctx.Runtime.FindFunction("moc_allocator")
+	if guestAllocatorFn != nil && err == nil {
+		guestAllocatorFnWrapper := func(size int) int {
+			ptr, err := guestAllocatorFn(size)
+			if err != nil {
+				return 0
+			}
+			return ptr
+		}
+		wctx.GuestAllocatorFn = guestAllocatorFnWrapper
+
+		fmt.Printf("found GuestAllocatorFunction in wasm module (%v)\n", wctx.GuestAllocatorFn)
 	}
 
 	wctx.Fctx.Result = 0

@@ -116,3 +116,10 @@ pub extern fn rustMultiply(a : i32, b:i32) -> i32 {
 pub extern fn rustDivide(a : i32, b:i32) -> i32 {
     a / b
 }
+
+#[no_mangle]
+pub extern fn moc_allocator(size:i32) -> i32 {
+    print_debug(&format!("MOC-ALLOCATOR {} => {}", size, 100));
+    
+    100
+}
