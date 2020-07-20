@@ -11,8 +11,7 @@ declare function requireApi(name: "core") : {
     writeExchangeBuffer(bufferId: number, content: Uint8Array) : number
     writeExchangeBufferHeader(bufferId: number, name: string, value: string) : number
     writeExchangeBufferStatusCode(bufferId: number, statusCode: number) : number
-    getExchangeBufferSize(bufferId: number) : number
-    // returns the written size if result_bytes was not NULL and the exchange buffer size otherwise
+    // returns the readden size if result_bytes was not NULL and the exchange buffer size otherwise
     readExchangeBuffer(bufferId: number) : Uint8Array
     // returns the buffer headers in JSON format
     readExchangeBufferHeaders(bufferId: number) : { [key: string]: string }

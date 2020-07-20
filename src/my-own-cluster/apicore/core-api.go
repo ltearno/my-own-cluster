@@ -132,18 +132,6 @@ func WriteExchangeBufferStatusCode(ctx *common.FunctionExecutionContext, bufferI
 	return 0, nil
 }
 
-func GetExchangeBufferSize(ctx *common.FunctionExecutionContext, bufferID int) (int, error) {
-	buffer := ctx.Orchestrator.GetExchangeBuffer(bufferID)
-	if buffer == nil {
-		fmt.Printf("buffer %d not found for getting size\n", bufferID)
-		return -1, nil
-	}
-
-	bufferBytes := buffer.GetBuffer()
-
-	return len(bufferBytes), nil
-}
-
 func ReadExchangeBuffer(ctx *common.FunctionExecutionContext, bufferID int) ([]byte, error) {
 	buffer := ctx.Orchestrator.GetExchangeBuffer(bufferID)
 	if buffer == nil {

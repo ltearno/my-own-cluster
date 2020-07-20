@@ -24,8 +24,7 @@ pub mod raw {
         pub fn write_exchange_buffer(buffer_id:u32, content_bytes: *const u8, content_length: u32) -> u32;
         pub fn write_exchange_buffer_header(buffer_id:u32, name_string: *const u8, name_length: u32, value_string: *const u8, value_length: u32) -> u32;
         pub fn write_exchange_buffer_status_code(buffer_id:u32, status_code:u32) -> u32;
-        pub fn get_exchange_buffer_size(buffer_id:u32) -> u32;
-        // returns the written size if result_bytes was not NULL and the exchange buffer size otherwise
+        // returns the readden size if result_bytes was not NULL and the exchange buffer size otherwise
         pub fn read_exchange_buffer(buffer_id:u32, result_bytes: *mut u8, result_length: u32) -> u32;
         // returns the buffer headers in JSON format
         pub fn read_exchange_buffer_headers(buffer_id:u32) -> u32;
@@ -75,10 +74,6 @@ pub fn write_exchange_buffer_header(buffer_id:u32, name: &str, value: &str) -> u
 
 pub fn write_exchange_buffer_status_code(buffer_id:u32, status_code:u32) -> u32 {
     unsafe { raw::write_exchange_buffer_status_code(buffer_id, status_code) }
-}
-
-pub fn get_exchange_buffer_size(buffer_id:u32) -> u32 {
-    unsafe { raw::get_exchange_buffer_size(buffer_id) }
 }
 
 pub fn read_exchange_buffer(buffer_id:u32) -> Result<Vec<u8>, u32> {

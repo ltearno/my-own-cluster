@@ -15,8 +15,7 @@ WASM_IMPORT("core", "create_exchange_buffer") uint32_t create_exchange_buffer();
 WASM_IMPORT("core", "write_exchange_buffer") uint32_t write_exchange_buffer(int buffer_id, const void *content_bytes, int content_length);
 WASM_IMPORT("core", "write_exchange_buffer_header") uint32_t write_exchange_buffer_header(int buffer_id, const char *name_string, int name_length, const char *value_string, int value_length);
 WASM_IMPORT("core", "write_exchange_buffer_status_code") uint32_t write_exchange_buffer_status_code(int buffer_id, int status_code);
-WASM_IMPORT("core", "get_exchange_buffer_size") uint32_t get_exchange_buffer_size(int buffer_id);
-// returns the written size if result_bytes was not NULL and the exchange buffer size otherwise
+// returns the readden size if result_bytes was not NULL and the exchange buffer size otherwise
 WASM_IMPORT("core", "read_exchange_buffer") uint32_t read_exchange_buffer(int buffer_id, void *result_bytes, int result_length);
 // returns the buffer headers in JSON format
 WASM_IMPORT("core", "read_exchange_buffer_headers") uint32_t read_exchange_buffer_headers(int buffer_id);

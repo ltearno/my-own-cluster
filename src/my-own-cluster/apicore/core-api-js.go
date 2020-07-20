@@ -95,20 +95,6 @@ statusCode := int(c.GetNumber(-1))
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             bufferId := int(c.GetNumber(-1))
 
-            res, err := GetExchangeBufferSize(ctx.Fctx, bufferId)
-            if err != nil {
-                return 0
-            }
-            
-            c.PushInt(res)
-    
-            return 1
-        })
-        ctx.Context.PutPropString(-2, "getExchangeBufferSize")
-        
-        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
-            bufferId := int(c.GetNumber(-1))
-
             res, err := ReadExchangeBuffer(ctx.Fctx, bufferId)
             if err != nil {
                 return 0

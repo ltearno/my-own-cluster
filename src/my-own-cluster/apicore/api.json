@@ -57,17 +57,8 @@
             ],
             "returnType": "int"
         },
-        "get_exchange_buffer_size": {
-            "args": [
-                {
-                    "name": "buffer_id",
-                    "type": "int"
-                }
-            ],
-            "returnType": "int"
-        },
         "read_exchange_buffer": {
-            "comment": "returns the written size if result_bytes was not NULL and the exchange buffer size otherwise",
+            "comment": "returns the readden size if result_bytes was not NULL and the exchange buffer size otherwise",
             "args": [
                 {
                     "name": "buffer_id",

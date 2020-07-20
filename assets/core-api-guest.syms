@@ -4,7 +4,6 @@ create_exchange_buffer
 write_exchange_buffer
 write_exchange_buffer_header
 write_exchange_buffer_status_code
-get_exchange_buffer_size
 read_exchange_buffer
 read_exchange_buffer_headers
 base64_decode

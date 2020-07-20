@@ -38,7 +38,6 @@ function run() {
         }
     }
     status.testReadWriteBuffer = ok ? "ok" : "KO"
-    status.testReadBufferSize = moc.getExchangeBufferSize(bid) == 10 ? "ok" : "KO"
     moc.freeBuffer(bid)
     bid = -1
 

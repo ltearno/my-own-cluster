@@ -94,20 +94,6 @@ statusCode := cs.GetParamInt(1)
         return uint32(res), err
     })
     
-	wctx.BindAPIFunction("core", "get_exchange_buffer_size", "i(i)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
-        bufferId := cs.GetParamInt(0)
-
-
-        
-
-        res, err := GetExchangeBufferSize(wctx.Fctx, bufferId)
-        if err != nil {
-            return uint32(0xffff), err
-        }
-        
-        return uint32(res), err
-    })
-    
 	wctx.BindAPIFunction("core", "read_exchange_buffer", "i(iii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         bufferId := cs.GetParamInt(0)
 
