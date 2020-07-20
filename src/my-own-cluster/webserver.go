@@ -74,11 +74,19 @@ func extractBodyAsJSON(r *http.Request, v interface{}) error {
 
 var upgrader = websocket.Upgrader{}
 
-func handlerGetGeneric(w http.ResponseWriter, r *http.Request, server *WebServer) {
+type WebServer struct {
+	name         string
+	orchestrator *common.Orchestrator
+	trace        bool
+}
+
+func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	method := r.Method
 
-	fmt.Printf("HANDLER METHOD='%s' PATH='%s'\n", method, path)
+	if server.trace {
+		fmt.Printf("WEB HANDLER METHOD='%s' PATH='%s'\n", method, path)
+	}
 
 	found, plugType, plug, boundParameters := server.orchestrator.GetPlugFromPath(r.Method, path)
 	if !found {
@@ -201,16 +209,6 @@ func handlerGetGeneric(w http.ResponseWriter, r *http.Request, server *WebServer
 
 	errorResponse(w, 404, "sorry, nothing found")
 	return
-}
-
-type WebServer struct {
-	name         string
-	orchestrator *common.Orchestrator
-	trace        bool
-}
-
-func (h *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	handlerGetGeneric(w, r, h)
 }
 
 // StartWebServer runs a webserver hosting the application
