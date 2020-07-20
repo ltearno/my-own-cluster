@@ -3,6 +3,7 @@ package common
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/syndtr/goleveldb/leveldb"
@@ -35,6 +36,8 @@ type Orchestrator struct {
 	apiProviders     map[string]APIProvider
 
 	trace bool
+
+	plugs *PlugSystem
 }
 
 func NewOrchestrator(db *leveldb.DB, trace bool) *Orchestrator {
@@ -45,6 +48,7 @@ func NewOrchestrator(db *leveldb.DB, trace bool) *Orchestrator {
 		executionEngines:     make(map[string]ExecutionEngine),
 		apiProviders:         make(map[string]APIProvider),
 		trace:                trace,
+		plugs:                NewPlugSystem(db, "plugs", trace),
 	}
 }
 
@@ -241,6 +245,100 @@ type PluggedFunction struct {
 	Type          string `json:"type"`
 	Name          string `json:"name"`
 	StartFunction string `json:"start_function"`
+}
+
+/**
+URL plugging and routing
+*/
+
+func (o *Orchestrator) PlugFunction(method string, path string, name string, startFunction string) error {
+	method = strings.ToLower(method)
+
+	data := &PluggedFunction{
+		Type:          "function",
+		Name:          name,
+		StartFunction: startFunction,
+	}
+
+	dataJSON, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	o.plugs.PlugPath(method, path, dataJSON)
+
+	fmt.Printf("plugged_function on method:%s, path:'%s', name:%s, start_function:%s\n", method, path, name, startFunction)
+
+	return nil
+}
+
+func (o *Orchestrator) PlugFile(method string, path string, name string) error {
+	method = strings.ToLower(method)
+
+	data := &PluggedFile{
+		Type: "file",
+		Name: name,
+	}
+
+	dataJSON, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	o.plugs.PlugPath(method, path, dataJSON)
+
+	fmt.Printf("plugged_file on method:%s, path:'%s', name:%s\n", method, path, name)
+
+	return nil
+}
+
+func (o *Orchestrator) UnplugPath(method string, path string) error {
+	method = strings.ToLower(method)
+
+	o.plugs.UnplugPath(method, path)
+
+	fmt.Printf("unplugged_path on method:%s, path:'%s'\n", method, path)
+
+	return nil
+}
+
+func (o *Orchestrator) GetPlugs() map[string]string {
+	return o.plugs.GetPlugs()
+}
+
+func (o *Orchestrator) GetPlugFromPath(method string, path string) (bool, string, interface{}, map[string]string) {
+	method = strings.ToLower(method)
+
+	ok, plugData, boundParameters := o.plugs.findPlug(method, path)
+	if !ok {
+		return false, "", nil, nil
+	}
+
+	data := &Plug{}
+	err := json.Unmarshal(plugData, data)
+	if err != nil {
+		return false, "", nil, nil
+	}
+
+	switch data.Type {
+	case "function":
+		data := &PluggedFunction{}
+		err = json.Unmarshal(plugData, data)
+		if err != nil {
+			return false, "", nil, nil
+		}
+		return true, "function", data, boundParameters
+
+	case "file":
+		data := &PluggedFile{}
+		err = json.Unmarshal(plugData, data)
+		if err != nil {
+			return false, "", nil, nil
+		}
+		return true, "file", data, boundParameters
+	}
+
+	return false, "", nil, nil
 }
 
 type BlobNameStatus struct {

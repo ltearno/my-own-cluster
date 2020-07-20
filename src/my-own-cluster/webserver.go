@@ -236,6 +236,7 @@ func StartWebServer(port int, workingDir string, orchestrator *common.Orchestrat
 
 	go func() {
 		log.Fatal(http.ListenAndServeTLS(fmt.Sprintf("0.0.0.0:%d", port), filepath.Join(workingDir, "tls.cert.pem"), filepath.Join(workingDir, "tls.key.pem"), router))
+
 		endSignal <- true
 	}()
 
