@@ -8,6 +8,13 @@ type InMemoryExchangeBuffer struct {
 	buffer  []byte
 }
 
+func NewMemoryExchangeBuffer() *InMemoryExchangeBuffer {
+	return &InMemoryExchangeBuffer{
+		headers: make(map[string]string),
+		buffer:  []byte{},
+	}
+}
+
 func (p *InMemoryExchangeBuffer) GetHeader(name string) (string, bool) {
 	s, ok := p.headers[name]
 	return s, ok

@@ -1,5 +1,7 @@
 package common
 
+import "net/http"
+
 /*
 	ExchangeBuffer is a byte buffer together with a set of headers.
 
@@ -21,10 +23,18 @@ type ExchangeBuffer interface {
 }
 
 func (o *Orchestrator) CreateExchangeBuffer() int {
+	return o.RegisterExchangeBuffer(NewMemoryExchangeBuffer())
+}
+
+func (o *Orchestrator) CreateWrappedHttpRequestExchangeBuffer(r *http.Request) int {
+	return o.RegisterExchangeBuffer(WrapHttpReaderAsExchangeBuffer(r))
+}
+
+func (o *Orchestrator) RegisterExchangeBuffer(exchangeBuffer ExchangeBuffer) int {
 	o.lock.Lock()
 	bufferID := o.nextExchangeBufferID
 	o.nextExchangeBufferID++
-	o.exchangeBuffers[int(bufferID)] = NewMemoryExchangeBuffer()
+	o.exchangeBuffers[int(bufferID)] = exchangeBuffer
 	o.lock.Unlock()
 
 	return int(bufferID)
@@ -41,11 +51,4 @@ func (o *Orchestrator) ReleaseExchangeBuffer(bufferID int) {
 	o.lock.Lock()
 	delete(o.exchangeBuffers, bufferID)
 	o.lock.Unlock()
-}
-
-func NewMemoryExchangeBuffer() *InMemoryExchangeBuffer {
-	return &InMemoryExchangeBuffer{
-		headers: make(map[string]string),
-		buffer:  []byte{},
-	}
 }

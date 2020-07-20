@@ -119,7 +119,8 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		// create exchange buffers and provide informations about current http request
 		outputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
-		inputExchangeBufferID := server.orchestrator.CreateExchangeBuffer()
+
+		inputExchangeBufferID := server.orchestrator.CreateWrappedHttpRequestExchangeBuffer(r)
 		inputExchangeBuffer := server.orchestrator.GetExchangeBuffer(inputExchangeBufferID)
 
 		for k, v := range r.Header {
@@ -138,13 +139,6 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		inputExchangeBuffer.SetHeader("x-moc-plug-data", pluggedFunction.Data)
 
-		body, err := ioutil.ReadAll(r.Body)
-		if err == nil {
-			inputExchangeBuffer.Write(body)
-		} else {
-			fmt.Printf("CANNOT READ BODY\n")
-		}
-
 		// create a function execution context ...
 		fctx := server.orchestrator.NewFunctionExecutionContext(
 			pluggedFunction.Name,
@@ -159,7 +153,7 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		)
 
 		// ... and run it
-		err = fctx.Run()
+		err := fctx.Run()
 		if err != nil {
 			errorResponse(w, 500, fmt.Sprintf("error while executing the function: %v", err))
 			return
