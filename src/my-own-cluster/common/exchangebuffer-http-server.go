@@ -60,6 +60,10 @@ func (b *HttpReaderExchangeBuffer) GetStatusCode() int {
 func (b *HttpReaderExchangeBuffer) GetBuffer() []byte {
 	body, err := ioutil.ReadAll(b.r.Body)
 	if err == nil {
+		if body != nil && len(body) == 0 {
+			body = nil
+		}
+
 		return body
 	} else {
 		fmt.Printf("ERROR http wrapped request CANNOT READ BODY, maybe tried to read it twice ? (%v)\n", err)

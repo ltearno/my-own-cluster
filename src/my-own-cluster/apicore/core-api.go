@@ -10,6 +10,7 @@ import (
 	"my-own-cluster/enginejs"
 	"my-own-cluster/enginewasm"
 	"net/http"
+	"sync"
 	"time"
 	"unsafe"
 )
@@ -283,18 +284,67 @@ func BetaWebProxy(ctx *common.FunctionExecutionContext, proxySpecJSON string) (i
 		return -1, err
 	}
 
-	res, err := GetUrl(ctx, spec.Url)
+	/*
+		res, err := GetUrl(ctx, spec.Url)
+		if err != nil {
+			return -2, err
+		}
+
+		buffer := ctx.Orchestrator.GetExchangeBuffer(spec.OutputExchangeBufferID)
+
+		buffer.Write(res)
+
+		return 0, nil
+	*/
+
+	fmt.Printf("BETA PROXY\n")
+
+	req, resp, err := ctx.Orchestrator.CreateExchangeBuffersFromHttpClientRequest(spec.Method, spec.Url, spec.Headers)
 	if err != nil {
-		return -2, err
+		return -1, err
 	}
 
-	buffer := ctx.Orchestrator.GetExchangeBuffer(spec.OutputExchangeBufferID)
+	input := ctx.Orchestrator.GetExchangeBuffer(spec.InputExchangeBufferID)
+	output := ctx.Orchestrator.GetExchangeBuffer(spec.OutputExchangeBufferID)
 
-	buffer.Write(res)
+	var wg sync.WaitGroup
+	wg.Add(2)
 
-	fmt.Printf("DLKJDHLKJDHLKDJHLKDJHLDKJ HDLKJHDLKJ HDLKJH BETA PROXY\n")
+	fmt.Printf("LAUNCH LOOPS\n")
 
-	ctx.Orchestrator.CreateExchangeBuffersFromHttpClientRequest(spec.Method, spec.Url, spec.Headers)
+	go func() {
+		defer wg.Done()
+		for {
+			i := input.GetBuffer()
+			if i == nil || len(i) == 0 {
+				fmt.Printf("INPUT FINISHED\n")
+				req.Close()
+				return
+			}
+
+			fmt.Printf("READ %d FROM INPUT\n", len(i))
+			req.Write(i)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		for {
+			o := resp.GetBuffer()
+			if o == nil {
+				fmt.Printf("RESPONSE FINISHED\n")
+				output.Close()
+				return
+			}
+
+			fmt.Printf("READ %d FROM RESPONSE\n", len(o))
+			output.Write(o)
+		}
+	}()
+
+	wg.Wait()
+
+	fmt.Printf("LOOPS FINISHED\n")
 
 	return 0, nil
 }
