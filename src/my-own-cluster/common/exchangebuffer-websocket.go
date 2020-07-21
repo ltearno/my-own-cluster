@@ -16,12 +16,15 @@ type WebSocketExchangeBuffer struct {
 	r       *http.Request
 	c       *websocket.Conn
 	headers map[string]string
+	// kind of hacky, could use a special header to signal that.
+	currentMessageFormat int
 }
 
 func WrapWebSocketAsExchangeBuffer(headers map[string]string, c *websocket.Conn) *WebSocketExchangeBuffer {
 	b := &WebSocketExchangeBuffer{
-		c:       c,
-		headers: make(map[string]string),
+		c:                    c,
+		headers:              make(map[string]string),
+		currentMessageFormat: websocket.TextMessage,
 	}
 
 	if headers != nil {
@@ -63,7 +66,9 @@ func (b *WebSocketExchangeBuffer) GetBuffer() []byte {
 		return nil
 	}
 
-	fmt.Printf("websocket : just read message (%d) from client : %s\n", mt, string(buf))
+	b.currentMessageFormat = mt
+
+	fmt.Printf("websocket : just read message (%d) from client\n", mt)
 
 	return buf
 }
@@ -73,9 +78,10 @@ func (b *WebSocketExchangeBuffer) WriteStatusCode(statusCode int) {
 }
 
 func (b *WebSocketExchangeBuffer) Write(buffer []byte) (int, error) {
-	b.c.WriteMessage(websocket.BinaryMessage, buffer)
+	//b.headers
+	b.c.WriteMessage(b.currentMessageFormat, buffer)
 
-	fmt.Printf("websocket : just wrote message to client : %s\n", string(buffer))
+	fmt.Printf("websocket : just wrote message to client\n")
 
 	return len(buffer), nil
 }
