@@ -40,6 +40,8 @@ WASM_IMPORT("core", "call_function") uint32_t call_function(const char *name_str
 WASM_IMPORT("core", "export_database") uint32_t export_database();
 WASM_IMPORT("core", "beta_web_proxy") uint32_t beta_web_proxy(const char *proxy_spec_json_string, int proxy_spec_json_length);
 WASM_IMPORT("core", "is_trace") uint32_t is_trace();
+WASM_IMPORT("core", "plug_filter") uint32_t plug_filter(const char *name_string, int name_length, const char *start_function_string, int start_function_length, const char *data_string, int data_length);
+WASM_IMPORT("core", "unplug_filter") uint32_t unplug_filter(const char *id_string, int id_length);
 
 #endif
     

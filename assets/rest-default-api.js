@@ -67,11 +67,38 @@ function unplugPath() {
         req.path
     )
 
+    moc.writeExchangeBufferStatusCode(moc.getOutputBufferId(), 200)
     moc.writeExchangeBuffer(moc.getOutputBufferId(), JSON.stringify({
         status: true,
     }))
+}
 
-    return 200
+function plugFilter() {
+    var req = getInputRequest()
+
+    var filterId = moc.plugFilter(
+        req.name,
+        req.start_function,
+        req.data
+    )
+
+    moc.writeExchangeBufferStatusCode(moc.getOutputBufferId(), 200)
+    moc.writeExchangeBuffer(moc.getOutputBufferId(), JSON.stringify({
+        status: true,
+        filter_id: filterId
+    }))
+}
+
+function unplugFilter() {
+    var headers = moc.readExchangeBufferHeaders(moc.getInputBufferId())
+    var filterId = headers["x-moc-path-param-filter-id"]
+
+    moc.unplugFilter(filterId)
+
+    moc.writeExchangeBufferStatusCode(moc.getOutputBufferId(), 200)
+    moc.writeExchangeBuffer(moc.getOutputBufferId(), JSON.stringify({
+        status: true
+    }))
 }
 
 function registerBlob() {
@@ -108,7 +135,7 @@ function callFunction() {
     var inputExchangeBufferId = moc.createExchangeBuffer()
     if (req.input)
         moc.writeExchangeBuffer(inputExchangeBufferId, moc.base64Decode(req.input))
-    
+
     var outputExchangeBufferId = moc.createExchangeBuffer()
 
     var result = moc.callFunction(

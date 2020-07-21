@@ -52,6 +52,28 @@
                 </table>
             </div>
 
+            <h2>Filters</h2>
+            <div class="card">
+                <table>
+                    <thead class="table-header">
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Start Function</th>
+                        <th>Data</th>
+                    </thead>
+                    <tbody class="code">
+                        {{~it.filters :filter}}
+                        <tr>
+                            <td>{{=filter.id}}</td>
+                            <td>{{=filter.name}}</td>
+                            <td>{{=filter.start_function}}</td>
+                            <td>{{=filter.data?('<pre>'+filter.data+'</pre>'):''}}</td>
+                        </tr>
+                        {{~}}
+                    </tbody>
+                </table>
+            </div>
+
             <h2>Plugs</h2>
             <div class="card">
                 <table>

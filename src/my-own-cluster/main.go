@@ -120,6 +120,10 @@ func main() {
 		}
 		defer db.Close()
 
+		if trace {
+			dumpDB(db)
+		}
+
 		{
 			// migrate old plug system
 			prefix := []byte("/plugs/byspec/")
@@ -149,6 +153,8 @@ func main() {
 			iter.Release()
 		}
 
+		db.Put([]byte("/database-version"), []byte("1"), nil)
+
 		orchestrator := common.NewOrchestrator(db, trace)
 
 		// register execution engines
@@ -175,6 +181,8 @@ func main() {
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/plug", "core-api", "plugFunction", "")
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/unplug", "core-api", "unplugPath", "")
 			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/call", "core-api", "callFunction", "")
+			orchestrator.PlugFunction("POST", "/my-own-cluster/api/filter/plug", "core-api", "plugFilter", "")
+			orchestrator.PlugFunction("DELETE", "/my-own-cluster/api/filter/plug/!filter-id", "core-api", "unplugFilter", "")
 			orchestrator.PlugFunction("GET", "/my-own-cluster/api/admin/export-database", "core-api", "exportDatabase", "")
 		} else {
 			fmt.Printf("[error] cannot load rest-default-api.js, things may go bad quickly...\n")
@@ -187,10 +195,6 @@ func main() {
 				fmt.Printf("wrong port '%s', should be a number\n", portOption)
 				return
 			}
-		}
-
-		if trace {
-			dumpDB(db)
 		}
 
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -238,6 +242,14 @@ func main() {
 
 	case "unplug":
 		CliUnplug(verbs)
+		break
+
+	case "plug-filter":
+		CliPlugFilter(verbs)
+		break
+
+	case "unplug-filter":
+		CliUnplugFilter(verbs)
 		break
 
 	case "kvm_test":

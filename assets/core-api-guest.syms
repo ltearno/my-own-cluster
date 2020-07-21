@@ -27,3 +27,5 @@ call_function
 export_database
 beta_web_proxy
 is_trace
+plug_filter
+unplug_filter

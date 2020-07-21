@@ -474,4 +474,34 @@ posixArguments := []string{}
             return 1
         })
         ctx.Context.PutPropString(-2, "isTrace")
+        
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            name := c.SafeToString(-3)
+startFunction := c.SafeToString(-2)
+data := c.SafeToString(-1)
+
+            res, err := PlugFilter(ctx.Fctx, name, startFunction, data)
+            if err != nil {
+                return 0
+            }
+            
+            c.PushString(res)
+    
+            return 1
+        })
+        ctx.Context.PutPropString(-2, "plugFilter")
+        
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            id := c.SafeToString(-1)
+
+            res, err := UnplugFilter(ctx.Fctx, id)
+            if err != nil {
+                return 0
+            }
+            
+            c.PushInt(res)
+    
+            return 1
+        })
+        ctx.Context.PutPropString(-2, "unplugFilter")
         }

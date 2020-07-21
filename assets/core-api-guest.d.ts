@@ -36,4 +36,6 @@ declare function requireApi(name: "core") : {
     exportDatabase() : Uint8Array
     betaWebProxy(proxySpecJson: string) : number
     isTrace() : number
+    plugFilter(name: string, startFunction: string, data: string) : string
+    unplugFilter(id: string) : number
 }

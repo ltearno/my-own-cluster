@@ -67,6 +67,16 @@ func UnplugPath(ctx *common.FunctionExecutionContext, method string, path string
 	return 0, nil
 }
 
+func PlugFilter(ctx *common.FunctionExecutionContext, name string, startFunction string, data string) (string, error) {
+	filterID, err := ctx.Orchestrator.PlugFilter(name, startFunction, data)
+	return filterID, err
+}
+
+func UnplugFilter(ctx *common.FunctionExecutionContext, id string) (int, error) {
+	ctx.Orchestrator.UnplugFilter(id)
+	return 0, nil
+}
+
 func RegisterBlobWithName(ctx *common.FunctionExecutionContext, name string, contentType string, contentBytes []byte) (string, error) {
 	techID, err := ctx.Orchestrator.RegisterBlobWithName(name, contentType, contentBytes)
 	if err != nil {

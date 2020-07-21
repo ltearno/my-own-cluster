@@ -411,6 +411,7 @@ type status struct {
 	Plugs      map[string]string `json:"plugs"`
 	BlobNames  []BlobNameStatus  `json:"blob_names"`
 	Blobs      []BlobStatus      `json:"blobs"`
+	Filters    []Filter          `json:"filters"`
 	Statistics map[string]int    `json:"statistics"`
 }
 
@@ -423,6 +424,7 @@ func (o *Orchestrator) GetStatus() string {
 	status.Plugs = o.GetPlugs()
 	status.BlobNames = o.GetBlobsByName()
 	status.Blobs = o.GetBlobs()
+	status.Filters = o.GetFilters()
 
 	b, err := json.Marshal(status)
 	if err != nil {

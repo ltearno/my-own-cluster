@@ -322,6 +322,32 @@
         "is_trace": {
             "args": [],
             "returnType": "int"
+        },
+        "plug_filter": {
+            "args": [
+                {
+                    "name": "name",
+                    "type": "string"
+                },
+                {
+                    "name": "start_function",
+                    "type": "string"
+                },
+                {
+                    "name": "data",
+                    "type": "string"
+                }
+            ],
+            "returnType": "string"
+        },
+        "unplug_filter": {
+            "args": [
+                {
+                    "name": "id",
+                    "type": "string"
+                }
+            ],
+            "returnType": "int"
         }
     }
 }

@@ -45,6 +45,12 @@ type PlugFunctionRequest struct {
 	Data          string `json:"data"`
 }
 
+type PlugFilterRequest struct {
+	Name          string `json:"name"`
+	StartFunction string `json:"start_function"`
+	Data          string `json:"data"`
+}
+
 type PlugFileRequest struct {
 	Method string `json:"method"`
 	Path   string `json:"path"`
@@ -53,6 +59,11 @@ type PlugFileRequest struct {
 
 type PlugResponse struct {
 	Status bool `json:"status"`
+}
+
+type PlugFilterResponse struct {
+	Status   bool   `json:"status"`
+	FilterID string `json:"filter_id"`
 }
 
 type UnplugFunctionRequest struct {
@@ -395,6 +406,98 @@ func CliUnplug(verbs []Verb) {
 
 	if !response.Status {
 		fmt.Printf("error (response:%v)!\n", response)
+	}
+}
+
+func CliPlugFilter(verbs []Verb) {
+	serverBaseUrl := getAPIBaseURL(verbs[0])
+	verbs = verbs[1:]
+
+	name := verbs[0].Name
+	startFunction := ""
+	if len(verbs) > 1 {
+		startFunction = verbs[1].Name
+	}
+	data := ""
+	if len(verbs) > 2 {
+		data = verbs[2].Name
+	}
+
+	reqBody := &PlugFilterRequest{
+		Name:          name,
+		StartFunction: startFunction,
+		Data:          data,
+	}
+
+	bodyBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		fmt.Printf("cannot marshal json (%v)\n", err)
+		return
+	}
+
+	bodyReader := bytes.NewReader(bodyBytes)
+
+	client := &http.Client{Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}}
+
+	resp, err := client.Post(serverBaseUrl+"/api/filter/plug", "application/json", bodyReader)
+	if err != nil {
+		fmt.Printf("error during http request (%v)\n", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	bytes, _ := ioutil.ReadAll(resp.Body)
+
+	response := &PlugFilterResponse{}
+	if json.Unmarshal(bytes, response) != nil {
+		fmt.Printf("cannot unmarshall server response : %s\n", string(bytes))
+		return
+	}
+
+	if !response.Status {
+		fmt.Printf("error (response:%v)!\n", response)
+	} else {
+		fmt.Printf("%s\n", response.FilterID)
+	}
+}
+
+func CliUnplugFilter(verbs []Verb) {
+	serverBaseUrl := getAPIBaseURL(verbs[0])
+	verbs = verbs[1:]
+
+	filterID := verbs[0].Name
+
+	client := &http.Client{Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}}
+
+	req, err := http.NewRequest("delete", serverBaseUrl+"/api/filter/plug/"+filterID, nil)
+	req.Header.Set("content-type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("error during http request (%v)\n", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	bytes, _ := ioutil.ReadAll(resp.Body)
+
+	response := &PlugResponse{}
+	if json.Unmarshal(bytes, response) != nil {
+		fmt.Printf("cannot unmarshall server response : %s\n", string(bytes))
+		return
+	}
+
+	if !response.Status {
+		fmt.Printf("error (response:%v)!\n", response)
+	} else {
+		fmt.Printf("ok, deleted\n")
 	}
 }
 

@@ -524,4 +524,38 @@ posixArguments := []string{} // TODO : To be implemented !!!
         
         return uint32(res), err
     })
+    
+	wctx.BindAPIFunction("core", "plug_filter", "i(iiiiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        name := cs.GetParamString(0, 1)
+startFunction := cs.GetParamString(2, 3)
+data := cs.GetParamString(4, 5)
+
+
+        
+
+        res, err := PlugFilter(wctx.Fctx, name, startFunction, data)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        
+                resultBufferID := wctx.Fctx.Orchestrator.CreateExchangeBuffer()
+                resultBuffer := wctx.Fctx.Orchestrator.GetExchangeBuffer(resultBufferID)
+                resultBuffer.Write([]byte(res))
+                return uint32(resultBufferID), nil
+    })
+    
+	wctx.BindAPIFunction("core", "unplug_filter", "i(ii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        id := cs.GetParamString(0, 1)
+
+
+        
+
+        res, err := UnplugFilter(wctx.Fctx, id)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        return uint32(res), err
+    })
     }

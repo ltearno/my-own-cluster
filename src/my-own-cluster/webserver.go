@@ -85,7 +85,7 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	server.orchestrator.StatIncrement(common.STAT_NB_REQUESTS_RECEIVED)
 
 	path := r.URL.Path
-	method := r.Method
+	method := strings.ToLower(r.Method)
 
 	if server.trace {
 		fmt.Printf("WEB HANDLER METHOD='%s' PATH='%s'\n", method, path)
@@ -181,6 +181,11 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		if server.trace {
 			fmt.Printf("received plugged file request, path:'%s', type:%s, name:%s\n", path, plugType, pluggedFile.Name)
+		}
+
+		if method != "get" {
+			errorResponse(w, 404, "sorry, nothing found.")
+			return
 		}
 
 		fileTechID, err := server.orchestrator.GetBlobTechIDFromReference(pluggedFile.Name)
