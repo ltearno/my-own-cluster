@@ -47,8 +47,6 @@ func (o *Orchestrator) PlugFilter(name string, startFunction string, data string
 func (o *Orchestrator) UnplugFilter(id string) {
 	filters := o.GetFilters()
 
-	fmt.Printf("LKJHLKJH\n")
-
 	r := make([]*Filter, 0)
 
 	for _, f := range filters {
@@ -61,8 +59,6 @@ func (o *Orchestrator) UnplugFilter(id string) {
 	if err == nil {
 		o.db.Put(storageKey, newVal, nil)
 	}
-
-	fmt.Printf("LKJHLKJH %s\n", string(newVal))
 }
 
 func (o *Orchestrator) GetFilters() []Filter {
