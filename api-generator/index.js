@@ -418,6 +418,9 @@ function generateGuestTypescriptBindings(apiDescription, out) {
 //  you can use them by adding this at the beginning of your js file :
 //  /// reference path="./${apiDescription.moduleName}-api-guest.d.ts"
 //
+//  then, simply import the module through the runtime API
+//  const ${apiDescription.moduleName} = requireApi("${apiDescription.moduleName}")
+//
 declare function requireApi(name: "${apiDescription.moduleName}") : {
 `)
 
