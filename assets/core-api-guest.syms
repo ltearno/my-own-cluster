@@ -26,3 +26,4 @@ free_buffer
 call_function
 export_database
 beta_web_proxy
+is_trace

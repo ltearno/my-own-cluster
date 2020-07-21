@@ -318,6 +318,10 @@
                 }
             ],
             "returnType": "int"
+        },
+        "is_trace": {
+            "args": [],
+            "returnType": "int"
         }
     }
 }

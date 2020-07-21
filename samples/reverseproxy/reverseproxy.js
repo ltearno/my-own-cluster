@@ -1,7 +1,5 @@
 /// reference path="./core-api-guest.d.ts"
 
-console.log("reverseproxy loading")
-
 const moc = requireApi('core')
 
 function invoke() {
@@ -16,10 +14,12 @@ function invoke() {
         if (requestedPath && requestedPath.length > 0)
             url = url + "/" + requestedPath
 
-        console.log("requestedMethod: " + requestedMethod)
-        console.log("requestedPath: " + requestedPath)
-        console.log("proxyBaseUrl: " + proxyBaseUrl)
-        console.log("proxying to " + url)
+        if (moc.isTrace()) {
+            console.log("requestedMethod: " + requestedMethod)
+            console.log("requestedPath: " + requestedPath)
+            console.log("proxyBaseUrl: " + proxyBaseUrl)
+            console.log("proxying to " + url)
+        }
 
         // proxyfies the request whether it be http, websockets, ...
         moc.betaWebProxy(JSON.stringify({

@@ -35,4 +35,5 @@ declare function requireApi(name: "core") : {
     callFunction(name: string, startFunction: string, arguments: int[], mode: string, inputExchangeBufferId: number, outputExchangeBufferId: number, posixFileName: string, posixArguments: string[]) : number
     exportDatabase() : Uint8Array
     betaWebProxy(proxySpecJson: string) : number
+    isTrace() : number
 }

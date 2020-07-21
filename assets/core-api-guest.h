@@ -39,6 +39,7 @@ WASM_IMPORT("core", "free_buffer") uint32_t free_buffer(int bufferId);
 WASM_IMPORT("core", "call_function") uint32_t call_function(const char *name_string, int name_length, const char *start_function_string, int start_function_length, const void *arguments_int_array, int arguments_length, const char *mode_string, int mode_length, int input_exchange_buffer_id, int output_exchange_buffer_id, const char *posix_file_name_string, int posix_file_name_length, const void *posix_arguments_string_array, int posix_arguments_length);
 WASM_IMPORT("core", "export_database") uint32_t export_database();
 WASM_IMPORT("core", "beta_web_proxy") uint32_t beta_web_proxy(const char *proxy_spec_json_string, int proxy_spec_json_length);
+WASM_IMPORT("core", "is_trace") uint32_t is_trace();
 
 #endif
     

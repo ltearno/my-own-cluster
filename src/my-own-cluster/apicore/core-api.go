@@ -285,7 +285,9 @@ func BetaWebProxy(ctx *common.FunctionExecutionContext, proxySpecJSON string) (i
 		return -1, err
 	}
 
-	fmt.Printf("BETA PROXY to %s\n", spec.Url)
+	if ctx.Trace {
+		fmt.Printf("BETA PROXY to %s\n", spec.Url)
+	}
 
 	var reqID, respID int
 
@@ -314,19 +316,25 @@ func BetaWebProxy(ctx *common.FunctionExecutionContext, proxySpecJSON string) (i
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	fmt.Printf("LAUNCH LOOPS\n")
+	if ctx.Trace {
+		fmt.Printf("LAUNCH LOOPS\n")
+	}
 
 	go func() {
 		defer wg.Done()
 		for {
 			i := input.GetBuffer()
 			if i == nil || len(i) == 0 {
-				fmt.Printf("INPUT FINISHED\n")
+				if ctx.Trace {
+					fmt.Printf("INPUT FINISHED\n")
+				}
 				req.Close()
 				return
 			}
 
-			fmt.Printf("READ %d FROM INPUT\n", len(i))
+			if ctx.Trace {
+				fmt.Printf("READ %d FROM INPUT\n", len(i))
+			}
 			req.Write(i)
 		}
 	}()
@@ -335,7 +343,9 @@ func BetaWebProxy(ctx *common.FunctionExecutionContext, proxySpecJSON string) (i
 		defer wg.Done()
 
 		resp.GetHeaders(func(k string, v string) {
-			fmt.Printf("transmitting backend header '%s'\n", k)
+			if ctx.Trace {
+				fmt.Printf("transmitting backend header '%s'\n", k)
+			}
 			output.SetHeader(k, v)
 		})
 
@@ -344,19 +354,33 @@ func BetaWebProxy(ctx *common.FunctionExecutionContext, proxySpecJSON string) (i
 		for {
 			o := resp.GetBuffer()
 			if o == nil {
-				fmt.Printf("RESPONSE FINISHED\n")
+				if ctx.Trace {
+					fmt.Printf("RESPONSE FINISHED\n")
+				}
 				output.Close()
 				return
 			}
 
-			fmt.Printf("READ %d FROM RESPONSE\n", len(o))
+			if ctx.Trace {
+				fmt.Printf("READ %d FROM RESPONSE\n", len(o))
+			}
 			output.Write(o)
 		}
 	}()
 
 	wg.Wait()
 
-	fmt.Printf("LOOPS FINISHED\n")
+	if ctx.Trace {
+		fmt.Printf("LOOPS FINISHED\n")
+	}
 
 	return 0, nil
+}
+
+func IsTrace(ctx *common.FunctionExecutionContext) (int, error) {
+	if ctx.Trace {
+		return 1, nil
+	} else {
+		return 0, nil
+	}
 }

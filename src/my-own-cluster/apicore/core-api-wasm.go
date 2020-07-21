@@ -511,4 +511,17 @@ posixArguments := []string{} // TODO : To be implemented !!!
         
         return uint32(res), err
     })
+    
+	wctx.BindAPIFunction("core", "is_trace", "i()", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+        
+
+        
+
+        res, err := IsTrace(wctx.Fctx)
+        if err != nil {
+            return uint32(0xffff), err
+        }
+        
+        return uint32(res), err
+    })
     }

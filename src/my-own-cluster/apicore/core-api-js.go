@@ -461,4 +461,17 @@ posixArguments := []string{}
             return 1
         })
         ctx.Context.PutPropString(-2, "betaWebProxy")
+        
+        ctx.Context.PushGoFunction(func(c *duktape.Context) int {
+            
+            res, err := IsTrace(ctx.Fctx)
+            if err != nil {
+                return 0
+            }
+            
+            c.PushInt(res)
+    
+            return 1
+        })
+        ctx.Context.PutPropString(-2, "isTrace")
         }

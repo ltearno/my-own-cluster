@@ -53,7 +53,7 @@ func newRequestWrapper(method string, url string, headers map[string]string) (*r
 
 // called by http client when sending the request body
 func (w *requestWrapper) Read(buffer []byte) (int, error) {
-	fmt.Printf("rw read\n")
+	//fmt.Printf("rw read\n")
 	for {
 		if w.availableBytes != nil {
 			// first purge available bytes
@@ -63,17 +63,17 @@ func (w *requestWrapper) Read(buffer []byte) (int, error) {
 			if len(w.availableBytes) == 0 {
 				w.availableBytes = nil
 			}
-			fmt.Printf("rw give %d bytes\n", toGive)
+			//fmt.Printf("rw give %d bytes\n", toGive)
 			return toGive, nil
 		} else if w.queue.Disposed() {
 			// if finished, say it
-			fmt.Printf("rw says EOF\n")
+			//fmt.Printf("rw says EOF\n")
 			return 0, io.EOF
 		} else {
 			// or else wait for next available bytes
-			fmt.Printf("rw waits on queue\n")
+			//fmt.Printf("rw waits on queue\n")
 			b, _ := w.queue.Get(1)
-			fmt.Printf("rw wait is finished with %v\n", b)
+			//fmt.Printf("rw wait is finished with %v\n", b)
 			if b != nil && len(b) > 0 && len(b[0].([]byte)) > 0 {
 				w.availableBytes = b[0].([]byte)
 			}
@@ -179,7 +179,7 @@ func (w *responseWrapper) GetBuffer() []byte {
 		return buffer[0:n]
 	}
 	if err != nil {
-		fmt.Printf("Error while reading http response '%v'\n", err)
+		//fmt.Printf("Error while reading http response '%v'\n", err)
 	}
 	return nil
 }
