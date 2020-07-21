@@ -34,7 +34,7 @@ type Cell struct {
 //CreateVM serves to make a new vmFd, which can then be used to spawn cells
 func CreateVM() (int, error) {
 	//Open /dev/kvm/
-	//As it happens, syscall is depreciated. We use "golang.org/x/sys/unix" in its stead
+	//As it happens, syscall is depreciated. We use "golang.org/x/sys/unix" instead
 	devkvm, err := unix.Open("/dev/kvm", C.O_RDWR|C.O_CLOEXEC, 0)
 	if err != nil {
 		fmt.Println(err)
