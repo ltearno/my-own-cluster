@@ -1,7 +1,5 @@
 /// reference path="./core-api-guest.d.ts"
 
-console.log("dashboard invocation")
-
 const moc = requireApi('core')
 
 // we use the doT.js template engine to render server-side
