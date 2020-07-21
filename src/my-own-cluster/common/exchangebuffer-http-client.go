@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/golang-collections/go-datastructures/queue"
+	"github.com/gorilla/websocket"
 )
 
 /*
@@ -200,10 +201,10 @@ func (w *responseWrapper) Close() int {
 	return 0
 }
 
-func (o *Orchestrator) CreateExchangeBuffersFromHttpClientRequest(method string, url string, headers map[string]string) (ExchangeBuffer, ExchangeBuffer, error) {
+func (o *Orchestrator) CreateExchangeBuffersFromHttpClientRequest(method string, url string, headers map[string]string) (int, int, error) {
 	requestWrapper, err := newRequestWrapper(method, url, headers)
 	if err != nil {
-		return nil, nil, err
+		return -1, -1, err
 	}
 
 	client := &http.Client{Transport: &http.Transport{
@@ -214,13 +215,30 @@ func (o *Orchestrator) CreateExchangeBuffersFromHttpClientRequest(method string,
 
 	response, err := client.Do(requestWrapper.request)
 	if err != nil {
-		return nil, nil, err
+		return -1, -1, err
 	}
 
 	responseWrapper, err := newResponseWrapper(response)
 	if err != nil {
-		return nil, nil, err
+		return -1, -1, err
 	}
 
-	return requestWrapper, responseWrapper, nil
+	return o.RegisterExchangeBuffer(requestWrapper), o.RegisterExchangeBuffer(responseWrapper), nil
+}
+
+func (o *Orchestrator) CreateExchangeBuffersFromWebSocketClient(method string, url string, headers map[string]string) (int, int, error) {
+	h := make(map[string][]string)
+	for k, v := range headers {
+		h[k] = []string{v}
+	}
+
+	con, response, err := websocket.DefaultDialer.Dial(url, h)
+	if err != nil {
+		return -1, -1, err
+	}
+
+	requestWrapper := WrapWebSocketAsExchangeBuffer(headers, con)
+	responseWrapper := WrapWebSocketAsExchangeBuffer(tools.SimplifyHeaders(response.Header), con)
+
+	return o.RegisterExchangeBuffer(requestWrapper), o.RegisterExchangeBuffer(responseWrapper), nil
 }

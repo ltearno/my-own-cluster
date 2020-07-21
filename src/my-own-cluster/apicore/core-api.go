@@ -287,17 +287,24 @@ func BetaWebProxy(ctx *common.FunctionExecutionContext, proxySpecJSON string) (i
 
 	fmt.Printf("BETA PROXY to %s\n", spec.Url)
 
-	var req, resp common.ExchangeBuffer
+	var reqID, respID int
 
 	if strings.HasPrefix(spec.Url, "http") {
-		req, resp, err = ctx.Orchestrator.CreateExchangeBuffersFromHttpClientRequest(spec.Method, spec.Url, spec.Headers)
+		reqID, respID, err = ctx.Orchestrator.CreateExchangeBuffersFromHttpClientRequest(spec.Method, spec.Url, spec.Headers)
 		if err != nil {
 			return -1, err
 		}
 	} else if strings.HasPrefix(spec.Url, "ws") {
-		return -1, fmt.Errorf("cannot do WebSocket yet")
+		reqID, respID, err = ctx.Orchestrator.CreateExchangeBuffersFromWebSocketClient(spec.Method, spec.Url, spec.Headers)
+		if err != nil {
+			return -1, err
+		}
+	} else {
+		return -1, fmt.Errorf("unknown url '%s'", spec.Url)
 	}
 
+	req := ctx.Orchestrator.GetExchangeBuffer(reqID)
+	resp := ctx.Orchestrator.GetExchangeBuffer(respID)
 	input := ctx.Orchestrator.GetExchangeBuffer(spec.InputExchangeBufferID)
 	output := ctx.Orchestrator.GetExchangeBuffer(spec.OutputExchangeBufferID)
 

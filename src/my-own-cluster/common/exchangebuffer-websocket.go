@@ -8,8 +8,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func (o *Orchestrator) CreateWrappedWebSocketExchangeBuffers(r *http.Request, c *websocket.Conn) (int, int) {
-	return o.RegisterExchangeBuffer(WrapWebSocketAsExchangeBuffer(r, c)), o.RegisterExchangeBuffer(WrapWebSocketAsExchangeBuffer(r, c))
+func (o *Orchestrator) CreateWrappedWebSocketExchangeBuffers(headers map[string]string, c *websocket.Conn) (int, int) {
+	return o.RegisterExchangeBuffer(WrapWebSocketAsExchangeBuffer(headers, c)), o.RegisterExchangeBuffer(WrapWebSocketAsExchangeBuffer(nil, c))
 }
 
 type WebSocketExchangeBuffer struct {
@@ -18,14 +18,17 @@ type WebSocketExchangeBuffer struct {
 	headers map[string]string
 }
 
-func WrapWebSocketAsExchangeBuffer(r *http.Request, c *websocket.Conn) *WebSocketExchangeBuffer {
+func WrapWebSocketAsExchangeBuffer(headers map[string]string, c *websocket.Conn) *WebSocketExchangeBuffer {
 	b := &WebSocketExchangeBuffer{
-		r:       r,
 		c:       c,
 		headers: make(map[string]string),
 	}
 
-	b.readHeadersFromRequest()
+	if headers != nil {
+		for k, v := range headers {
+			b.headers[strings.ToLower(k)] = v
+		}
+	}
 
 	return b
 }
@@ -79,12 +82,6 @@ func (b *WebSocketExchangeBuffer) Write(buffer []byte) (int, error) {
 
 func (b *WebSocketExchangeBuffer) Close() int {
 	b.c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-	b.c.Close()
+	//b.c.Close()
 	return 0
-}
-
-func (b *WebSocketExchangeBuffer) readHeadersFromRequest() {
-	for k, v := range b.r.Header {
-		b.headers[strings.ToLower(k)] = v[0]
-	}
 }

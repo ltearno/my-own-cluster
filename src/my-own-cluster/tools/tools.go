@@ -22,3 +22,11 @@ func Sha256Sum(bytes []byte) string {
 	sha256Bytes := crc.Sum(nil)
 	return fmt.Sprintf("%x", sha256Bytes)
 }
+
+func SimplifyHeaders(in map[string][]string) map[string]string {
+	o := make(map[string]string)
+	for k, v := range in {
+		o[k] = v[0]
+	}
+	return o
+}
