@@ -232,6 +232,13 @@ func (o *Orchestrator) CreateExchangeBuffersFromWebSocketClient(method string, u
 		h[k] = []string{v}
 	}
 
+	//websocket.DefaultDialer.TLSClientConfig.InsecureSkipVerify = true
+	/*trace := &httptrace.ClientTrace{
+		WroteHeaderField: func(k string, v []string) { fmt.Printf("trace set header %s: %s\n", k, v[0]) },
+		WroteRequest:     func(i httptrace.WroteRequestInfo) { fmt.Printf("trace sent req %v\n", i.Err) },
+	}
+	ctx := httptrace.WithClientTrace(context.Background(), trace)*/
+
 	con, response, err := websocket.DefaultDialer.Dial(url, h)
 	if err != nil {
 		return -1, -1, err

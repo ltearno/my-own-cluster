@@ -292,14 +292,17 @@ func BetaWebProxy(ctx *common.FunctionExecutionContext, proxySpecJSON string) (i
 	if strings.HasPrefix(spec.Url, "http") {
 		reqID, respID, err = ctx.Orchestrator.CreateExchangeBuffersFromHttpClientRequest(spec.Method, spec.Url, spec.Headers)
 		if err != nil {
+			fmt.Printf("ERROR 555 %v\n", err)
 			return -1, err
 		}
 	} else if strings.HasPrefix(spec.Url, "ws") {
 		reqID, respID, err = ctx.Orchestrator.CreateExchangeBuffersFromWebSocketClient(spec.Method, spec.Url, spec.Headers)
 		if err != nil {
+			fmt.Printf("ERROR 444 %v\n", err)
 			return -1, err
 		}
 	} else {
+		fmt.Printf("ERROR 2321 %s\n", spec.Url)
 		return -1, fmt.Errorf("unknown url '%s'", spec.Url)
 	}
 

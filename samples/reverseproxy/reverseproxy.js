@@ -12,7 +12,9 @@ function invoke() {
         var requestedMethod = headers["x-moc-method"] || ""
         var requestedPath = headers["x-moc-path-param-path"] || ""
         var proxyBaseUrl = proxyData.backend
-        var url = proxyBaseUrl + "/" + requestedPath
+        var url = proxyBaseUrl
+        if (requestedPath && requestedPath.length > 0)
+            url = url + "/" + requestedPath
 
         console.log("requestedMethod: " + requestedMethod)
         console.log("requestedPath: " + requestedPath)
