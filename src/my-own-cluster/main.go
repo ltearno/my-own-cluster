@@ -16,6 +16,7 @@ import (
 	"syscall"
 
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 type Verb struct {
@@ -118,6 +119,35 @@ func main() {
 			return
 		}
 		defer db.Close()
+
+		{
+			// migrate old plug system
+			prefix := []byte("/plugs/byspec/")
+			iter := db.NewIterator(util.BytesPrefix(prefix), nil)
+			for iter.Next() {
+				key := string(iter.Key()[len(prefix):])
+				value := iter.Value()
+
+				s := strings.Index(key, "/")
+				method := key[0:s]
+				path := key[s+1:]
+
+				fmt.Printf("migration: %s %s %s\n", method, path, string(value))
+
+				newKey := []byte(fmt.Sprintf("/plug_system/plugs/byspec/%s/%s", method, path))
+				hasIt, _ := db.Has(newKey, nil)
+				if hasIt {
+					fmt.Printf("=> skip, already on new version...\n")
+				} else {
+					fmt.Printf("=> copy to %s\n", string(newKey))
+					db.Put(newKey, value, nil)
+				}
+
+				fmt.Printf("=> deleting old key\n")
+				db.Delete(iter.Key(), nil)
+			}
+			iter.Release()
+		}
 
 		orchestrator := common.NewOrchestrator(db, trace)
 
