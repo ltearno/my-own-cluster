@@ -42,14 +42,12 @@
             <div class="card">
                 <table>
                     <tbody class="code">
+                        {{~Object.keys(it.statistics) :k}}
                         <tr>
-                            <td>nb_exchange_buffers</td>
-                            <td>{{=it.nb_exchange_buffers}}</td>
+                            <td>{{=k}}</td>
+                            <td>{{=it.statistics[k]}}</td>
                         </tr>
-                        <tr>
-                            <td>nb_exchanged_buffers</td>
-                            <td>{{=it.nb_exchanged_buffers}}</td>
-                        </tr>
+                        {{~}}
                     </tbody>
                 </table>
             </div>

@@ -37,6 +37,7 @@ type Orchestrator struct {
 	apiProviders     map[string]APIProvider
 
 	trace bool
+	stats map[string]int
 
 	plugs *PlugSystem
 }
@@ -49,6 +50,7 @@ func NewOrchestrator(db *leveldb.DB, trace bool) *Orchestrator {
 		executionEngines:     make(map[string]ExecutionEngine),
 		apiProviders:         make(map[string]APIProvider),
 		trace:                trace,
+		stats:                make(map[string]int),
 		plugs:                NewPlugSystem(db, "plugs", trace),
 	}
 }
@@ -406,18 +408,18 @@ GetStatus
 */
 
 type status struct {
-	NbExchangeBuffers  int               `json:"nb_exchange_buffers"`
-	NbExchangedBuffers int               `json:"nb_exchanged_buffers"`
-	Plugs              map[string]string `json:"plugs"`
-	BlobNames          []BlobNameStatus  `json:"blob_names"`
-	Blobs              []BlobStatus      `json:"blobs"`
+	Plugs      map[string]string `json:"plugs"`
+	BlobNames  []BlobNameStatus  `json:"blob_names"`
+	Blobs      []BlobStatus      `json:"blobs"`
+	Statistics map[string]int    `json:"statistics"`
 }
 
 func (o *Orchestrator) GetStatus() string {
 	status := &status{}
 
-	status.NbExchangeBuffers = len(o.exchangeBuffers)
-	status.NbExchangedBuffers = int(o.nextExchangeBufferID)
+	o.StatSet(STAT_NB_CURRENT_BUFFERS, len(o.exchangeBuffers))
+
+	status.Statistics = o.stats
 	status.Plugs = o.GetPlugs()
 	status.BlobNames = o.GetBlobsByName()
 	status.Blobs = o.GetBlobs()

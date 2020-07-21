@@ -33,6 +33,8 @@ func (o *Orchestrator) RegisterExchangeBuffer(exchangeBuffer ExchangeBuffer) int
 	o.exchangeBuffers[int(bufferID)] = exchangeBuffer
 	o.lock.Unlock()
 
+	o.StatIncrement(STAT_NB_CREATED_BUFFERS)
+
 	return int(bufferID)
 }
 

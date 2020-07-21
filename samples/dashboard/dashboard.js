@@ -144,8 +144,17 @@ var doT = (function () {
 
 ////////// end doT
 
+/*
+
+
+                        {{ for(var p in it.statistics) { }}
+                        <div>{{=p}}</div>
+                        <div>{{=it[p]}}</div>
+                        {{ } }}
+*/
+
 function getDashboardHtml() {
-    var status = JSON.parse(moc.getStatus());
+    var status = JSON.parse(moc.getStatus())
 
     var plugs = []
     for (var spec in status.plugs) {
@@ -164,14 +173,13 @@ function getDashboardHtml() {
     }
     status.plugs = plugs
 
-    var templateTechID = moc.getBlobTechIdFromName("dashboard-template");
-    var templateContent = moc.getBlobBytesAsString(templateTechID);
+    var templateTechID = moc.getBlobTechIdFromName("dashboard-template")
+    var templateContent = moc.getBlobBytesAsString(templateTechID)
 
-    var tempFn = doT.template(templateContent);
-    var resultText = tempFn(status);
+    var tempFn = doT.template(templateContent)
+    var resultText = tempFn(status)
 
-    moc.writeExchangeBufferHeader(moc.getOutputBufferId(), "Content-Type", "text/html");
-    moc.writeExchangeBuffer(moc.getOutputBufferId(), resultText);
-
-    return 200
+    moc.writeExchangeBufferStatusCode(moc.getOutputBufferId(), 200)
+    moc.writeExchangeBufferHeader(moc.getOutputBufferId(), "Content-Type", "text/html")
+    moc.writeExchangeBuffer(moc.getOutputBufferId(), resultText)
 }

@@ -82,6 +82,8 @@ type WebServer struct {
 }
 
 func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	server.orchestrator.StatIncrement(common.STAT_NB_REQUESTS_RECEIVED)
+
 	path := r.URL.Path
 	method := r.Method
 
