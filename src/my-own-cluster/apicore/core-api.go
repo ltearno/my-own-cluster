@@ -284,19 +284,6 @@ func BetaWebProxy(ctx *common.FunctionExecutionContext, proxySpecJSON string) (i
 		return -1, err
 	}
 
-	/*
-		res, err := GetUrl(ctx, spec.Url)
-		if err != nil {
-			return -2, err
-		}
-
-		buffer := ctx.Orchestrator.GetExchangeBuffer(spec.OutputExchangeBufferID)
-
-		buffer.Write(res)
-
-		return 0, nil
-	*/
-
 	fmt.Printf("BETA PROXY\n")
 
 	req, resp, err := ctx.Orchestrator.CreateExchangeBuffersFromHttpClientRequest(spec.Method, spec.Url, spec.Headers)
@@ -329,6 +316,14 @@ func BetaWebProxy(ctx *common.FunctionExecutionContext, proxySpecJSON string) (i
 
 	go func() {
 		defer wg.Done()
+
+		resp.GetHeaders(func(k string, v string) {
+			fmt.Printf("transmitting backend header '%s'\n", k)
+			output.SetHeader(k, v)
+		})
+
+		output.WriteStatusCode(resp.GetStatusCode())
+
 		for {
 			o := resp.GetBuffer()
 			if o == nil {
