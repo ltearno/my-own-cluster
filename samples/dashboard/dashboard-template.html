@@ -61,6 +61,7 @@
                         <th>Type</th>
                         <th>Name</th>
                         <th>Start Function</th>
+                        <th>Data</th>
                     </thead>
                     <tbody class="code">
                         {{~it.plugs:plug:i}}<tr>
@@ -69,6 +70,7 @@
                             <td>{{=plug.type}}</td>
                             <td>{{=plug.name}}</td>
                             <td>{{=plug.type=='function'?plug.start_function:'-'}}</td>
+                            <td>{{=plug.data?('<pre>'+plug.data+'</pre>'):''}}</td>
                         </tr>{{~}}
                     </tbody>
                 </table>

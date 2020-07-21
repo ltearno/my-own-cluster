@@ -161,14 +161,31 @@ function getDashboardHtml() {
         var path = spec.substr(fs + 1)
         var p = JSON.parse(status.plugs[spec])
 
+        var dataView = ''
+        if (p.data) {
+            try {
+                dataView = JSON.stringify(JSON.parse(p.data))
+            }
+            catch (e) {
+                dataView = p.data
+            }
+        }
+
         plugs.push({
             method: method,
             path: path,
             type: p.type,
-            name: p.name,
-            start_function: p.start_function
+            name: p.type == "file" ? ("[" + p.name.substring(9, 16) + "]") : p.name,
+            start_function: p.start_function,
+            data: dataView
         })
     }
+    plugs = plugs.sort(function (a, b) {
+        var r = a.path.localeCompare(b.path)
+        if (!r)
+            return a.method.localeCompare(b.method)
+        return r
+    })
     status.plugs = plugs
 
     var templateTechID = moc.getBlobTechIdFromName("dashboard-template")
