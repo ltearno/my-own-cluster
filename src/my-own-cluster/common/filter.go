@@ -24,6 +24,12 @@ func (o *Orchestrator) PlugFilter(name string, startFunction string, data string
 		json.Unmarshal(val, &filters)
 	}
 
+	for _, f := range filters {
+		if f.Data == data && f.StartFunction == startFunction && f.Name == name {
+			return f.ID, nil
+		}
+	}
+
 	filter := &Filter{
 		ID:            xid.New().String(),
 		Name:          name,

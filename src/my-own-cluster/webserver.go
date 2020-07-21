@@ -87,6 +87,8 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	method := strings.ToLower(r.Method)
 
+	server.orchestrator.StatIncrement(common.StatName(fmt.Sprintf("hit_count_%s_%s", method, path)))
+
 	if server.trace {
 		fmt.Printf("WEB HANDLER METHOD='%s' PATH='%s'\n", method, path)
 	}
@@ -101,6 +103,57 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var outputExchangeBufferID int
+	var inputExchangeBufferID int
+
+	if r.Header.Get("Upgrade") == "websocket" {
+		fmt.Printf("WE ARE ON A WEBSOCKET CONNECTION !!!\n")
+
+		c, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			log.Print("upgrade:", err)
+			return
+		}
+		inputExchangeBufferID, outputExchangeBufferID = server.orchestrator.CreateWrappedWebSocketExchangeBuffers(tools.SimplifyHeaders(r.Header), c)
+	} else {
+		// create exchange buffers
+		outputExchangeBufferID = server.orchestrator.CreateWrappedHttpResponseWriterExchangeBuffer(w)
+		inputExchangeBufferID = server.orchestrator.CreateWrappedHttpRequestExchangeBuffer(r)
+	}
+
+	// safe guard :  release exchange buffers
+	defer server.orchestrator.ReleaseExchangeBuffer(inputExchangeBufferID)
+	defer server.orchestrator.ReleaseExchangeBuffer(outputExchangeBufferID)
+
+	// provide informations about current http request in the inputExchangeBuffer
+	inputExchangeBuffer := server.orchestrator.GetExchangeBuffer(inputExchangeBufferID)
+
+	for k, v := range r.Header {
+		inputExchangeBuffer.SetHeader(strings.ToLower(k), v[0])
+	}
+	inputExchangeBuffer.SetHeader("x-moc-host", r.Host)
+	inputExchangeBuffer.SetHeader("x-moc-method", r.Method)
+	inputExchangeBuffer.SetHeader("x-moc-proto", r.Proto)
+	inputExchangeBuffer.SetHeader("x-moc-remote-addr", r.RemoteAddr)
+	inputExchangeBuffer.SetHeader("x-moc-request-uri", r.RequestURI)
+	inputExchangeBuffer.SetHeader("x-moc-url-path", r.URL.Path)
+	inputExchangeBuffer.SetHeader("x-moc-url-query", r.URL.RawQuery)
+	for k, v := range boundParameters {
+		inputExchangeBuffer.SetHeader(fmt.Sprintf("x-moc-path-param-%s", strings.ToLower(k)), v)
+	}
+
+	switch plugType {
+	case "function":
+		pluggedFunction := plug.(*common.PluggedFunction)
+		inputExchangeBuffer.SetHeader("x-moc-plug-data", pluggedFunction.Data)
+
+	case "file":
+		if method != "get" {
+			errorResponse(w, 404, "sorry, nothing found.")
+			return
+		}
+	}
+
 	switch plugType {
 	case "function":
 		pluggedFunction := plug.(*common.PluggedFunction)
@@ -108,42 +161,6 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if server.trace {
 			fmt.Printf("received plugged function request, path:'%s', type:%s, name:%s, start_function:%s\n", path, plugType, pluggedFunction.Name, pluggedFunction.StartFunction)
 		}
-
-		var outputExchangeBufferID int
-		var inputExchangeBufferID int
-
-		if r.Header.Get("Upgrade") == "websocket" {
-			fmt.Printf("WE ARE ON A WEBSOCKET CONNECTION !!!\n")
-
-			c, err := upgrader.Upgrade(w, r, nil)
-			if err != nil {
-				log.Print("upgrade:", err)
-				return
-			}
-			inputExchangeBufferID, outputExchangeBufferID = server.orchestrator.CreateWrappedWebSocketExchangeBuffers(tools.SimplifyHeaders(r.Header), c)
-		} else {
-			// create exchange buffers
-			outputExchangeBufferID = server.orchestrator.CreateWrappedHttpResponseWriterExchangeBuffer(w)
-			inputExchangeBufferID = server.orchestrator.CreateWrappedHttpRequestExchangeBuffer(r)
-		}
-
-		// provide informations about current http request in the inputExchangeBuffer
-		inputExchangeBuffer := server.orchestrator.GetExchangeBuffer(inputExchangeBufferID)
-
-		for k, v := range r.Header {
-			inputExchangeBuffer.SetHeader(strings.ToLower(k), v[0])
-		}
-		inputExchangeBuffer.SetHeader("x-moc-host", r.Host)
-		inputExchangeBuffer.SetHeader("x-moc-method", r.Method)
-		inputExchangeBuffer.SetHeader("x-moc-proto", r.Proto)
-		inputExchangeBuffer.SetHeader("x-moc-remote-addr", r.RemoteAddr)
-		inputExchangeBuffer.SetHeader("x-moc-request-uri", r.RequestURI)
-		inputExchangeBuffer.SetHeader("x-moc-url-path", r.URL.Path)
-		inputExchangeBuffer.SetHeader("x-moc-url-query", r.URL.RawQuery)
-		for k, v := range boundParameters {
-			inputExchangeBuffer.SetHeader(fmt.Sprintf("x-moc-path-param-%s", strings.ToLower(k)), v)
-		}
-		inputExchangeBuffer.SetHeader("x-moc-plug-data", pluggedFunction.Data)
 
 		// create a function execution context ...
 		fctx := server.orchestrator.NewFunctionExecutionContext(
@@ -165,10 +182,6 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// release exchange buffers
-		server.orchestrator.ReleaseExchangeBuffer(inputExchangeBufferID)
-		server.orchestrator.ReleaseExchangeBuffer(outputExchangeBufferID)
-
 		return
 
 	case "file":
@@ -176,11 +189,6 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		if server.trace {
 			fmt.Printf("received plugged file request, path:'%s', type:%s, name:%s\n", path, plugType, pluggedFile.Name)
-		}
-
-		if method != "get" {
-			errorResponse(w, 404, "sorry, nothing found.")
-			return
 		}
 
 		fileTechID, err := server.orchestrator.GetBlobTechIDFromReference(pluggedFile.Name)
@@ -206,9 +214,12 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(contentType, "text/") {
 			contentType = contentType + "; charset=utf-8"
 		}
-		w.Header().Set("Content-Type", contentType)
-		w.WriteHeader(200)
-		w.Write(fileBytes)
+
+		outputExchangeBuffer := server.orchestrator.GetExchangeBuffer(outputExchangeBufferID)
+
+		outputExchangeBuffer.SetHeader("Content-Type", contentType)
+		outputExchangeBuffer.WriteStatusCode(200)
+		outputExchangeBuffer.Write(fileBytes)
 
 		return
 	}
