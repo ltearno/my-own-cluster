@@ -10,6 +10,7 @@ import (
 	"my-own-cluster/enginejs"
 	"my-own-cluster/enginewasm"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 	"unsafe"
@@ -284,11 +285,17 @@ func BetaWebProxy(ctx *common.FunctionExecutionContext, proxySpecJSON string) (i
 		return -1, err
 	}
 
-	fmt.Printf("BETA PROXY\n")
+	fmt.Printf("BETA PROXY to %s\n", spec.Url)
 
-	req, resp, err := ctx.Orchestrator.CreateExchangeBuffersFromHttpClientRequest(spec.Method, spec.Url, spec.Headers)
-	if err != nil {
-		return -1, err
+	var req, resp common.ExchangeBuffer
+
+	if strings.HasPrefix(spec.Url, "http") {
+		req, resp, err = ctx.Orchestrator.CreateExchangeBuffersFromHttpClientRequest(spec.Method, spec.Url, spec.Headers)
+		if err != nil {
+			return -1, err
+		}
+	} else if strings.HasPrefix(spec.Url, "ws") {
+		return -1, fmt.Errorf("cannot do WebSocket yet")
 	}
 
 	input := ctx.Orchestrator.GetExchangeBuffer(spec.InputExchangeBufferID)
