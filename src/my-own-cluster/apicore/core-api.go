@@ -294,5 +294,7 @@ func BetaWebProxy(ctx *common.FunctionExecutionContext, proxySpecJSON string) (i
 
 	fmt.Printf("DLKJDHLKJDHLKDJHLKDJHLDKJ HDLKJHDLKJ HDLKJH BETA PROXY\n")
 
+	ctx.Orchestrator.CreateExchangeBuffersFromHttpClientRequest(spec.Method, spec.Url, spec.Headers)
+
 	return 0, nil
 }
