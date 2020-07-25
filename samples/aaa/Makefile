@@ -5,7 +5,7 @@ all: aaa
 .PHONY: aaa
 aaa: core-api-guest.d.ts
 	@echo pushing files
-	@$(MOC) push filter filter.js
+	@$(MOC) push aaa aaa.js
 
 .PHONY: set-filter
 set-filter:

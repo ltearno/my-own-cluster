@@ -48,6 +48,9 @@ pub mod raw {
         pub fn call_function(name_string: *const u8, name_length: u32, start_function_string: *const u8, start_function_length: u32, arguments_int_array: *const u32, arguments_length: u32, mode_string: *const u8, mode_length: u32, input_exchange_buffer_id:u32, output_exchange_buffer_id:u32, posix_file_name_string: *const u8, posix_file_name_length: u32, posix_arguments_string_array: *const u8, posix_arguments_length: u32) -> u32;
         pub fn export_database() -> u32;
         pub fn beta_web_proxy(proxy_spec_json_string: *const u8, proxy_spec_json_length: u32) -> u32;
+        pub fn is_trace() -> u32;
+        pub fn plug_filter(name_string: *const u8, name_length: u32, start_function_string: *const u8, start_function_length: u32, data_string: *const u8, data_length: u32) -> u32;
+        pub fn unplug_filter(id_string: *const u8, id_length: u32) -> u32;
 
     }
 }
@@ -402,5 +405,33 @@ pub fn export_database() -> Result<Vec<u8>, u32> {
 
 pub fn beta_web_proxy(proxy_spec_json: &str) -> u32 {
     unsafe { raw::beta_web_proxy(proxy_spec_json.as_bytes().as_ptr(), proxy_spec_json.as_bytes().len() as u32) }
+}
+
+pub fn is_trace() -> u32 {
+    unsafe { raw::is_trace() }
+}
+
+pub fn plug_filter(name: &str, start_function: &str, data: &str) -> Result<String, u32> {
+    let result_buffer_id = unsafe { raw::plug_filter(name.as_bytes().as_ptr(), name.as_bytes().len() as u32, start_function.as_bytes().as_ptr(), start_function.as_bytes().len() as u32, data.as_bytes().as_ptr(), data.as_bytes().len() as u32) };
+    if result_buffer_id == 0xffff {
+        Err(3)
+    }
+    else {
+        let result_buffer = read_exchange_buffer(result_buffer_id);
+        match result_buffer {
+            Ok(result_buffer) => {
+                let result = String::from_utf8(result_buffer).unwrap();
+                //free_buffer(result_buffer_id);
+                Ok(result)
+            },
+            Err(err) => {
+                Err(4)
+            },
+        }
+    }
+}
+
+pub fn unplug_filter(id: &str) -> u32 {
+    unsafe { raw::unplug_filter(id.as_bytes().as_ptr(), id.as_bytes().len() as u32) }
 }
 

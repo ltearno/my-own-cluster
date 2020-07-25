@@ -98,6 +98,8 @@ func main() {
 	switch verbs[0].Name {
 	case "serve":
 		trace := verbs[0].GetOptionOr("trace", "false") == "true"
+		removeFilters := verbs[0].GetOptionOr("remove-filters", "false") == "true"
+		trace = trace || removeFilters
 
 		sigs := make(chan os.Signal, 1)
 		done := make(chan bool, 2)
@@ -154,6 +156,11 @@ func main() {
 		}
 
 		db.Put([]byte("/database-version"), []byte("1"), nil)
+
+		if removeFilters {
+			fmt.Printf("\nremoving all filters because of command line option\n\n")
+			db.Delete([]byte("/filters"), nil)
+		}
 
 		orchestrator := common.NewOrchestrator(db, trace)
 

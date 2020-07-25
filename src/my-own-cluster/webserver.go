@@ -132,7 +132,7 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		inputExchangeBuffer.SetHeader(strings.ToLower(k), v[0])
 	}
 	inputExchangeBuffer.SetHeader("x-moc-host", r.Host)
-	inputExchangeBuffer.SetHeader("x-moc-method", r.Method)
+	inputExchangeBuffer.SetHeader("x-moc-method", method)
 	inputExchangeBuffer.SetHeader("x-moc-proto", r.Proto)
 	inputExchangeBuffer.SetHeader("x-moc-remote-addr", r.RemoteAddr)
 	inputExchangeBuffer.SetHeader("x-moc-request-uri", r.RequestURI)
@@ -140,6 +140,29 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	inputExchangeBuffer.SetHeader("x-moc-url-query", r.URL.RawQuery)
 	for k, v := range boundParameters {
 		inputExchangeBuffer.SetHeader(fmt.Sprintf("x-moc-path-param-%s", strings.ToLower(k)), v)
+	}
+
+	filters := server.orchestrator.GetFilters()
+	for _, filter := range filters {
+		// create a function execution context ...
+		fctx := server.orchestrator.NewFunctionExecutionContext(
+			filter.Name,
+			filter.StartFunction,
+			[]int{},
+			server.trace,
+			"direct",
+			nil,
+			nil,
+			inputExchangeBufferID,
+			outputExchangeBufferID,
+		)
+
+		// ... and run it
+		err := fctx.Run()
+		if err != nil {
+			errorResponse(w, 500, fmt.Sprintf("error while executing the function: '%v'", err))
+			return
+		}
 	}
 
 	switch plugType {
