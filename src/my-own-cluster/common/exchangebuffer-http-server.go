@@ -58,6 +58,7 @@ func (b *HttpReaderExchangeBuffer) GetStatusCode() int {
 }
 
 func (b *HttpReaderExchangeBuffer) GetBuffer() []byte {
+	b.ensureHeadersReadFromRequest()
 	body, err := ioutil.ReadAll(b.r.Body)
 	if err == nil {
 		if body != nil && len(body) == 0 {
