@@ -75,6 +75,14 @@ type UnplugResponse struct {
 	Status bool `json:"status"`
 }
 
+// for reusing underlying tcp connection accross multiple calls,
+// must be used by one thread only
+var client = &http.Client{Transport: &http.Transport{
+	TLSClientConfig: &tls.Config{
+		InsecureSkipVerify: true,
+	},
+}}
+
 func registerBlobWithName(baseURL string, name string, contentType string, fileName string) (string, error) {
 	contentBytes, err := ioutil.ReadFile(fileName)
 	if err != nil {
@@ -96,18 +104,13 @@ func registerBlobWithName(baseURL string, name string, contentType string, fileN
 
 	bodyReader := bytes.NewReader(bodyBytes)
 
-	client := &http.Client{Transport: &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}}
 	resp, err := client.Post(baseURL+"/api/blob/register", "application/json", bodyReader)
 	if err != nil {
 		panic(err)
 	}
-	defer resp.Body.Close()
 
 	bytes, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
 
 	response := &RegisterBlobWithNameResponse{}
 	if json.Unmarshal(bytes, response) != nil {
@@ -143,11 +146,6 @@ func registerBlob(baseURL string, contentType string, fileName string) (string, 
 
 	bodyReader := bytes.NewReader(bodyBytes)
 
-	client := &http.Client{Transport: &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}}
 	resp, err := client.Post(baseURL+"/api/blob/register", "application/json", bodyReader)
 	if err != nil {
 		panic(err)
@@ -286,18 +284,13 @@ func CliVersion(verbs []Verb) {
 func CliExportDatabase(verbs []Verb) {
 	baseURL := getAPIBaseURL(verbs[0])
 
-	client := &http.Client{Transport: &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}}
 	resp, err := client.Get(baseURL + "/api/admin/export-database")
 	if err != nil {
 		panic(err)
 	}
-	defer resp.Body.Close()
 
 	bytes, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
 
 	fmt.Println(string(bytes))
 }
@@ -338,20 +331,14 @@ func CliPlugFunction(verbs []Verb) {
 
 	bodyReader := bytes.NewReader(bodyBytes)
 
-	client := &http.Client{Transport: &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}}
-
 	resp, err := client.Post(serverBaseUrl+"/api/function/plug", "application/json", bodyReader)
 	if err != nil {
 		fmt.Printf("error during http request (%v)\n", err)
 		return
 	}
-	defer resp.Body.Close()
 
 	bytes, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
 
 	response := &PlugResponse{}
 	if json.Unmarshal(bytes, response) != nil {
@@ -384,20 +371,14 @@ func CliUnplug(verbs []Verb) {
 
 	bodyReader := bytes.NewReader(bodyBytes)
 
-	client := &http.Client{Transport: &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}}
-
 	resp, err := client.Post(serverBaseUrl+"/api/function/unplug", "application/json", bodyReader)
 	if err != nil {
 		fmt.Printf("error during http request (%v)\n", err)
 		return
 	}
-	defer resp.Body.Close()
 
 	bytes, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
 
 	response := &UnplugResponse{}
 	if json.Unmarshal(bytes, response) != nil {
@@ -438,20 +419,14 @@ func CliPlugFilter(verbs []Verb) {
 
 	bodyReader := bytes.NewReader(bodyBytes)
 
-	client := &http.Client{Transport: &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}}
-
 	resp, err := client.Post(serverBaseUrl+"/api/filter/plug", "application/json", bodyReader)
 	if err != nil {
 		fmt.Printf("error during http request (%v)\n", err)
 		return
 	}
-	defer resp.Body.Close()
 
 	bytes, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
 
 	response := &PlugFilterResponse{}
 	if json.Unmarshal(bytes, response) != nil {
@@ -472,12 +447,6 @@ func CliUnplugFilter(verbs []Verb) {
 
 	filterID := verbs[0].Name
 
-	client := &http.Client{Transport: &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}}
-
 	req, err := http.NewRequest("delete", serverBaseUrl+"/api/filter/plug/"+filterID, nil)
 	req.Header.Set("content-type", "application/json")
 	resp, err := client.Do(req)
@@ -485,9 +454,9 @@ func CliUnplugFilter(verbs []Verb) {
 		fmt.Printf("error during http request (%v)\n", err)
 		return
 	}
-	defer resp.Body.Close()
 
 	bytes, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
 
 	response := &PlugResponse{}
 	if json.Unmarshal(bytes, response) != nil {
@@ -553,19 +522,13 @@ func uploadFile(serverBaseUrl string, method string, path string, contentType st
 
 	bodyReader := bytes.NewReader(bodyBytes)
 
-	client := &http.Client{Transport: &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}}
-
 	resp, err := client.Post(serverBaseUrl+"/api/file/plug", "application/json", bodyReader)
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
 
 	bytes, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
 
 	response := &PlugResponse{}
 	if json.Unmarshal(bytes, response) != nil {
@@ -654,18 +617,13 @@ func CliCallFunction(verbs []Verb) {
 
 	bodyReader := bytes.NewReader(bodyBytes)
 
-	client := &http.Client{Transport: &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}}
 	resp, err := client.Post(baseUrl+"/api/function/call", "application/json", bodyReader)
 	if err != nil {
 		panic(err)
 	}
-	defer resp.Body.Close()
 
 	bytes, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
 
 	fmt.Print(string(bytes))
 }
