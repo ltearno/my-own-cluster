@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
@@ -191,7 +192,7 @@ var persistencePrefix = []byte("/persistence")
 func (o *Orchestrator) PersistenceSet(key []byte, value []byte) bool {
 	key = append(persistencePrefix, key...)
 
-	o.db.Put(key, value, nil)
+	o.db.Put(key, value, &opt.WriteOptions{Sync: true})
 
 	return true
 }

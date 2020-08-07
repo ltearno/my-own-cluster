@@ -66,7 +66,7 @@ func (b *HttpReaderExchangeBuffer) GetBuffer() []byte {
 
 		return body
 	} else {
-		fmt.Printf("ERROR http wrapped request CANNOT READ BODY, maybe tried to read it twice ? (%v)\n", err)
+		fmt.Printf("ERROR http wrapped request CANNOT READ BODY from request with method='%s', url='%s', maybe tried to read it twice ? (%v)\n", b.r.Method, b.r.RequestURI, err)
 		return nil
 	}
 }

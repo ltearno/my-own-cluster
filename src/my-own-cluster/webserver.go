@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"my-own-cluster/common"
 	"my-own-cluster/tools"
@@ -61,16 +60,6 @@ func messageResponse(w http.ResponseWriter, message string) {
 
 func errorResponse(w http.ResponseWriter, code int, message string) {
 	jsonResponse(w, code, ErrorResponse{message})
-}
-
-func extractBodyAsJSON(r *http.Request, v interface{}) error {
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		fmt.Printf("CANNOT READ BODY\n")
-		return err
-	}
-
-	return json.Unmarshal(body, v)
 }
 
 var upgrader = websocket.Upgrader{}

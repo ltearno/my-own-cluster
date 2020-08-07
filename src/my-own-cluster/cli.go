@@ -233,6 +233,7 @@ func CliUploadDir(verbs []Verb) {
 			}
 			count++
 		}
+		//time.Sleep(100 * time.Millisecond)
 		return nil
 	})
 

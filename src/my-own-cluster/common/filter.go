@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/rs/xid"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 var storageKey []byte = []byte(fmt.Sprintf("/filters"))
@@ -44,7 +45,7 @@ func (o *Orchestrator) PlugFilter(name string, startFunction string, data string
 		return "", err
 	}
 
-	o.db.Put(storageKey, newVal, nil)
+	o.db.Put(storageKey, newVal, &opt.WriteOptions{Sync: true})
 
 	return filter.ID, nil
 }
@@ -63,7 +64,7 @@ func (o *Orchestrator) UnplugFilter(id string) {
 
 	newVal, err := json.Marshal(r)
 	if err == nil {
-		o.db.Put(storageKey, newVal, nil)
+		o.db.Put(storageKey, newVal, &opt.WriteOptions{Sync: true})
 	}
 }
 

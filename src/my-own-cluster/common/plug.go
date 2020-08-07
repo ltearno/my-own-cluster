@@ -6,6 +6,7 @@ import (
 
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
@@ -55,7 +56,7 @@ URL plugging and routing
 func (p *PlugSystem) PlugPath(method string, path string, data []byte) error {
 	method = strings.ToLower(method)
 
-	p.db.Put(p.getPlugKey(method, path), data, nil)
+	p.db.Put(p.getPlugKey(method, path), data, &opt.WriteOptions{Sync: true})
 
 	return nil
 }

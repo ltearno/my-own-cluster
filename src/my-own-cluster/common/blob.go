@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"my-own-cluster/tools"
 	"strings"
+
+	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 type BlobAbstract struct {
@@ -30,8 +32,8 @@ func (o *Orchestrator) RegisterBlob(contentType string, contentBytes []byte) (st
 		return "", err
 	}
 
-	o.db.Put([]byte(fmt.Sprintf("/blobs/abstract/%s", techID)), abstractBytes, nil)
-	o.db.Put([]byte(fmt.Sprintf("/blobs/bytes/%s", techID)), contentBytes, nil)
+	o.db.Put([]byte(fmt.Sprintf("/blobs/abstract/%s", techID)), abstractBytes, &opt.WriteOptions{Sync: true})
+	o.db.Put([]byte(fmt.Sprintf("/blobs/bytes/%s", techID)), contentBytes, &opt.WriteOptions{Sync: true})
 
 	fmt.Printf("registered_blob '%s', content_type:%s, size:%d\n", techID, contentType, len(contentBytes))
 
@@ -49,7 +51,7 @@ func (o *Orchestrator) RegisterBlobWithName(name string, contentType string, con
 		return techID, err
 	}
 
-	o.db.Put([]byte(fmt.Sprintf("/blobs/byname/%s", name)), []byte(techID), nil)
+	o.db.Put([]byte(fmt.Sprintf("/blobs/byname/%s", name)), []byte(techID), &opt.WriteOptions{Sync: true})
 
 	fmt.Printf("registered_blob_by_name '%s', techID:%s\n", name, techID)
 
