@@ -37,7 +37,7 @@ run-serve: build-embed-assets tls.cert.pem
 
 tls.cert.pem:
 	@echo Generating TLS key files, you can leave default values everywhere by typing [ENTER] until the end
-	@openssl req -x509 -newkey rsa:4096 -keyout tls.key.pem -nodes -out tls.cert.pem -days 365
+	@openssl req -x509 -newkey rsa:4096 -keyout tls.key.pem -nodes -out tls.cert.pem -days 3650 -subj "/C=FR/O=Rezilio/ST=Occitanie/L=Toulouse/CN=localhost"
 
 docker-build: tls.cert.pem
 	@echo building docker image

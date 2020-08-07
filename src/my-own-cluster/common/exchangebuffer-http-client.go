@@ -210,6 +210,7 @@ func (o *Orchestrator) CreateExchangeBuffersFromHttpClientRequest(method string,
 	client := &http.Client{Transport: &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
+			MaxVersion:         tls.VersionTLS12,
 		},
 	}}
 

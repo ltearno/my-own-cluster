@@ -115,7 +115,7 @@ func registerBlobWithName(baseURL string, name string, contentType string, fileN
 	}
 
 	if response.Status {
-		fmt.Printf("[%s] registered blob '%s' content_type:%s techID:%s\n", baseURL, name, contentType, response.TechID)
+		fmt.Printf("[%s] registered blob '%s' content_type:%s size:%d techID:%s\n", baseURL, name, contentType, len(contentBytes), response.TechID)
 	} else {
 		return "", fmt.Errorf("[%s] ERROR while registration of '%s' content_type:%s techID:%s", baseURL, name, contentType, response.TechID)
 	}
@@ -162,7 +162,7 @@ func registerBlob(baseURL string, contentType string, fileName string) (string, 
 	}
 
 	if response.Status {
-		fmt.Printf("registered blob content_type:%s techID:%s\n", contentType, response.TechID)
+		fmt.Printf("registered blob content_type:%s size:%d techID:%s\n", contentType, len(contentBytes), response.TechID)
 	} else {
 		return "", fmt.Errorf("ERROR while registration of content_type:%s techID:%s", contentType, response.TechID)
 	}
@@ -233,7 +233,7 @@ func CliUploadDir(verbs []Verb) {
 			}
 			count++
 		}
-		//time.Sleep(100 * time.Millisecond)
+
 		return nil
 	})
 

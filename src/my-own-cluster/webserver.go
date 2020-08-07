@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -242,7 +243,7 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // StartWebServer runs a webserver hosting the application
 func StartWebServer(port int, workingDir string, orchestrator *common.Orchestrator, trace bool) {
-	server := &WebServer{
+	webServer := &WebServer{
 		name:         "my-own-cluster",
 		orchestrator: orchestrator,
 		trace:        trace,
@@ -251,11 +252,20 @@ func StartWebServer(port int, workingDir string, orchestrator *common.Orchestrat
 	endSignal := make(chan bool, 1)
 
 	go func() {
-		address := fmt.Sprintf("0.0.0.0:%d", port)
+		address := fmt.Sprintf(":%d", port)
 		certPath := filepath.Join(workingDir, "tls.cert.pem")
 		keyPath := filepath.Join(workingDir, "tls.key.pem")
 
-		log.Fatal(http.ListenAndServeTLS(address, certPath, keyPath, server))
+		server := &http.Server{
+			Addr:    address,
+			Handler: webServer,
+			TLSConfig: &tls.Config{
+				InsecureSkipVerify: true,
+				MaxVersion:         tls.VersionTLS12,
+			},
+		}
+
+		log.Fatal(server.ListenAndServeTLS(certPath, keyPath))
 
 		endSignal <- true
 	}()
