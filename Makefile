@@ -10,6 +10,7 @@ all: run-serve
 build-prepare:
 	@echo "updating dependencies..."
 	@./update-dependencies.sh
+	@sudo apt install -y libgbm-dev libegl-dev
 
 .PHONY: build-embed-assets
 build-embed-assets:
