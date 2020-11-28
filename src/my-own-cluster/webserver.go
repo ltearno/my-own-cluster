@@ -117,7 +117,6 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// provide informations about current http request in the inputExchangeBuffer
 	inputExchangeBuffer := server.orchestrator.GetExchangeBuffer(inputExchangeBufferID)
-
 	for k, v := range r.Header {
 		inputExchangeBuffer.SetHeader(strings.ToLower(k), v[0])
 	}

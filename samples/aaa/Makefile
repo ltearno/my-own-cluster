@@ -1,14 +1,10 @@
 MOC := ../../my-own-cluster
 
-all: aaa
-
-.PHONY: aaa
-aaa: core-api-guest.d.ts
-	@echo pushing files
-	@$(MOC) push aaa aaa.js
+all: set-filter
 
 .PHONY: set-filter
-set-filter:
+set-filter: core-api-guest.d.ts
+	@$(MOC) push aaa aaa.js
 	$(MOC) plug-filter aaa filter
 
 core-api-guest.d.ts: $(MOC)

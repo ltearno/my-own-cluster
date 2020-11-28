@@ -10,6 +10,12 @@ function filter() {
     var ah = headers["authorization"]
 
     console.log(headers["x-moc-url-path"])
+    console.log(JSON.stringify(headers, null, 2))
+
+    // get the accessed plug info (tags)
+    // in cookie or header
+    // find the jwt
+    // verify it
 
     if ((typeof ah === 'string') && ah.startsWith("Bearer ")) {
         jwtToken = ah.substr(7)
