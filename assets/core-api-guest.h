@@ -25,8 +25,8 @@ WASM_IMPORT("core", "register_blob_with_name") uint32_t register_blob_with_name(
 WASM_IMPORT("core", "register_blob") uint32_t register_blob(const char *content_type_string, int content_type_length, const void *content_bytes, int content_length);
 WASM_IMPORT("core", "get_blob_tech_id_from_name") uint32_t get_blob_tech_id_from_name(const char *name_string, int name_length);
 WASM_IMPORT("core", "get_blob_bytes_as_string") uint32_t get_blob_bytes_as_string(const char *name_string, int name_length);
-WASM_IMPORT("core", "plug_function") uint32_t plug_function(const char *method_string, int method_length, const char *path_string, int path_length, const char *name_string, int name_length, const char *start_function_string, int start_function_length, const char *data_string, int data_length);
-WASM_IMPORT("core", "plug_file") uint32_t plug_file(const char *method_string, int method_length, const char *path_string, int path_length, const char *name_string, int name_length);
+WASM_IMPORT("core", "plug_function") uint32_t plug_function(const char *method_string, int method_length, const char *path_string, int path_length, const char *name_string, int name_length, const char *start_function_string, int start_function_length, const char *data_string, int data_length, const char *tags_json_string, int tags_json_length);
+WASM_IMPORT("core", "plug_file") uint32_t plug_file(const char *method_string, int method_length, const char *path_string, int path_length, const char *name_string, int name_length, const char *tags_json_string, int tags_json_length);
 WASM_IMPORT("core", "unplug_path") uint32_t unplug_path(const char *method_string, int method_length, const char *path_string, int path_length);
 WASM_IMPORT("core", "get_status") uint32_t get_status();
 WASM_IMPORT("core", "persistence_set") uint32_t persistence_set(const void *key_bytes, int key_length, const void *value_bytes, int value_length);

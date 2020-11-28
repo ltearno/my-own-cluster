@@ -38,11 +38,12 @@ type RegisterBlobResponse struct {
 }
 
 type PlugFunctionRequest struct {
-	Method        string `json:"method"`
-	Path          string `json:"path"`
-	Name          string `json:"name"`
-	StartFunction string `json:"start_function"`
-	Data          string `json:"data"`
+	Method        string            `json:"method"`
+	Path          string            `json:"path"`
+	Name          string            `json:"name"`
+	Tags          map[string]string `json:"tags,omitempty"`
+	StartFunction string            `json:"start_function"`
+	Data          string            `json:"data"`
 }
 
 type PlugFilterRequest struct {
@@ -52,9 +53,10 @@ type PlugFilterRequest struct {
 }
 
 type PlugFileRequest struct {
-	Method string `json:"method"`
-	Path   string `json:"path"`
-	Name   string `json:"name"`
+	Method string            `json:"method"`
+	Path   string            `json:"path"`
+	Name   string            `json:"name"`
+	Tags   map[string]string `json:"tags,omitempty"`
 }
 
 type PlugResponse struct {
@@ -184,6 +186,13 @@ func CliPushFunction(verbs []Verb) {
 func CliUploadFile(verbs []Verb) {
 	baseURL := getAPIBaseURL(verbs[0])
 	method := verbs[0].GetOptionOr("method", "get")
+	tagsJSON := verbs[0].GetOptionOr("tags", "{}")
+	tags := make(map[string]string)
+	err := json.Unmarshal([]byte(tagsJSON), &tags)
+	if err != nil {
+		fmt.Printf("cannot marshal json tags (%v)\n", err)
+		return
+	}
 	verbs = verbs[1:]
 
 	path := verbs[0].Name
@@ -195,7 +204,7 @@ func CliUploadFile(verbs []Verb) {
 		contentType = detectContentTypeFromFileName(fileName)
 	}
 
-	techID, err := uploadFile(baseURL, method, path, contentType, fileName)
+	techID, err := uploadFile(baseURL, method, path, contentType, fileName, tags)
 	if err != nil {
 		fmt.Printf("error while doing things, %v\n", err)
 		return
@@ -207,12 +216,19 @@ func CliUploadFile(verbs []Verb) {
 func CliUploadDir(verbs []Verb) {
 	baseURL := getAPIBaseURL(verbs[0])
 	method := verbs[0].GetOptionOr("method", "get")
+	tagsJSON := verbs[0].GetOptionOr("tags", "{}")
+	tags := make(map[string]string)
+	err := json.Unmarshal([]byte(tagsJSON), &tags)
+	if err != nil {
+		fmt.Printf("cannot marshal json tags (%v)\n", err)
+		return
+	}
 	verbs = verbs[1:]
 
 	pathPrefix := verbs[0].Name
 	directoryName := verbs[1].Name
 
-	directoryName, err := filepath.Abs(directoryName)
+	directoryName, err = filepath.Abs(directoryName)
 	if err != nil {
 		fmt.Printf("error getting absolute path (%v)\n", err)
 		return
@@ -225,7 +241,7 @@ func CliUploadDir(verbs []Verb) {
 		urlPath := filepath.Join(pathPrefix, path[len(directoryName):])
 		if !info.IsDir() {
 			fmt.Printf("%s  =>  %s\n", path, urlPath)
-			_, err := uploadFile(baseURL, method, urlPath, detectContentTypeFromFileName(path), path)
+			_, err := uploadFile(baseURL, method, urlPath, detectContentTypeFromFileName(path), path, tags)
 			if err != nil {
 				countError++
 			}
@@ -300,8 +316,15 @@ func CliRemote(verbs []Verb) {
 }
 
 func CliPlugFunction(verbs []Verb) {
-	serverBaseUrl := getAPIBaseURL(verbs[0])
+	serverBaseURL := getAPIBaseURL(verbs[0])
 	method := verbs[0].GetOptionOr("method", "get")
+	tagsJSON := verbs[0].GetOptionOr("tags", "{}")
+	tags := make(map[string]string)
+	err := json.Unmarshal([]byte(tagsJSON), &tags)
+	if err != nil {
+		fmt.Printf("cannot marshal json tags (%v)\n", err)
+		return
+	}
 	verbs = verbs[1:]
 
 	path := verbs[0].Name
@@ -321,6 +344,7 @@ func CliPlugFunction(verbs []Verb) {
 		Name:          name,
 		StartFunction: startFunction,
 		Data:          data,
+		Tags:          tags,
 	}
 
 	bodyBytes, err := json.Marshal(reqBody)
@@ -331,7 +355,7 @@ func CliPlugFunction(verbs []Verb) {
 
 	bodyReader := bytes.NewReader(bodyBytes)
 
-	resp, err := client.Post(serverBaseUrl+"/api/function/plug", "application/json", bodyReader)
+	resp, err := client.Post(serverBaseURL+"/api/function/plug", "application/json", bodyReader)
 	if err != nil {
 		fmt.Printf("error during http request (%v)\n", err)
 		return
@@ -502,7 +526,7 @@ func getAPIBaseURL(verb Verb) string {
 	return baseURL + "/my-own-cluster"
 }
 
-func uploadFile(serverBaseUrl string, method string, path string, contentType string, fileName string) (string, error) {
+func uploadFile(serverBaseUrl string, method string, path string, contentType string, fileName string, tags map[string]string) (string, error) {
 	techID, err := registerBlob(serverBaseUrl, contentType, fileName)
 	if err != nil {
 		return "", fmt.Errorf("cannot read file '%s' (%v)", fileName, err)
@@ -512,6 +536,7 @@ func uploadFile(serverBaseUrl string, method string, path string, contentType st
 		Method: method,
 		Path:   path,
 		Name:   fmt.Sprintf("techID://%s", techID),
+		Tags:   tags,
 	}
 
 	bodyBytes, err := json.Marshal(reqBody)

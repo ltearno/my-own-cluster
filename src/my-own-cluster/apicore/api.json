@@ -164,6 +164,10 @@
                 {
                     "name": "data",
                     "type": "string"
+                },
+                {
+                    "name": "tags_json",
+                    "type": "string"
                 }
             ],
             "returnType": "int"
@@ -180,6 +184,10 @@
                 },
                 {
                     "name": "name",
+                    "type": "string"
+                },
+                {
+                    "name": "tags_json",
                     "type": "string"
                 }
             ],

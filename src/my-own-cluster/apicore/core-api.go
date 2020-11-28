@@ -52,13 +52,13 @@ func FreeBuffer(ctx *common.FunctionExecutionContext, bufferID int) (int, error)
 	return 0, nil
 }
 
-func PlugFunction(ctx *common.FunctionExecutionContext, method string, path string, name string, startFunction string, data string) (int, error) {
-	ctx.Orchestrator.PlugFunction(method, path, name, startFunction, data)
+func PlugFunction(ctx *common.FunctionExecutionContext, method string, path string, name string, startFunction string, data string, tagsJSON string) (int, error) {
+	ctx.Orchestrator.PlugFunction(method, path, name, startFunction, data, tagsJSON)
 	return 0, nil
 }
 
-func PlugFile(ctx *common.FunctionExecutionContext, method string, path string, name string) (int, error) {
-	ctx.Orchestrator.PlugFile(method, path, name)
+func PlugFile(ctx *common.FunctionExecutionContext, method string, path string, name string, tagsJSON string) (int, error) {
+	ctx.Orchestrator.PlugFile(method, path, name, tagsJSON)
 	return 0, nil
 }
 

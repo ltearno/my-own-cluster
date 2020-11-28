@@ -263,17 +263,18 @@ content := cs.GetParamByteBuffer(2, 3)
                 return uint32(resultBufferID), nil
     })
     
-	wctx.BindAPIFunction("core", "plug_function", "i(iiiiiiiiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "plug_function", "i(iiiiiiiiiiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         method := cs.GetParamString(0, 1)
 path := cs.GetParamString(2, 3)
 name := cs.GetParamString(4, 5)
 startFunction := cs.GetParamString(6, 7)
 data := cs.GetParamString(8, 9)
+tagsJson := cs.GetParamString(10, 11)
 
 
         
 
-        res, err := PlugFunction(wctx.Fctx, method, path, name, startFunction, data)
+        res, err := PlugFunction(wctx.Fctx, method, path, name, startFunction, data, tagsJson)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -281,15 +282,16 @@ data := cs.GetParamString(8, 9)
         return uint32(res), err
     })
     
-	wctx.BindAPIFunction("core", "plug_file", "i(iiiiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
+	wctx.BindAPIFunction("core", "plug_file", "i(iiiiiiii)", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         method := cs.GetParamString(0, 1)
 path := cs.GetParamString(2, 3)
 name := cs.GetParamString(4, 5)
+tagsJson := cs.GetParamString(6, 7)
 
 
         
 
-        res, err := PlugFile(wctx.Fctx, method, path, name)
+        res, err := PlugFile(wctx.Fctx, method, path, name, tagsJson)
         if err != nil {
             return uint32(0xffff), err
         }

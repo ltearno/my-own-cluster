@@ -33,7 +33,8 @@ function plugFunction() {
         req.path,
         req.name,
         req.start_function,
-        req.data || ""
+        req.data || "",
+        JSON.stringify(req.tags || {})
     )
 
     moc.writeExchangeBuffer(moc.getOutputBufferId(), JSON.stringify({
@@ -49,7 +50,8 @@ function plugFile() {
     moc.plugFile(
         req.method,
         req.path,
-        req.name
+        req.name,
+        JSON.stringify(req.tags || {})
     )
 
     moc.writeExchangeBuffer(moc.getOutputBufferId(), JSON.stringify({

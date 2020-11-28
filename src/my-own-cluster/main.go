@@ -182,15 +182,16 @@ func main() {
 		// init core-api
 		coreAPILibrary, err := assetsgen.Asset("assets/rest-default-api.js")
 		if err == nil {
+			systemTags := "{\"category\":\"system-bootstrap\"}"
 			orchestrator.RegisterBlobWithName("core-api", "text/javascript", coreAPILibrary)
-			orchestrator.PlugFunction("POST", "/my-own-cluster/api/blob/register", "core-api", "registerBlob", "")
-			orchestrator.PlugFunction("POST", "/my-own-cluster/api/file/plug", "core-api", "plugFile", "")
-			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/plug", "core-api", "plugFunction", "")
-			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/unplug", "core-api", "unplugPath", "")
-			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/call", "core-api", "callFunction", "")
-			orchestrator.PlugFunction("POST", "/my-own-cluster/api/filter/plug", "core-api", "plugFilter", "")
-			orchestrator.PlugFunction("DELETE", "/my-own-cluster/api/filter/plug/!filter-id", "core-api", "unplugFilter", "")
-			orchestrator.PlugFunction("GET", "/my-own-cluster/api/admin/export-database", "core-api", "exportDatabase", "")
+			orchestrator.PlugFunction("POST", "/my-own-cluster/api/blob/register", "core-api", "registerBlob", "", systemTags)
+			orchestrator.PlugFunction("POST", "/my-own-cluster/api/file/plug", "core-api", "plugFile", "", systemTags)
+			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/plug", "core-api", "plugFunction", "", systemTags)
+			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/unplug", "core-api", "unplugPath", "", systemTags)
+			orchestrator.PlugFunction("POST", "/my-own-cluster/api/function/call", "core-api", "callFunction", "", systemTags)
+			orchestrator.PlugFunction("POST", "/my-own-cluster/api/filter/plug", "core-api", "plugFilter", "", systemTags)
+			orchestrator.PlugFunction("DELETE", "/my-own-cluster/api/filter/plug/!filter-id", "core-api", "unplugFilter", "", systemTags)
+			orchestrator.PlugFunction("GET", "/my-own-cluster/api/admin/export-database", "core-api", "exportDatabase", "", systemTags)
 		} else {
 			fmt.Printf("[error] cannot load rest-default-api.js, things may go bad quickly...\n")
 		}

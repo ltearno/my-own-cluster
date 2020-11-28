@@ -24,8 +24,8 @@ declare function requireApi(name: "core") : {
     registerBlob(contentType: string, content: Uint8Array) : string
     getBlobTechIdFromName(name: string) : string
     getBlobBytesAsString(name: string) : string
-    plugFunction(method: string, path: string, name: string, startFunction: string, data: string) : number
-    plugFile(method: string, path: string, name: string) : number
+    plugFunction(method: string, path: string, name: string, startFunction: string, data: string, tagsJson: string) : number
+    plugFile(method: string, path: string, name: string, tagsJson: string) : number
     unplugPath(method: string, path: string) : number
     getStatus() : string
     persistenceSet(key: Uint8Array, value: Uint8Array) : number

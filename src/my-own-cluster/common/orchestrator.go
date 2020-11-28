@@ -237,33 +237,44 @@ func (o *Orchestrator) PersistenceGetSubset(keyPrefix []byte) ([][]byte, error) 
 }
 
 type Plug struct {
-	Type string `json:"type"`
+	Type string            `json:"type"`
+	Name string            `json:"name"`
+	Tags map[string]string `json:"tags,omitempty"`
 }
 
 type PluggedFile struct {
-	Type string `json:"type"`
-	Name string `json:"name"`
+	Type string            `json:"type"`
+	Name string            `json:"name"`
+	Tags map[string]string `json:"tags,omitempty"`
 }
 
 type PluggedFunction struct {
-	Type          string `json:"type"`
-	Name          string `json:"name"`
-	StartFunction string `json:"start_function"`
-	Data          string `json:"data,omitempty"`
+	Type          string            `json:"type"`
+	Name          string            `json:"name"`
+	Tags          map[string]string `json:"tags,omitempty"`
+	StartFunction string            `json:"start_function"`
+	Data          string            `json:"data,omitempty"`
 }
 
 /**
 URL plugging and routing
 */
 
-func (o *Orchestrator) PlugFunction(method string, path string, name string, startFunction string, plugData string) error {
+func (o *Orchestrator) PlugFunction(method string, path string, name string, startFunction string, plugData string, tagsJSON string) error {
 	method = strings.ToLower(method)
+
+	tags := make(map[string]string)
+	err := json.Unmarshal([]byte(tagsJSON), &tags)
+	if err != nil {
+		return err
+	}
 
 	data := &PluggedFunction{
 		Type:          "function",
 		Name:          name,
 		StartFunction: startFunction,
 		Data:          plugData,
+		Tags:          tags,
 	}
 
 	dataJSON, err := json.Marshal(data)
@@ -278,12 +289,19 @@ func (o *Orchestrator) PlugFunction(method string, path string, name string, sta
 	return nil
 }
 
-func (o *Orchestrator) PlugFile(method string, path string, name string) error {
+func (o *Orchestrator) PlugFile(method string, path string, name string, tagsJSON string) error {
 	method = strings.ToLower(method)
+
+	tags := make(map[string]string)
+	err := json.Unmarshal([]byte(tagsJSON), &tags)
+	if err != nil {
+		return err
+	}
 
 	data := &PluggedFile{
 		Type: "file",
 		Name: name,
+		Tags: tags,
 	}
 
 	dataJSON, err := json.Marshal(data)

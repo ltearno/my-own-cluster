@@ -157,18 +157,10 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch plugType {
 	case "function":
 		pluggedFunction := plug.(*common.PluggedFunction)
+
+		fmt.Printf("TAGS: %v\n", pluggedFunction.Tags)
+
 		inputExchangeBuffer.SetHeader("x-moc-plug-data", pluggedFunction.Data)
-
-	case "file":
-		if method != "get" {
-			errorResponse(w, 404, "sorry, nothing found.")
-			return
-		}
-	}
-
-	switch plugType {
-	case "function":
-		pluggedFunction := plug.(*common.PluggedFunction)
 
 		if server.trace {
 			fmt.Printf("received plugged function request, path:'%s', type:%s, name:%s, start_function:%s\n", path, plugType, pluggedFunction.Name, pluggedFunction.StartFunction)
@@ -197,6 +189,11 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 
 	case "file":
+		if method != "get" {
+			errorResponse(w, 404, "sorry, nothing found.")
+			return
+		}
+
 		pluggedFile := plug.(*common.PluggedFile)
 
 		if server.trace {

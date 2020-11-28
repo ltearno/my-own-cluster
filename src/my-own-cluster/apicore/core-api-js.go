@@ -221,13 +221,14 @@ content := c.SafeToBytes(-1)
         ctx.Context.PutPropString(-2, "getBlobBytesAsString")
         
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
-            method := c.SafeToString(-5)
-path := c.SafeToString(-4)
-name := c.SafeToString(-3)
-startFunction := c.SafeToString(-2)
-data := c.SafeToString(-1)
+            method := c.SafeToString(-6)
+path := c.SafeToString(-5)
+name := c.SafeToString(-4)
+startFunction := c.SafeToString(-3)
+data := c.SafeToString(-2)
+tagsJson := c.SafeToString(-1)
 
-            res, err := PlugFunction(ctx.Fctx, method, path, name, startFunction, data)
+            res, err := PlugFunction(ctx.Fctx, method, path, name, startFunction, data, tagsJson)
             if err != nil {
                 return 0
             }
@@ -239,11 +240,12 @@ data := c.SafeToString(-1)
         ctx.Context.PutPropString(-2, "plugFunction")
         
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
-            method := c.SafeToString(-3)
-path := c.SafeToString(-2)
-name := c.SafeToString(-1)
+            method := c.SafeToString(-4)
+path := c.SafeToString(-3)
+name := c.SafeToString(-2)
+tagsJson := c.SafeToString(-1)
 
-            res, err := PlugFile(ctx.Fctx, method, path, name)
+            res, err := PlugFile(ctx.Fctx, method, path, name, tagsJson)
             if err != nil {
                 return 0
             }
