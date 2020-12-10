@@ -49,7 +49,6 @@ func NewJWTAPIProvider() (common.APIProvider, error) {
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
 		for {
-			log.Printf("fetching trusted keys...\n")
 			set, err := jwk.FetchHTTP(p.trustProvider.certEndpoint, jwk.WithHTTPClient(p.client))
 			if err != nil {
 				log.Printf("failed to parse JWK: %s %v", err, set)
@@ -65,7 +64,16 @@ func NewJWTAPIProvider() (common.APIProvider, error) {
 						log.Printf("failed to create public key: %s", err)
 					} else {
 						trustedKeys[key.KeyID()] = rawkey
-						log.Printf("registered key: %s\n", key.KeyID())
+
+						exists := false
+						existingKeys, ok := p.trustedKeys[p.trustProvider.iss]
+						if ok {
+							_, ok := existingKeys[key.KeyID()]
+							exists = ok
+						}
+						if !exists {
+							log.Printf("registered key:%s for trust:%s\n", key.KeyID(), p.trustProvider.certEndpoint)
+						}
 					}
 
 				}
