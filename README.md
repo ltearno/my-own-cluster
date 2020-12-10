@@ -70,9 +70,30 @@ My-own-cluster executes :
 - `javascript` code thanks to the [duktape](https://github.com/svaarala/duktape) interpreter (there is no nodejs runtime).
 - `glsl` OpenGL shader language, by using OpenGL NVidia/AMD drivers loaded by EGL.
 
-Each function is executed in a jailed and sandboxed very light VM instance (requires KVM, not yet fully implemented, code in [experiments/kvm](experiments/kvm/)).
+Each function will be executed in a jailed and sandboxed very light VM instance (requires KVM, not yet fully implemented, code in [experiments/kvm](experiments/kvm/)).
 
 The functions can interact with the platform through the Guest API which is described just below.
+
+## Exchange Buffers
+
+Exchange buffers is a concept merging files, http requests and responses, web sockets and so on...
+
+In memory it looks like this (data structure)
+
+[ EXCHANGE BUFFER ]
+Lock :          mutex // a lock to access the buffer
+Headers :       map[string]string
+StatusCode :    int
+WriteFinished : boolean     // if closed, an exchangebuffer will not accept new parts. Once closed, it cannot be reopened
+Parts :         [][]byte    // a queue of not consumed parts
+One only reader at a time
+One only writer at a time
+
+Usually an exchange buffer is manipulated through two interfaces serving two different purposes : a reader and a writer.
+
+TODO : tranform ExhcnageBuffer to be a memory data structure
+TODO : a http request creates a input buffer (closed if http, still opened if websocket)
+TODO : request processing finishes when the output buffer is closed
 
 ## Guest API
 
