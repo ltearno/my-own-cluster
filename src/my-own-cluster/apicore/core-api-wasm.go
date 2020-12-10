@@ -8,13 +8,13 @@ package apicore
     )
     
 
-func BindMyOwnClusterFunctionsWASM(wctx enginewasm.WasmProcessContext) {
+func BindMyOwnClusterFunctionsWASM(wctx enginewasm.WasmProcessContext, cookie interface{}) {
 	wctx.BindAPIFunction("core", "get_input_buffer_id", "i()", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
         
 
         
 
-        res, err := GetInputBufferID(wctx.Fctx)
+        res, err := GetInputBufferID(wctx.Fctx, cookie)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -27,7 +27,7 @@ func BindMyOwnClusterFunctionsWASM(wctx enginewasm.WasmProcessContext) {
 
         
 
-        res, err := GetOutputBufferID(wctx.Fctx)
+        res, err := GetOutputBufferID(wctx.Fctx, cookie)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -40,7 +40,7 @@ func BindMyOwnClusterFunctionsWASM(wctx enginewasm.WasmProcessContext) {
 
         
 
-        res, err := CreateExchangeBuffer(wctx.Fctx)
+        res, err := CreateExchangeBuffer(wctx.Fctx, cookie)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -55,7 +55,7 @@ content := cs.GetParamByteBuffer(1, 2)
 
         
 
-        res, err := WriteExchangeBuffer(wctx.Fctx, bufferId, content)
+        res, err := WriteExchangeBuffer(wctx.Fctx, cookie, bufferId, content)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -71,7 +71,7 @@ value := cs.GetParamString(3, 4)
 
         
 
-        res, err := WriteExchangeBufferHeader(wctx.Fctx, bufferId, name, value)
+        res, err := WriteExchangeBufferHeader(wctx.Fctx, cookie, bufferId, name, value)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -86,7 +86,7 @@ statusCode := cs.GetParamInt(1)
 
         
 
-        res, err := WriteExchangeBufferStatusCode(wctx.Fctx, bufferId, statusCode)
+        res, err := WriteExchangeBufferStatusCode(wctx.Fctx, cookie, bufferId, statusCode)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -100,7 +100,7 @@ statusCode := cs.GetParamInt(1)
 
         resultBuffer := cs.GetParamByteBuffer(1, 2)
 
-        res, err := ReadExchangeBuffer(wctx.Fctx, bufferId)
+        res, err := ReadExchangeBuffer(wctx.Fctx, cookie, bufferId)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -120,7 +120,7 @@ statusCode := cs.GetParamInt(1)
 
         
 
-        res, err := ReadExchangeBufferHeaders(wctx.Fctx, bufferId)
+        res, err := ReadExchangeBufferHeaders(wctx.Fctx, cookie, bufferId)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -158,7 +158,7 @@ statusCode := cs.GetParamInt(1)
 
         
 
-        res, err := Base64Decode(wctx.Fctx, encoded)
+        res, err := Base64Decode(wctx.Fctx, cookie, encoded)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -176,7 +176,7 @@ statusCode := cs.GetParamInt(1)
 
         
 
-        res, err := Base64Encode(wctx.Fctx, input)
+        res, err := Base64Encode(wctx.Fctx, cookie, input)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -196,7 +196,7 @@ content := cs.GetParamByteBuffer(4, 5)
 
         
 
-        res, err := RegisterBlobWithName(wctx.Fctx, name, contentType, content)
+        res, err := RegisterBlobWithName(wctx.Fctx, cookie, name, contentType, content)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -215,7 +215,7 @@ content := cs.GetParamByteBuffer(2, 3)
 
         
 
-        res, err := RegisterBlob(wctx.Fctx, contentType, content)
+        res, err := RegisterBlob(wctx.Fctx, cookie, contentType, content)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -233,7 +233,7 @@ content := cs.GetParamByteBuffer(2, 3)
 
         
 
-        res, err := GetBlobTechIdFromName(wctx.Fctx, name)
+        res, err := GetBlobTechIdFromName(wctx.Fctx, cookie, name)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -251,7 +251,7 @@ content := cs.GetParamByteBuffer(2, 3)
 
         
 
-        res, err := GetBlobBytesAsString(wctx.Fctx, name)
+        res, err := GetBlobBytesAsString(wctx.Fctx, cookie, name)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -274,7 +274,7 @@ tagsJson := cs.GetParamString(10, 11)
 
         
 
-        res, err := PlugFunction(wctx.Fctx, method, path, name, startFunction, data, tagsJson)
+        res, err := PlugFunction(wctx.Fctx, cookie, method, path, name, startFunction, data, tagsJson)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -291,7 +291,7 @@ tagsJson := cs.GetParamString(6, 7)
 
         
 
-        res, err := PlugFile(wctx.Fctx, method, path, name, tagsJson)
+        res, err := PlugFile(wctx.Fctx, cookie, method, path, name, tagsJson)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -306,7 +306,7 @@ path := cs.GetParamString(2, 3)
 
         
 
-        res, err := UnplugPath(wctx.Fctx, method, path)
+        res, err := UnplugPath(wctx.Fctx, cookie, method, path)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -319,7 +319,7 @@ path := cs.GetParamString(2, 3)
 
         
 
-        res, err := GetStatus(wctx.Fctx)
+        res, err := GetStatus(wctx.Fctx, cookie)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -338,7 +338,7 @@ value := cs.GetParamByteBuffer(2, 3)
 
         
 
-        res, err := PersistenceSet(wctx.Fctx, key, value)
+        res, err := PersistenceSet(wctx.Fctx, cookie, key, value)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -352,7 +352,7 @@ value := cs.GetParamByteBuffer(2, 3)
 
         
 
-        res, err := GetUrl(wctx.Fctx, url)
+        res, err := GetUrl(wctx.Fctx, cookie, url)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -370,7 +370,7 @@ value := cs.GetParamByteBuffer(2, 3)
 
         
 
-        res, err := PersistenceGet(wctx.Fctx, key)
+        res, err := PersistenceGet(wctx.Fctx, cookie, key)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -388,7 +388,7 @@ value := cs.GetParamByteBuffer(2, 3)
 
         
 
-        res, err := PersistenceGetSubset(wctx.Fctx, prefix)
+        res, err := PersistenceGetSubset(wctx.Fctx, cookie, prefix)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -426,7 +426,7 @@ value := cs.GetParamByteBuffer(2, 3)
 
         
 
-        res, err := PrintDebug(wctx.Fctx, text)
+        res, err := PrintDebug(wctx.Fctx, cookie, text)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -440,7 +440,7 @@ value := cs.GetParamByteBuffer(2, 3)
 
         
 
-        res, err := GetTime(wctx.Fctx, dest)
+        res, err := GetTime(wctx.Fctx, cookie, dest)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -454,7 +454,7 @@ value := cs.GetParamByteBuffer(2, 3)
 
         
 
-        res, err := FreeBuffer(wctx.Fctx, bufferId)
+        res, err := FreeBuffer(wctx.Fctx, cookie, bufferId)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -475,7 +475,7 @@ posixArguments := []string{} // TODO : To be implemented !!!
 
         
 
-        res, err := CallFunction(wctx.Fctx, name, startFunction, arguments, mode, inputExchangeBufferId, outputExchangeBufferId, posixFileName, posixArguments)
+        res, err := CallFunction(wctx.Fctx, cookie, name, startFunction, arguments, mode, inputExchangeBufferId, outputExchangeBufferId, posixFileName, posixArguments)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -488,7 +488,7 @@ posixArguments := []string{} // TODO : To be implemented !!!
 
         
 
-        res, err := ExportDatabase(wctx.Fctx)
+        res, err := ExportDatabase(wctx.Fctx, cookie)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -506,7 +506,7 @@ posixArguments := []string{} // TODO : To be implemented !!!
 
         
 
-        res, err := BetaWebProxy(wctx.Fctx, proxySpecJson)
+        res, err := BetaWebProxy(wctx.Fctx, cookie, proxySpecJson)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -519,7 +519,7 @@ posixArguments := []string{} // TODO : To be implemented !!!
 
         
 
-        res, err := IsTrace(wctx.Fctx)
+        res, err := IsTrace(wctx.Fctx, cookie)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -535,7 +535,7 @@ data := cs.GetParamString(4, 5)
 
         
 
-        res, err := PlugFilter(wctx.Fctx, name, startFunction, data)
+        res, err := PlugFilter(wctx.Fctx, cookie, name, startFunction, data)
         if err != nil {
             return uint32(0xffff), err
         }
@@ -553,7 +553,7 @@ data := cs.GetParamString(4, 5)
 
         
 
-        res, err := UnplugFilter(wctx.Fctx, id)
+        res, err := UnplugFilter(wctx.Fctx, cookie, id)
         if err != nil {
             return uint32(0xffff), err
         }

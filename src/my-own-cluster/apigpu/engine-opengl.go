@@ -34,12 +34,12 @@ func NewGPUAPIProvider() (common.APIProvider, error) {
 func (p *GPUAPIProvider) BindToExecutionEngineContext(ctx common.ExecutionEngineContextBounding) {
 	wctx, ok := ctx.(*enginewasm.WasmProcessContext)
 	if ok {
-		BindOpenGLFunctionsWASM(*wctx)
+		BindOpenGLFunctionsWASM(*wctx, p)
 	}
 
 	jsctx, ok := ctx.(*enginejs.JSProcessContext)
 	if ok {
-		BindOpenGLFunctionsJs(*jsctx)
+		BindOpenGLFunctionsJs(*jsctx, p)
 	}
 }
 

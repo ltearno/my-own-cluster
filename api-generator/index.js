@@ -317,14 +317,14 @@ function generateWasmBindings(apiDescription, out) {
         ${needBytesPackage ? '"encoding/binary"' : ''}
     )
     \n\n`)
-    out(`func ${apiDescription.bindFunctionName}WASM(wctx enginewasm.WasmProcessContext) {`)
+    out(`func ${apiDescription.bindFunctionName}WASM(wctx enginewasm.WasmProcessContext, cookie interface{}) {`)
     for (let fctName in apiDescription.functions) {
         let fct = apiDescription.functions[fctName]
         let wasmName = fctName
         let goName = mapGoName(fctName)
 
         let goParamExtraction = getGoParamExtractionCode(fct.args)
-        let goCallParams = ["wctx.Fctx"]
+        let goCallParams = ["wctx.Fctx", "cookie"]
         goCallParams = goCallParams.concat(...goParamExtraction.argNames)
         out(`
 	wctx.BindAPIFunction("${apiDescription.moduleName}", "${wasmName}", "${mapReturnType(fct.returnType)}(${fct.args.map(arg => mapArgumentType(arg.type)).join('')}${getWasmAdditionalPrototype(fct.returnType)})", func(wctx *enginewasm.WasmProcessContext, cs *enginewasm.CallSite) (uint32, error) {
@@ -352,7 +352,7 @@ function generateJsBindings(apiDescription, out) {
     
         "gopkg.in/ltearno/go-duktape.v3"
     )\n\n`)
-    out(`func ${apiDescription.bindFunctionName}Js(ctx enginejs.JSProcessContext) {`)
+    out(`func ${apiDescription.bindFunctionName}Js(ctx enginejs.JSProcessContext, cookie interface{}) {`)
     for (let fctName in apiDescription.functions) {
         let fct = apiDescription.functions[fctName]
 
@@ -360,7 +360,7 @@ function generateJsBindings(apiDescription, out) {
         let goName = mapGoName(fctName)
 
         let jsParamExtraction = getJsParamExtractionCode(fct.args)
-        let jsCallParams = ["ctx.Fctx"]
+        let jsCallParams = ["ctx.Fctx", "cookie"]
         jsCallParams = jsCallParams.concat(...jsParamExtraction.argNames)
         out(`
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {

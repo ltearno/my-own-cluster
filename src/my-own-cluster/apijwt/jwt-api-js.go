@@ -6,11 +6,11 @@ package apijwt
         "gopkg.in/ltearno/go-duktape.v3"
     )
 
-func BindJwtFunctionsJs(ctx enginejs.JSProcessContext) {
+func BindJwtFunctionsJs(ctx enginejs.JSProcessContext, cookie interface{}) {
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             jwt := c.SafeToString(-1)
 
-            res, err := VerifyJwt(ctx.Fctx, jwt)
+            res, err := VerifyJwt(ctx.Fctx, cookie, jwt)
             if err != nil {
                 return 0
             }

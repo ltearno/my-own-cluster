@@ -6,10 +6,10 @@ package apicore
         "gopkg.in/ltearno/go-duktape.v3"
     )
 
-func BindMyOwnClusterFunctionsJs(ctx enginejs.JSProcessContext) {
+func BindMyOwnClusterFunctionsJs(ctx enginejs.JSProcessContext, cookie interface{}) {
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             
-            res, err := GetInputBufferID(ctx.Fctx)
+            res, err := GetInputBufferID(ctx.Fctx, cookie)
             if err != nil {
                 return 0
             }
@@ -22,7 +22,7 @@ func BindMyOwnClusterFunctionsJs(ctx enginejs.JSProcessContext) {
         
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             
-            res, err := GetOutputBufferID(ctx.Fctx)
+            res, err := GetOutputBufferID(ctx.Fctx, cookie)
             if err != nil {
                 return 0
             }
@@ -35,7 +35,7 @@ func BindMyOwnClusterFunctionsJs(ctx enginejs.JSProcessContext) {
         
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             
-            res, err := CreateExchangeBuffer(ctx.Fctx)
+            res, err := CreateExchangeBuffer(ctx.Fctx, cookie)
             if err != nil {
                 return 0
             }
@@ -50,7 +50,7 @@ func BindMyOwnClusterFunctionsJs(ctx enginejs.JSProcessContext) {
             bufferId := int(c.GetNumber(-2))
 content := c.SafeToBytes(-1)
 
-            res, err := WriteExchangeBuffer(ctx.Fctx, bufferId, content)
+            res, err := WriteExchangeBuffer(ctx.Fctx, cookie, bufferId, content)
             if err != nil {
                 return 0
             }
@@ -66,7 +66,7 @@ content := c.SafeToBytes(-1)
 name := c.SafeToString(-2)
 value := c.SafeToString(-1)
 
-            res, err := WriteExchangeBufferHeader(ctx.Fctx, bufferId, name, value)
+            res, err := WriteExchangeBufferHeader(ctx.Fctx, cookie, bufferId, name, value)
             if err != nil {
                 return 0
             }
@@ -81,7 +81,7 @@ value := c.SafeToString(-1)
             bufferId := int(c.GetNumber(-2))
 statusCode := int(c.GetNumber(-1))
 
-            res, err := WriteExchangeBufferStatusCode(ctx.Fctx, bufferId, statusCode)
+            res, err := WriteExchangeBufferStatusCode(ctx.Fctx, cookie, bufferId, statusCode)
             if err != nil {
                 return 0
             }
@@ -95,7 +95,7 @@ statusCode := int(c.GetNumber(-1))
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             bufferId := int(c.GetNumber(-1))
 
-            res, err := ReadExchangeBuffer(ctx.Fctx, bufferId)
+            res, err := ReadExchangeBuffer(ctx.Fctx, cookie, bufferId)
             if err != nil {
                 return 0
             }
@@ -113,7 +113,7 @@ statusCode := int(c.GetNumber(-1))
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             bufferId := int(c.GetNumber(-1))
 
-            res, err := ReadExchangeBufferHeaders(ctx.Fctx, bufferId)
+            res, err := ReadExchangeBufferHeaders(ctx.Fctx, cookie, bufferId)
             if err != nil {
                 return 0
             }
@@ -132,7 +132,7 @@ statusCode := int(c.GetNumber(-1))
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             encoded := c.SafeToString(-1)
 
-            res, err := Base64Decode(ctx.Fctx, encoded)
+            res, err := Base64Decode(ctx.Fctx, cookie, encoded)
             if err != nil {
                 return 0
             }
@@ -150,7 +150,7 @@ statusCode := int(c.GetNumber(-1))
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             input := c.SafeToBytes(-1)
 
-            res, err := Base64Encode(ctx.Fctx, input)
+            res, err := Base64Encode(ctx.Fctx, cookie, input)
             if err != nil {
                 return 0
             }
@@ -166,7 +166,7 @@ statusCode := int(c.GetNumber(-1))
 contentType := c.SafeToString(-2)
 content := c.SafeToBytes(-1)
 
-            res, err := RegisterBlobWithName(ctx.Fctx, name, contentType, content)
+            res, err := RegisterBlobWithName(ctx.Fctx, cookie, name, contentType, content)
             if err != nil {
                 return 0
             }
@@ -181,7 +181,7 @@ content := c.SafeToBytes(-1)
             contentType := c.SafeToString(-2)
 content := c.SafeToBytes(-1)
 
-            res, err := RegisterBlob(ctx.Fctx, contentType, content)
+            res, err := RegisterBlob(ctx.Fctx, cookie, contentType, content)
             if err != nil {
                 return 0
             }
@@ -195,7 +195,7 @@ content := c.SafeToBytes(-1)
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             name := c.SafeToString(-1)
 
-            res, err := GetBlobTechIdFromName(ctx.Fctx, name)
+            res, err := GetBlobTechIdFromName(ctx.Fctx, cookie, name)
             if err != nil {
                 return 0
             }
@@ -209,7 +209,7 @@ content := c.SafeToBytes(-1)
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             name := c.SafeToString(-1)
 
-            res, err := GetBlobBytesAsString(ctx.Fctx, name)
+            res, err := GetBlobBytesAsString(ctx.Fctx, cookie, name)
             if err != nil {
                 return 0
             }
@@ -228,7 +228,7 @@ startFunction := c.SafeToString(-3)
 data := c.SafeToString(-2)
 tagsJson := c.SafeToString(-1)
 
-            res, err := PlugFunction(ctx.Fctx, method, path, name, startFunction, data, tagsJson)
+            res, err := PlugFunction(ctx.Fctx, cookie, method, path, name, startFunction, data, tagsJson)
             if err != nil {
                 return 0
             }
@@ -245,7 +245,7 @@ path := c.SafeToString(-3)
 name := c.SafeToString(-2)
 tagsJson := c.SafeToString(-1)
 
-            res, err := PlugFile(ctx.Fctx, method, path, name, tagsJson)
+            res, err := PlugFile(ctx.Fctx, cookie, method, path, name, tagsJson)
             if err != nil {
                 return 0
             }
@@ -260,7 +260,7 @@ tagsJson := c.SafeToString(-1)
             method := c.SafeToString(-2)
 path := c.SafeToString(-1)
 
-            res, err := UnplugPath(ctx.Fctx, method, path)
+            res, err := UnplugPath(ctx.Fctx, cookie, method, path)
             if err != nil {
                 return 0
             }
@@ -273,7 +273,7 @@ path := c.SafeToString(-1)
         
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             
-            res, err := GetStatus(ctx.Fctx)
+            res, err := GetStatus(ctx.Fctx, cookie)
             if err != nil {
                 return 0
             }
@@ -288,7 +288,7 @@ path := c.SafeToString(-1)
             key := c.SafeToBytes(-2)
 value := c.SafeToBytes(-1)
 
-            res, err := PersistenceSet(ctx.Fctx, key, value)
+            res, err := PersistenceSet(ctx.Fctx, cookie, key, value)
             if err != nil {
                 return 0
             }
@@ -302,7 +302,7 @@ value := c.SafeToBytes(-1)
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             url := c.SafeToString(-1)
 
-            res, err := GetUrl(ctx.Fctx, url)
+            res, err := GetUrl(ctx.Fctx, cookie, url)
             if err != nil {
                 return 0
             }
@@ -320,7 +320,7 @@ value := c.SafeToBytes(-1)
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             key := c.SafeToBytes(-1)
 
-            res, err := PersistenceGet(ctx.Fctx, key)
+            res, err := PersistenceGet(ctx.Fctx, cookie, key)
             if err != nil {
                 return 0
             }
@@ -338,7 +338,7 @@ value := c.SafeToBytes(-1)
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             prefix := c.SafeToString(-1)
 
-            res, err := PersistenceGetSubset(ctx.Fctx, prefix)
+            res, err := PersistenceGetSubset(ctx.Fctx, cookie, prefix)
             if err != nil {
                 return 0
             }
@@ -357,7 +357,7 @@ value := c.SafeToBytes(-1)
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             text := c.SafeToString(-1)
 
-            res, err := PrintDebug(ctx.Fctx, text)
+            res, err := PrintDebug(ctx.Fctx, cookie, text)
             if err != nil {
                 return 0
             }
@@ -371,7 +371,7 @@ value := c.SafeToBytes(-1)
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             dest := c.SafeToBytes(-1)
 
-            res, err := GetTime(ctx.Fctx, dest)
+            res, err := GetTime(ctx.Fctx, cookie, dest)
             if err != nil {
                 return 0
             }
@@ -385,7 +385,7 @@ value := c.SafeToBytes(-1)
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             bufferId := int(c.GetNumber(-1))
 
-            res, err := FreeBuffer(ctx.Fctx, bufferId)
+            res, err := FreeBuffer(ctx.Fctx, cookie, bufferId)
             if err != nil {
                 return 0
             }
@@ -422,7 +422,7 @@ posixArguments := []string{}
                 }
                 c.Pop()
 
-            res, err := CallFunction(ctx.Fctx, name, startFunction, arguments, mode, inputExchangeBufferId, outputExchangeBufferId, posixFileName, posixArguments)
+            res, err := CallFunction(ctx.Fctx, cookie, name, startFunction, arguments, mode, inputExchangeBufferId, outputExchangeBufferId, posixFileName, posixArguments)
             if err != nil {
                 return 0
             }
@@ -435,7 +435,7 @@ posixArguments := []string{}
         
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             
-            res, err := ExportDatabase(ctx.Fctx)
+            res, err := ExportDatabase(ctx.Fctx, cookie)
             if err != nil {
                 return 0
             }
@@ -453,7 +453,7 @@ posixArguments := []string{}
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             proxySpecJson := c.SafeToString(-1)
 
-            res, err := BetaWebProxy(ctx.Fctx, proxySpecJson)
+            res, err := BetaWebProxy(ctx.Fctx, cookie, proxySpecJson)
             if err != nil {
                 return 0
             }
@@ -466,7 +466,7 @@ posixArguments := []string{}
         
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             
-            res, err := IsTrace(ctx.Fctx)
+            res, err := IsTrace(ctx.Fctx, cookie)
             if err != nil {
                 return 0
             }
@@ -482,7 +482,7 @@ posixArguments := []string{}
 startFunction := c.SafeToString(-2)
 data := c.SafeToString(-1)
 
-            res, err := PlugFilter(ctx.Fctx, name, startFunction, data)
+            res, err := PlugFilter(ctx.Fctx, cookie, name, startFunction, data)
             if err != nil {
                 return 0
             }
@@ -496,7 +496,7 @@ data := c.SafeToString(-1)
         ctx.Context.PushGoFunction(func(c *duktape.Context) int {
             id := c.SafeToString(-1)
 
-            res, err := UnplugFilter(ctx.Fctx, id)
+            res, err := UnplugFilter(ctx.Fctx, cookie, id)
             if err != nil {
                 return 0
             }

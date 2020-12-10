@@ -26,12 +26,12 @@ func (p *CoreAPIProvider) BindToExecutionEngineContext(ctx common.ExecutionEngin
 	wctx, ok := ctx.(*enginewasm.WasmProcessContext)
 	if ok {
 		wctx := *wctx
-		BindMyOwnClusterFunctionsWASM(wctx)
+		BindMyOwnClusterFunctionsWASM(wctx, p)
 	}
 
 	jsctx, ok := ctx.(*enginejs.JSProcessContext)
 	if ok {
-		BindMyOwnClusterFunctionsJs(*jsctx)
+		BindMyOwnClusterFunctionsJs(*jsctx, p)
 	}
 }
 
@@ -39,45 +39,45 @@ func (p *CoreAPIProvider) BindToExecutionEngineContext(ctx common.ExecutionEngin
  * Implementation of core functions that execution engines can use to exposes functionality to their runtimes
  */
 
-func GetInputBufferID(ctx *common.FunctionExecutionContext) (int, error) {
+func GetInputBufferID(ctx *common.FunctionExecutionContext, cookie interface{}) (int, error) {
 	return ctx.InputExchangeBufferID, nil
 }
 
-func GetOutputBufferID(ctx *common.FunctionExecutionContext) (int, error) {
+func GetOutputBufferID(ctx *common.FunctionExecutionContext, cookie interface{}) (int, error) {
 	return ctx.OutputExchangeBufferID, nil
 }
 
-func FreeBuffer(ctx *common.FunctionExecutionContext, bufferID int) (int, error) {
+func FreeBuffer(ctx *common.FunctionExecutionContext, cookie interface{}, bufferID int) (int, error) {
 	ctx.Orchestrator.ReleaseExchangeBuffer(int(bufferID))
 	return 0, nil
 }
 
-func PlugFunction(ctx *common.FunctionExecutionContext, method string, path string, name string, startFunction string, data string, tagsJSON string) (int, error) {
+func PlugFunction(ctx *common.FunctionExecutionContext, cookie interface{}, method string, path string, name string, startFunction string, data string, tagsJSON string) (int, error) {
 	ctx.Orchestrator.PlugFunction(method, path, name, startFunction, data, tagsJSON)
 	return 0, nil
 }
 
-func PlugFile(ctx *common.FunctionExecutionContext, method string, path string, name string, tagsJSON string) (int, error) {
+func PlugFile(ctx *common.FunctionExecutionContext, cookie interface{}, method string, path string, name string, tagsJSON string) (int, error) {
 	ctx.Orchestrator.PlugFile(method, path, name, tagsJSON)
 	return 0, nil
 }
 
-func UnplugPath(ctx *common.FunctionExecutionContext, method string, path string) (int, error) {
+func UnplugPath(ctx *common.FunctionExecutionContext, cookie interface{}, method string, path string) (int, error) {
 	ctx.Orchestrator.UnplugPath(method, path)
 	return 0, nil
 }
 
-func PlugFilter(ctx *common.FunctionExecutionContext, name string, startFunction string, data string) (string, error) {
+func PlugFilter(ctx *common.FunctionExecutionContext, cookie interface{}, name string, startFunction string, data string) (string, error) {
 	filterID, err := ctx.Orchestrator.PlugFilter(name, startFunction, data)
 	return filterID, err
 }
 
-func UnplugFilter(ctx *common.FunctionExecutionContext, id string) (int, error) {
+func UnplugFilter(ctx *common.FunctionExecutionContext, cookie interface{}, id string) (int, error) {
 	ctx.Orchestrator.UnplugFilter(id)
 	return 0, nil
 }
 
-func RegisterBlobWithName(ctx *common.FunctionExecutionContext, name string, contentType string, contentBytes []byte) (string, error) {
+func RegisterBlobWithName(ctx *common.FunctionExecutionContext, cookie interface{}, name string, contentType string, contentBytes []byte) (string, error) {
 	techID, err := ctx.Orchestrator.RegisterBlobWithName(name, contentType, contentBytes)
 	if err != nil {
 		return "", err
@@ -86,7 +86,7 @@ func RegisterBlobWithName(ctx *common.FunctionExecutionContext, name string, con
 	return techID, nil
 }
 
-func RegisterBlob(ctx *common.FunctionExecutionContext, contentType string, contentBytes []byte) (string, error) {
+func RegisterBlob(ctx *common.FunctionExecutionContext, cookie interface{}, contentType string, contentBytes []byte) (string, error) {
 	techID, err := ctx.Orchestrator.RegisterBlob(contentType, contentBytes)
 	if err != nil {
 		return "", err
@@ -95,7 +95,7 @@ func RegisterBlob(ctx *common.FunctionExecutionContext, contentType string, cont
 	return techID, nil
 }
 
-func Base64Decode(ctx *common.FunctionExecutionContext, encoded string) ([]byte, error) {
+func Base64Decode(ctx *common.FunctionExecutionContext, cookie interface{}, encoded string) ([]byte, error) {
 	decoded, err := base64.StdEncoding.WithPadding(base64.StdPadding).DecodeString(encoded)
 	if err != nil {
 		return nil, err
@@ -104,11 +104,11 @@ func Base64Decode(ctx *common.FunctionExecutionContext, encoded string) ([]byte,
 	return decoded, nil
 }
 
-func Base64Encode(ctx *common.FunctionExecutionContext, b []byte) (string, error) {
+func Base64Encode(ctx *common.FunctionExecutionContext, cookie interface{}, b []byte) (string, error) {
 	return base64.StdEncoding.WithPadding(base64.StdPadding).EncodeToString(b), nil
 }
 
-func WriteExchangeBuffer(ctx *common.FunctionExecutionContext, bufferID int, content []byte) (int, error) {
+func WriteExchangeBuffer(ctx *common.FunctionExecutionContext, cookie interface{}, bufferID int, content []byte) (int, error) {
 	exchangeBuffer := ctx.Orchestrator.GetExchangeBuffer(bufferID)
 	if exchangeBuffer == nil {
 		fmt.Printf("GET EXCHANGE BUFFER FOR UNKNOWN BUFFER %d\n", bufferID)
@@ -120,7 +120,7 @@ func WriteExchangeBuffer(ctx *common.FunctionExecutionContext, bufferID int, con
 	return len(content), nil
 }
 
-func WriteExchangeBufferHeader(ctx *common.FunctionExecutionContext, bufferID int, name string, value string) (int, error) {
+func WriteExchangeBufferHeader(ctx *common.FunctionExecutionContext, cookie interface{}, bufferID int, name string, value string) (int, error) {
 	exchangeBuffer := ctx.Orchestrator.GetExchangeBuffer(int(bufferID))
 	if exchangeBuffer == nil {
 		fmt.Printf("GET EXCHANGE BUFFER FOR UNKNOWN BUFFER %d\n", bufferID)
@@ -132,7 +132,7 @@ func WriteExchangeBufferHeader(ctx *common.FunctionExecutionContext, bufferID in
 	return 0, nil
 }
 
-func WriteExchangeBufferStatusCode(ctx *common.FunctionExecutionContext, bufferID int, statusCode int) (int, error) {
+func WriteExchangeBufferStatusCode(ctx *common.FunctionExecutionContext, cookie interface{}, bufferID int, statusCode int) (int, error) {
 	exchangeBuffer := ctx.Orchestrator.GetExchangeBuffer(bufferID)
 	if exchangeBuffer == nil {
 		fmt.Printf("GET EXCHANGE BUFFER FOR UNKNOWN BUFFER %d\n", bufferID)
@@ -144,7 +144,7 @@ func WriteExchangeBufferStatusCode(ctx *common.FunctionExecutionContext, bufferI
 	return 0, nil
 }
 
-func ReadExchangeBuffer(ctx *common.FunctionExecutionContext, bufferID int) ([]byte, error) {
+func ReadExchangeBuffer(ctx *common.FunctionExecutionContext, cookie interface{}, bufferID int) ([]byte, error) {
 	buffer := ctx.Orchestrator.GetExchangeBuffer(bufferID)
 	if buffer == nil {
 		fmt.Printf("buffer %d not found for reading\n", bufferID)
@@ -156,7 +156,7 @@ func ReadExchangeBuffer(ctx *common.FunctionExecutionContext, bufferID int) ([]b
 	return bufferBytes, nil
 }
 
-func PersistenceSet(ctx *common.FunctionExecutionContext, key []byte, value []byte) (int, error) {
+func PersistenceSet(ctx *common.FunctionExecutionContext, cookie interface{}, key []byte, value []byte) (int, error) {
 	ok := ctx.Orchestrator.PersistenceSet(key, value)
 	if !ok {
 		return 0, errors.New("cannot persist key !")
@@ -165,11 +165,11 @@ func PersistenceSet(ctx *common.FunctionExecutionContext, key []byte, value []by
 	return 0, nil
 }
 
-func CreateExchangeBuffer(ctx *common.FunctionExecutionContext) (int, error) {
+func CreateExchangeBuffer(ctx *common.FunctionExecutionContext, cookie interface{}) (int, error) {
 	return ctx.Orchestrator.CreateExchangeBuffer(), nil
 }
 
-func ReadExchangeBufferHeaders(ctx *common.FunctionExecutionContext, bufferID int) (map[string]string, error) {
+func ReadExchangeBufferHeaders(ctx *common.FunctionExecutionContext, cookie interface{}, bufferID int) (map[string]string, error) {
 	res := make(map[string]string)
 
 	exchangeBuffer := ctx.Orchestrator.GetExchangeBuffer(int(bufferID))
@@ -183,7 +183,7 @@ func ReadExchangeBufferHeaders(ctx *common.FunctionExecutionContext, bufferID in
 	return res, nil
 }
 
-func GetUrl(ctx *common.FunctionExecutionContext, url string) ([]byte, error) {
+func GetUrl(ctx *common.FunctionExecutionContext, cookie interface{}, url string) ([]byte, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, nil
@@ -195,7 +195,7 @@ func GetUrl(ctx *common.FunctionExecutionContext, url string) ([]byte, error) {
 	return bytes, nil
 }
 
-func PersistenceGet(ctx *common.FunctionExecutionContext, key []byte) ([]byte, error) {
+func PersistenceGet(ctx *common.FunctionExecutionContext, cookie interface{}, key []byte) ([]byte, error) {
 	value, present := ctx.Orchestrator.PersistenceGet(key)
 	if !present {
 		return nil, nil
@@ -204,35 +204,35 @@ func PersistenceGet(ctx *common.FunctionExecutionContext, key []byte) ([]byte, e
 	return value, nil
 }
 
-func PrintDebug(ctx *common.FunctionExecutionContext, text string) (int, error) {
+func PrintDebug(ctx *common.FunctionExecutionContext, cookie interface{}, text string) (int, error) {
 	fmt.Printf("[print_debug %s::%s] %s\n", ctx.Name, ctx.StartFunction, text)
 
 	return 0, nil
 }
 
-func GetTime(ctx *common.FunctionExecutionContext, destBuffer []byte) (int, error) {
+func GetTime(ctx *common.FunctionExecutionContext, cookie interface{}, destBuffer []byte) (int, error) {
 	*(*int64)(unsafe.Pointer(&destBuffer[0])) = time.Now().UnixNano()
 
 	return 0, nil
 }
 
-func GetBlobTechIdFromName(ctx *common.FunctionExecutionContext, name string) (string, error) {
+func GetBlobTechIdFromName(ctx *common.FunctionExecutionContext, cookie interface{}, name string) (string, error) {
 	techID, err := ctx.Orchestrator.GetBlobTechIDFromName(name)
 
 	return techID, err
 }
 
-func GetBlobBytesAsString(ctx *common.FunctionExecutionContext, techID string) (string, error) {
+func GetBlobBytesAsString(ctx *common.FunctionExecutionContext, cookie interface{}, techID string) (string, error) {
 	contentBytes, err := ctx.Orchestrator.GetBlobBytesByTechID(techID)
 
 	return string(contentBytes), err
 }
 
-func GetStatus(ctx *common.FunctionExecutionContext) (string, error) {
+func GetStatus(ctx *common.FunctionExecutionContext, cookie interface{}) (string, error) {
 	return ctx.Orchestrator.GetStatus(), nil
 }
 
-func CallFunction(ctx *common.FunctionExecutionContext, name string, startFunction string, arguments []int, mode string, inputExchangeBufferID int, outputExchangeBufferID int, posixFileName string, posixArguments []string) (int, error) {
+func CallFunction(ctx *common.FunctionExecutionContext, cookie interface{}, name string, startFunction string, arguments []int, mode string, inputExchangeBufferID int, outputExchangeBufferID int, posixFileName string, posixArguments []string) (int, error) {
 	newCtx := ctx.Orchestrator.NewFunctionExecutionContext(
 		name,
 		startFunction,
@@ -254,7 +254,7 @@ func CallFunction(ctx *common.FunctionExecutionContext, name string, startFuncti
 	return newCtx.Result, nil
 }
 
-func PersistenceGetSubset(ctx *common.FunctionExecutionContext, prefix string) (map[string]string, error) {
+func PersistenceGetSubset(ctx *common.FunctionExecutionContext, cookie interface{}, prefix string) (map[string]string, error) {
 	subset, err := ctx.Orchestrator.PersistenceGetSubset([]byte(prefix))
 	if err != nil {
 		return nil, err
@@ -271,7 +271,7 @@ func PersistenceGetSubset(ctx *common.FunctionExecutionContext, prefix string) (
 	return res, nil
 }
 
-func ExportDatabase(ctx *common.FunctionExecutionContext) ([]byte, error) {
+func ExportDatabase(ctx *common.FunctionExecutionContext, cookie interface{}) ([]byte, error) {
 	res, err := ctx.Orchestrator.GetDatabaseExport("")
 	if err != nil {
 		return nil, err
@@ -288,7 +288,7 @@ type ProxySpec struct {
 	OutputExchangeBufferID int               `json:"outputBufferId"`
 }
 
-func BetaWebProxy(ctx *common.FunctionExecutionContext, proxySpecJSON string) (int, error) {
+func BetaWebProxy(ctx *common.FunctionExecutionContext, cookie interface{}, proxySpecJSON string) (int, error) {
 	spec := &ProxySpec{}
 	err := json.Unmarshal([]byte(proxySpecJSON), &spec)
 	if err != nil {
@@ -387,7 +387,7 @@ func BetaWebProxy(ctx *common.FunctionExecutionContext, proxySpecJSON string) (i
 	return 0, nil
 }
 
-func IsTrace(ctx *common.FunctionExecutionContext) (int, error) {
+func IsTrace(ctx *common.FunctionExecutionContext, cookie interface{}) (int, error) {
 	if ctx.Trace {
 		return 1, nil
 	} else {

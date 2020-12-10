@@ -152,6 +152,8 @@ func (server *WebServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			errorResponse(w, 500, fmt.Sprintf("error while executing the function: '%v'", err))
 			return
 		}
+
+		// TODO : if output buffer is closed => terminate processing
 	}
 
 	switch plugType {

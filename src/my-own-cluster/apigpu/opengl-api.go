@@ -25,7 +25,7 @@ type ComputeShaderSpecification struct {
 	DispatchSize [3]int                              `json:"dispatch_size"`
 }
 
-func ComputeShader(ctx *common.FunctionExecutionContext, specificationJSON string) (int, error) {
+func ComputeShader(ctx *common.FunctionExecutionContext, cookie interface{}, specificationJSON string) (int, error) {
 	// TODO later : maybe the present node does not have a GPU and we need to launch this elsewhere...
 	// TODO later : maybe this should be catched by the opengl exec engine...
 
@@ -168,7 +168,7 @@ func ComputeShader(ctx *common.FunctionExecutionContext, specificationJSON strin
 	return 0, nil
 }
 
-func CreateImageFromRgbaFloatPixels(ctx *common.FunctionExecutionContext, width int, height int, pixelsExchangeBufferID int, pngExchangeBufferID int) (int, error) {
+func CreateImageFromRgbaFloatPixels(ctx *common.FunctionExecutionContext, cookie interface{}, width int, height int, pixelsExchangeBufferID int, pngExchangeBufferID int) (int, error) {
 	pixelsBuffer := ctx.Orchestrator.GetExchangeBuffer(pixelsExchangeBufferID)
 	pixels := pixelsBuffer.GetBuffer()
 
@@ -194,7 +194,7 @@ func CreateImageFromRgbaFloatPixels(ctx *common.FunctionExecutionContext, width 
 	return 0, nil
 }
 
-func CreateImageFromRFloatPixels(ctx *common.FunctionExecutionContext, width int, height int, pixelsExchangeBufferID int, pngExchangeBufferID int) (int, error) {
+func CreateImageFromRFloatPixels(ctx *common.FunctionExecutionContext, cookie interface{}, width int, height int, pixelsExchangeBufferID int, pngExchangeBufferID int) (int, error) {
 	pixelsBuffer := ctx.Orchestrator.GetExchangeBuffer(pixelsExchangeBufferID)
 	pixels := pixelsBuffer.GetBuffer()
 
