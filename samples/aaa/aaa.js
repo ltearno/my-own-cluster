@@ -1,7 +1,7 @@
 /// reference path="./core-api-guest.d.ts"
-/// reference path="./jwt-api-guest.d.ts"
-
 const moc = requireApi('core')
+
+/// reference path="./jwt-api-guest.d.ts"
 const jwt = requireApi('jwt')
 
 console.log("filter module")
