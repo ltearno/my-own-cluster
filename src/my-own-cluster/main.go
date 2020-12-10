@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"my-own-cluster/apicore"
 	"my-own-cluster/apigpu"
+	"my-own-cluster/apijwt"
 	"my-own-cluster/assetsgen"
 	"my-own-cluster/common"
 	"my-own-cluster/enginejs"
@@ -177,6 +178,10 @@ func main() {
 		apiProvider, err = apigpu.NewGPUAPIProvider()
 		if err == nil {
 			orchestrator.AddAPIProvider("gpu", apiProvider)
+		}
+		apiProvider, err = apijwt.NewJWTAPIProvider()
+		if err == nil {
+			orchestrator.AddAPIProvider("jwt", apiProvider)
 		}
 
 		// init core-api

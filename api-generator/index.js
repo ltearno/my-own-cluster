@@ -759,7 +759,7 @@ function makeOut(fileName) {
 }
 
 // generate files
-for (let apiName of ["core", "gpu"]) {
+for (let apiName of ["core", "gpu", "jwt"]) {
     let apiDescription = JSON.parse(fs.readFileSync(`../src/my-own-cluster/api${apiName}/api.json`))
 
     // bindings for host

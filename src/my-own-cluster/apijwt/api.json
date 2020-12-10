@@ -1,0 +1,15 @@
+{
+    "bindFunctionName": "BindJwtFunctions",
+    "moduleName": "jwt",
+    "functions": {
+        "verify_jwt": {
+            "args": [
+                {
+                    "name": "jwt",
+                    "type": "string"
+                }
+            ],
+            "returnType": "string"
+        }
+    }
+}
