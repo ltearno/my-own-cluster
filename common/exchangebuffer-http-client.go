@@ -4,8 +4,9 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"my-own-cluster/tools"
 	"net/http"
+
+	"github.com/ltearno/my-own-cluster/tools"
 
 	"github.com/golang-collections/go-datastructures/queue"
 	"github.com/gorilla/websocket"

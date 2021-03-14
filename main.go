@@ -2,19 +2,24 @@ package main
 
 import (
 	"fmt"
-	"my-own-cluster/apicore"
-	"my-own-cluster/apigpu"
-	"my-own-cluster/apijwt"
-	"my-own-cluster/assetsgen"
-	"my-own-cluster/common"
-	"my-own-cluster/enginejs"
-	"my-own-cluster/enginewasm"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
+
+	"github.com/ltearno/my-own-cluster/enginewasm"
+
+	"github.com/ltearno/my-own-cluster/enginejs"
+
+	"github.com/ltearno/my-own-cluster/assetsgen"
+	"github.com/ltearno/my-own-cluster/common"
+
+	"github.com/ltearno/my-own-cluster/apijwt"
+
+	"github.com/ltearno/my-own-cluster/apicore"
+	"github.com/ltearno/my-own-cluster/apigpu"
 
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -227,59 +232,44 @@ func main() {
 		<-done
 		fmt.Printf("bye\n")
 
-		break
-
 	case "push":
 		CliPushFunction(verbs)
-		break
 
 	case "call":
 		CliCallFunction(verbs)
-		break
 
 	case "export-database":
 		CliExportDatabase(verbs)
-		break
 
 	case "upload":
 		CliUploadFile(verbs)
-		break
 
 	case "upload-dir":
 		CliUploadDir(verbs)
-		break
 
 	case "plug":
 		CliPlugFunction(verbs)
-		break
 
 	case "unplug":
 		CliUnplug(verbs)
-		break
 
 	case "plug-filter":
 		CliPlugFilter(verbs)
-		break
 
 	case "unplug-filter":
 		CliUnplugFilter(verbs)
-		break
 
 	case "kvm_test":
 		TestKVM()
-		break
 
 	case "guest-api":
 		CliGuestApi(verbs)
-		break
 
 	case "version":
 		CliVersion(verbs)
-		break
 
 	case "remote":
 		CliRemote(verbs)
-		break
 
 	default:
 		fmt.Printf("No argument received !\n")

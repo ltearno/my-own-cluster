@@ -8,16 +8,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"my-own-cluster/common"
-	"my-own-cluster/enginejs"
-	"my-own-cluster/enginewasm"
 	"net/http"
 	"time"
+
+	"github.com/ltearno/my-own-cluster/common"
+	"github.com/ltearno/my-own-cluster/enginejs"
+	"github.com/ltearno/my-own-cluster/enginewasm"
 
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jws"
-	"github.com/lestrrat-go/jwx/jws/verify"
 )
 
 type JWTAPIProvider struct {
@@ -49,7 +49,7 @@ func NewJWTAPIProvider() (common.APIProvider, error) {
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
 		for {
-			set, err := jwk.FetchHTTP(p.trustProvider.certEndpoint, jwk.WithHTTPClient(p.client))
+			set, err := jwk.Fetch(context.Background(), p.trustProvider.certEndpoint, jwk.WithHTTPClient(p.client))
 			if err != nil {
 				log.Printf("failed to parse JWK: %s %v", err, set)
 			} else {
@@ -139,7 +139,7 @@ func vVerifyJwt(ctx *common.FunctionExecutionContext, cookie interface{}, jwt st
 	// check jwt's length
 
 	// split jwt's three parts => 3 slices of the buffer
-	protected, payload, signature, err := jws.SplitCompact(bytes.NewReader(buf))
+	protected, payload, signature, err := jws.SplitCompact(buf)
 	if err != nil {
 		return "", fmt.Errorf("bad formatted jwt")
 	}
@@ -187,7 +187,7 @@ func vVerifyJwt(ctx *common.FunctionExecutionContext, cookie interface{}, jwt st
 	}
 	kid, ok := kidAny.(string)
 	if !ok {
-		return "", fmt.Errorf("kid is not astring in header (%v)", kidAny)
+		return "", fmt.Errorf("kid is not a string in header (%v)", kidAny)
 	}
 	key, ok := keys[kid]
 	if !ok {
@@ -196,7 +196,10 @@ func vVerifyJwt(ctx *common.FunctionExecutionContext, cookie interface{}, jwt st
 
 	// check signature with info from the trust provider
 	alg := jwa.RS256
-	verifier, err := verify.New(alg)
+	verifier, err := jws.NewVerifier(alg) // verify.New(alg)
+	if err != nil {
+		return "", fmt.Errorf(`failed to instantiate signature verifier %v`, err)
+	}
 	verifyBuf := &bytes.Buffer{}
 	verifyBuf.Write(protected)
 	verifyBuf.WriteByte('.')

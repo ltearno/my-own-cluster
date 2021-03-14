@@ -6,8 +6,9 @@ import (
 	"image"
 	"image/color"
 	"image/png"
-	"my-own-cluster/common"
 	"unsafe"
+
+	"github.com/ltearno/my-own-cluster/common"
 )
 
 type ComputeShaderBindingSpecification struct {

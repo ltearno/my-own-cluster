@@ -6,14 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"my-own-cluster/common"
-	"my-own-cluster/enginejs"
-	"my-own-cluster/enginewasm"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 	"unsafe"
+
+	"github.com/ltearno/my-own-cluster/common"
+	"github.com/ltearno/my-own-cluster/enginejs"
+	"github.com/ltearno/my-own-cluster/enginewasm"
 )
 
 type CoreAPIProvider struct{}

@@ -2,7 +2,8 @@ package enginejs
 
 import (
 	"fmt"
-	"my-own-cluster/common"
+
+	"github.com/ltearno/my-own-cluster/common"
 
 	"gopkg.in/ltearno/go-duktape.v3"
 )

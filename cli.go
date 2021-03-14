@@ -7,13 +7,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"my-own-cluster/assetsgen"
-	"my-own-cluster/tools"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/ltearno/my-own-cluster/assetsgen"
+	"github.com/ltearno/my-own-cluster/tools"
 )
 
 type RegisterBlobWithNameRequest struct {

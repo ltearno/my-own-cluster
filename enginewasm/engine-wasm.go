@@ -4,10 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"my-own-cluster/common"
-	"my-own-cluster/tools"
 	"net/http"
 	"unsafe"
+
+	"github.com/ltearno/my-own-cluster/common"
+	"github.com/ltearno/my-own-cluster/tools"
 
 	wasm3 "github.com/ltearno/go-wasm3"
 )

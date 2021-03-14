@@ -3,8 +3,9 @@ package common
 import (
 	"encoding/json"
 	"fmt"
-	"my-own-cluster/tools"
 	"strings"
+
+	"github.com/ltearno/my-own-cluster/tools"
 
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )

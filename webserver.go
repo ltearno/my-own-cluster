@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"my-own-cluster/common"
-	"my-own-cluster/tools"
 	"net/http"
 	"path/filepath"
 	"strings"
+
+	"github.com/ltearno/my-own-cluster/common"
+	"github.com/ltearno/my-own-cluster/tools"
 
 	"github.com/gorilla/websocket"
 )

@@ -3,10 +3,11 @@ package apigpu
 import (
 	"errors"
 	"fmt"
-	"my-own-cluster/common"
-	"my-own-cluster/enginejs"
-	"my-own-cluster/enginewasm"
 	"unsafe"
+
+	"github.com/ltearno/my-own-cluster/common"
+	"github.com/ltearno/my-own-cluster/enginejs"
+	"github.com/ltearno/my-own-cluster/enginewasm"
 )
 
 /*
