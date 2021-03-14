@@ -53,7 +53,7 @@ In another terminal, go to the repository directory and type :
 make build
 
 # the samples directory
-cd samples
+cd _samples
 
 # this will upload some webassembly compiled sources to the service instance
 make register

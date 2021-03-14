@@ -1,4 +1,3 @@
-export GOPATH := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 export APP_NAME := my-own-cluster
 
 IMAGE := my-own-cluster:latest
@@ -9,13 +8,13 @@ all: run-serve
 .PHONY: build-prepare
 build-prepare:
 	@echo "updating dependencies..."
-	@./update-dependencies.sh
+	GOPATH=$(dir $(realpath $(firstword $(MAKEFILE_LIST)))) GO111MODULE="off" go get github.com/jteeuwen/go-bindata/...
 	@sudo apt install -y libgbm-dev libegl-dev
 
 .PHONY: build-embed-assets
 build-embed-assets:
 	@echo "embedding assets..."
-	@./bin/go-bindata -o src/my-own-cluster/assetsgen/assets.go -pkg assetsgen assets/...
+	@./bin/go-bindata -o assetsgen/assets.go -pkg assetsgen assets/...
 
 .PHONY: build-apis
 build-apis:
@@ -24,7 +23,7 @@ build-apis:
 .PHONY: build
 build: build-embed-assets
 	@echo "build binaries..."
-	@go build my-own-cluster
+	@go build github.com/ltearno/my-own-cluster
 
 build-releases: build-embed-assets
 	@echo building release files...
@@ -33,7 +32,7 @@ build-releases: build-embed-assets
 .PHONY: run-serve
 run-serve: build-embed-assets tls.cert.pem
 	@echo "run binaries..."
-	@go run my-own-cluster serve
+	@go run github.com/ltearno/my-own-cluster serve
 	# -trace true
 
 tls.cert.pem:

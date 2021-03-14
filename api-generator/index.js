@@ -311,7 +311,7 @@ function generateWasmBindings(apiDescription, out) {
     out(`package api${apiDescription.moduleName}
 
     import (
-        "my-own-cluster/enginewasm"
+        "github.com/ltearno/my-own-cluster/enginewasm"
 
         ${needBytesPackage ? '"bytes"' : ''}
         ${needBytesPackage ? '"encoding/binary"' : ''}
@@ -348,7 +348,7 @@ function generateJsBindings(apiDescription, out) {
     out(`package api${apiDescription.moduleName}
 
     import (
-        "my-own-cluster/enginejs"
+        "github.com/ltearno/my-own-cluster/enginejs"
     
         "gopkg.in/ltearno/go-duktape.v3"
     )\n\n`)
@@ -760,11 +760,11 @@ function makeOut(fileName) {
 
 // generate files
 for (let apiName of ["core", "gpu", "jwt"]) {
-    let apiDescription = JSON.parse(fs.readFileSync(`../src/my-own-cluster/api${apiName}/api.json`))
+    let apiDescription = JSON.parse(fs.readFileSync(`../api${apiName}/api.json`))
 
     // bindings for host
-    generateJsBindings(apiDescription, makeOut(`../src/my-own-cluster/api${apiName}/${apiName}-api-js.go`))
-    generateWasmBindings(apiDescription, makeOut(`../src/my-own-cluster/api${apiName}/${apiName}-api-wasm.go`))
+    generateJsBindings(apiDescription, makeOut(`../api${apiName}/${apiName}-api-js.go`))
+    generateWasmBindings(apiDescription, makeOut(`../api${apiName}/${apiName}-api-wasm.go`))
 
     // bindings for guest
     generateGuestCBindings(apiDescription, makeOut(`../assets/${apiName}-api-guest.h`))
