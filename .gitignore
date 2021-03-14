@@ -1,16 +1,15 @@
-/my-own-cluster
 *.pem
 .vscode/
 
 bin/
 pkg/
-src/github.com/
-src/gopkg.in/
-src/github.com/ltearno/my-own-cluster/assetsgen/
+src/
+releases/
+my-own-cluster
 
 my-own-cluster-database-provisional/
 
-src/my-own-cluster/assetsgen/assets.go
+assetsgen/assets.go
 
 kvm_test_c/*.o
 kvm_test_c/*.bin
