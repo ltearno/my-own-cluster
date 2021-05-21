@@ -144,22 +144,23 @@ func registerBlob(baseURL string, contentType string, fileName string) (string, 
 
 	bodyBytes, err := json.Marshal(reqBody)
 	if err != nil {
-		return "", fmt.Errorf("cannot marshal json")
+		return "", fmt.Errorf("cannot marshal json (%v)", err)
 	}
 
 	bodyReader := bytes.NewReader(bodyBytes)
 
 	resp, err := client.Post(baseURL+"/api/blob/register", "application/json", bodyReader)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 	defer resp.Body.Close()
 
 	bytes, _ := ioutil.ReadAll(resp.Body)
 
 	response := &RegisterBlobResponse{}
-	if json.Unmarshal(bytes, response) != nil {
-		return "", fmt.Errorf("cannot unmarshall server response : %s", string(bytes))
+	err = json.Unmarshal(bytes, response)
+	if err != nil {
+		return "", fmt.Errorf("cannot unmarshall server response (%v), here is the raw response's text: %s", err, string(bytes))
 	}
 
 	if response.Status {
@@ -207,7 +208,7 @@ func CliUploadFile(verbs []Verb) {
 
 	techID, err := uploadFile(baseURL, method, path, contentType, fileName, tags)
 	if err != nil {
-		fmt.Printf("error while doing things, %v\n", err)
+		fmt.Printf("error while uploading file, %v\n", err)
 		return
 	}
 
@@ -244,6 +245,7 @@ func CliUploadDir(verbs []Verb) {
 			fmt.Printf("%s  =>  %s\n", path, urlPath)
 			_, err := uploadFile(baseURL, method, urlPath, detectContentTypeFromFileName(path), path, tags)
 			if err != nil {
+				fmt.Printf(" error while uploading %s to %s (%v)\n", path, urlPath, err)
 				countError++
 			}
 			count++
@@ -530,7 +532,7 @@ func getAPIBaseURL(verb Verb) string {
 func uploadFile(serverBaseUrl string, method string, path string, contentType string, fileName string, tags map[string]string) (string, error) {
 	techID, err := registerBlob(serverBaseUrl, contentType, fileName)
 	if err != nil {
-		return "", fmt.Errorf("cannot read file '%s' (%v)", fileName, err)
+		return "", fmt.Errorf("error while registering blob (%v)", err)
 	}
 
 	reqBody := &PlugFileRequest{
@@ -542,8 +544,7 @@ func uploadFile(serverBaseUrl string, method string, path string, contentType st
 
 	bodyBytes, err := json.Marshal(reqBody)
 	if err != nil {
-		fmt.Printf("cannot marshal json\n")
-		return "", err
+		return "", fmt.Errorf("cannot marshal json (%v), raw string: %v", err, reqBody)
 	}
 
 	bodyReader := bytes.NewReader(bodyBytes)
@@ -557,9 +558,9 @@ func uploadFile(serverBaseUrl string, method string, path string, contentType st
 	resp.Body.Close()
 
 	response := &PlugResponse{}
-	if json.Unmarshal(bytes, response) != nil {
-		fmt.Printf("cannot unmarshall server response : %s\n", string(bytes))
-		return "", err
+	err = json.Unmarshal(bytes, response)
+	if err != nil {
+		return "", fmt.Errorf("cannot unmarshall server response (%v) : %s", err, string(bytes))
 	}
 
 	if !response.Status {
