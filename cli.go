@@ -149,18 +149,23 @@ func registerBlob(baseURL string, contentType string, fileName string) (string, 
 
 	bodyReader := bytes.NewReader(bodyBytes)
 
-	resp, err := client.Post(baseURL+"/api/blob/register", "application/json", bodyReader)
+	url := baseURL + "/api/blob/register"
+	resp, err := client.Post(url, "application/json", bodyReader)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("%s status when calling '%s'", resp.Status, url)
+	}
 
 	bytes, _ := ioutil.ReadAll(resp.Body)
 
 	response := &RegisterBlobResponse{}
 	err = json.Unmarshal(bytes, response)
 	if err != nil {
-		return "", fmt.Errorf("cannot unmarshall server response (%v), here is the raw response's text: %s", err, string(bytes))
+		return "", fmt.Errorf("cannot unmarshall server response (%v), here is the raw response's status: %d and text: %s", err, resp.StatusCode, string(bytes))
 	}
 
 	if response.Status {
