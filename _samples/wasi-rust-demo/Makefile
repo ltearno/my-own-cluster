@@ -18,6 +18,6 @@ register: $(WASM_FILE)
 .PHONY: call
 call:
 	@echo Calling 'wasi-rust-demo', a little demo program written in Rust and built for the wasm32-wasi platform
-	$(MOC) call wasi-rust-demo -mode posix "https://lkml.org/" "api://output" | jq
+	$(MOC) call wasi-rust-demo -mode posix "https://lkml.org/" "api://output"
 	@echo Decoding base64 output :
-	$(MOC) call wasi-rust-demo -mode posix "https://lkml.org/" "api://output" | jq -r '.output' | base64 -d
+	$(MOC) call wasi-rust-demo -mode posix "https://lkml.org/" "api://output"

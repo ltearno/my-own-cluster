@@ -10,6 +10,8 @@ fn process(input_fname: &str, output_fname: &str) -> Result<(), String> {
         .read_to_end(&mut contents)
         .map_err(|err| format!("read error: {}", err))?;
 
+        println!("Coming from the input buffer: {:?}!", contents);
+
     let mut output_file = fs::File::create(output_fname)
         .map_err(|err| format!("error opening output '{}': {}", output_fname, err))?;
     output_file
@@ -27,7 +29,7 @@ fn main() {
     }
 
     if let Err(err) = process(&args[1], &args[2]) {
-        eprintln!("{}", err)
+        eprintln!("FROM RUST ERROR {}", err)
     }
 
     println!("Hello {:5}!", "x");

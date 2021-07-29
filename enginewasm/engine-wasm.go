@@ -286,7 +286,7 @@ func (b WrappedExchangeBufferInVirtualFile) Read(buffer []byte) int {
 }
 
 func (b WrappedExchangeBufferInVirtualFile) Write(buffer []byte) (int, error) {
-	res, err := b.Write(buffer)
+	res, err := b.b.Write(buffer)
 	return res, err
 }
 

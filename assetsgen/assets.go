@@ -96,7 +96,7 @@ func assetsCoreApiGuestDTs() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/core-api-guest.d.ts", size: 2326, mode: os.FileMode(436), modTime: time.Unix(1615708949, 0)}
+	info := bindataFileInfo{name: "assets/core-api-guest.d.ts", size: 2326, mode: os.FileMode(436), modTime: time.Unix(1627488007, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -116,7 +116,7 @@ func assetsCoreApiGuestH() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/core-api-guest.h", size: 4896, mode: os.FileMode(436), modTime: time.Unix(1615708949, 0)}
+	info := bindataFileInfo{name: "assets/core-api-guest.h", size: 4896, mode: os.FileMode(436), modTime: time.Unix(1627488007, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -136,7 +136,7 @@ func assetsCoreApiGuestSyms() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/core-api-guest.syms", size: 540, mode: os.FileMode(436), modTime: time.Unix(1615708949, 0)}
+	info := bindataFileInfo{name: "assets/core-api-guest.syms", size: 540, mode: os.FileMode(436), modTime: time.Unix(1627488007, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -156,7 +156,7 @@ func assetsCore_api_guestRs() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/core_api_guest.rs", size: 17747, mode: os.FileMode(436), modTime: time.Unix(1615708949, 0)}
+	info := bindataFileInfo{name: "assets/core_api_guest.rs", size: 17747, mode: os.FileMode(436), modTime: time.Unix(1627488007, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -176,7 +176,7 @@ func assetsGpuApiGuestDTs() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/gpu-api-guest.d.ts", size: 622, mode: os.FileMode(436), modTime: time.Unix(1615708949, 0)}
+	info := bindataFileInfo{name: "assets/gpu-api-guest.d.ts", size: 622, mode: os.FileMode(436), modTime: time.Unix(1627488007, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -256,7 +256,7 @@ func assetsJwtApiGuestDTs() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/jwt-api-guest.d.ts", size: 339, mode: os.FileMode(436), modTime: time.Unix(1615708949, 0)}
+	info := bindataFileInfo{name: "assets/jwt-api-guest.d.ts", size: 339, mode: os.FileMode(436), modTime: time.Unix(1627488007, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -276,7 +276,7 @@ func assetsJwtApiGuestH() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/jwt-api-guest.h", size: 537, mode: os.FileMode(436), modTime: time.Unix(1615708949, 0)}
+	info := bindataFileInfo{name: "assets/jwt-api-guest.h", size: 537, mode: os.FileMode(436), modTime: time.Unix(1627488007, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -296,7 +296,7 @@ func assetsJwtApiGuestSyms() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/jwt-api-guest.syms", size: 11, mode: os.FileMode(436), modTime: time.Unix(1615708949, 0)}
+	info := bindataFileInfo{name: "assets/jwt-api-guest.syms", size: 11, mode: os.FileMode(436), modTime: time.Unix(1627488007, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -316,7 +316,7 @@ func assetsJwt_api_guestRs() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/jwt_api_guest.rs", size: 1165, mode: os.FileMode(436), modTime: time.Unix(1615708949, 0)}
+	info := bindataFileInfo{name: "assets/jwt_api_guest.rs", size: 1165, mode: os.FileMode(436), modTime: time.Unix(1627488007, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -356,7 +356,7 @@ func assetsRestDefaultApiJs() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/rest-default-api.js", size: 3989, mode: os.FileMode(436), modTime: time.Unix(1615009997, 0)}
+	info := bindataFileInfo{name: "assets/rest-default-api.js", size: 3989, mode: os.FileMode(436), modTime: time.Unix(1627488007, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
