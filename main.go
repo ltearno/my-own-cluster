@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/ltearno/my-own-cluster/enginejs"
+	"github.com/ltearno/my-own-cluster/enginewasm"
 	"github.com/ltearno/my-own-cluster/enginewasmer"
 
 	"github.com/ltearno/my-own-cluster/assetsgen"
@@ -102,8 +103,9 @@ func main() {
 	// execute the verb
 	switch verbs[0].Name {
 	case "serve":
-		trace := true //verbs[0].GetOptionOr("trace", "false") == "true"
+		trace := verbs[0].GetOptionOr("trace", "false") == "true"
 		removeFilters := verbs[0].GetOptionOr("remove-filters", "false") == "true"
+		useWasmer := verbs[0].GetOptionOr("wasmer", "false") == "true"
 		trace = trace || removeFilters
 
 		sigs := make(chan os.Signal, 1)
@@ -171,8 +173,13 @@ func main() {
 
 		// register execution engines
 		orchestrator.AddExecutionEngine("text/javascript", enginejs.NewJavascriptDuktapeEngine())
-		//orchestrator.AddExecutionEngine("application/wasm", enginewasm.NewWasmWasm3Engine())
-		orchestrator.AddExecutionEngine("application/wasm", enginewasmer.NewWasmWasmerEngine())
+		if useWasmer {
+			fmt.Printf("use WASMER web assembly engine")
+			orchestrator.AddExecutionEngine("application/wasm", enginewasmer.NewWasmWasmerEngine())
+		} else {
+			fmt.Printf("use WASM3 web assembly engine")
+			orchestrator.AddExecutionEngine("application/wasm", enginewasm.NewWasmWasm3Engine())
+		}
 
 		// add api providers
 		apiProvider, err := apicore.NewCoreAPIProvider()
