@@ -72,7 +72,7 @@ func (p *PlugSystem) UnplugPath(method string, path string) error {
 }
 
 func (p *PlugSystem) GetPlugs() map[string]string {
-	r := make(map[string]string, 0)
+	r := make(map[string]string)
 
 	prefix := p.getPlugsStartKey()
 

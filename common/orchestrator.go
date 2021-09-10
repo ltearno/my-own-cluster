@@ -38,7 +38,9 @@ type Orchestrator struct {
 	apiProviders     map[string]APIProvider
 
 	trace bool
-	stats map[string]int
+
+	stats     map[string]int
+	statsLock sync.Mutex
 
 	plugs *PlugSystem
 }
@@ -439,11 +441,15 @@ func (o *Orchestrator) GetStatus() string {
 
 	o.StatSet(STAT_NB_CURRENT_BUFFERS, len(o.exchangeBuffers))
 
-	status.Statistics = o.stats
 	status.Plugs = o.GetPlugs()
 	status.BlobNames = o.GetBlobsByName()
 	status.Blobs = o.GetBlobs()
 	status.Filters = o.GetFilters()
+
+	o.statsLock.Lock()
+	defer o.statsLock.Unlock()
+
+	status.Statistics = o.stats
 
 	b, err := json.Marshal(status)
 	if err != nil {
